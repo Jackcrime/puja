@@ -102,33 +102,6 @@ export default function PustakaDigital() {
                 </div>
                 <p className="text-sm text-muted-foreground leading-relaxed">{preview.description}</p>
 
-                {/* PDF Viewer */}
-                {preview.fileUrl ? (
-                  <div className="rounded-xl overflow-hidden border border-border bg-muted/30 relative" style={{ minHeight: 420 }}>
-                    <p className="text-xs font-bold tracking-widest uppercase px-4 pt-3 pb-2" style={{ color: "var(--gold)" }}>
-                      {t("pustaka.preview")}
-                    </p>
-                    {pdfLoading && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-muted/60 z-10 top-8">
-                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-[var(--brand)]" />
-                      </div>
-                    )}
-                    <iframe
-                      src={`${preview.fileUrl}#toolbar=0&navpanes=0`}
-                      className="w-full rounded-b-xl"
-                      style={{ height: 380, border: "none" }}
-                      onLoad={() => setPdfLoading(false)}
-                      onLoadStart={() => setPdfLoading(true)}
-                      title={preview.title}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center py-10 text-muted-foreground gap-2 bg-muted/30 rounded-xl border border-border">
-                    <FileText className="h-5 w-5 opacity-40" />
-                    <span className="text-sm">File PDF belum tersedia</span>
-                  </div>
-                )}
-
                 <div className="flex gap-3 pt-1">
                   {preview.fileUrl && (
                     <a href={preview.fileUrl} target="_blank" rel="noopener noreferrer"

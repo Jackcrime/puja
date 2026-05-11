@@ -1,134 +1,148 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
+import React, { useState, useRef, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { VerseCard } from "@/components/ui/VerseCard";
-import { Calendar } from "@/components/ui/calendar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AuthorModal } from "@/components/ui/AuthorModal";
+import { FocusMode } from "@/components/ui/FocusMode";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CalendarDays, ChevronRight, Copy, Check, BookOpen, ScrollText } from "lucide-react";
-import { useVerseHighlights, useBibleReadings, usePrayerTopic, useSpecialVerses, usePerikop } from "@/lib/hooks/useFirestoreData";
+import { Play, Pause, Headphones, BookOpen, Printer, Share2, Check, Maximize2, User, Loader2 } from "lucide-react";
 import { useI18n } from "@/lib/hooks/useI18n";
-import { format } from "date-fns";
-import { id as localeId } from "date-fns/locale";
+import {
+  useDevotional, useVerseHighlights, useBibleReadings,
+  usePrayerTopic, useSpecialVerses, useAuthors, useMinistries,
+} from "@/lib/hooks/useFirestoreData";
 
-function CopyBtn({ text, reference }: { text: string; reference: string }) {
-  const [copied, setCopied] = useState(false);
+export default function JanjiHidup() {
   const { t } = useI18n();
-  const copy = () => {
-    navigator.clipboard?.writeText(`${reference}\n"${text}"`).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const { data: devotional, loading: devLoading } = useDevotional();
+  const { data: highlights, loading: hlLoading }  = useVerseHighlights();
+  const { data: readings }                         = useBibleReadings();
+  const { data: prayerTopic }                      = usePrayerTopic();
+  const { data: specialVerses }                    = useSpecialVerses();
+  const { data: authors }                          = useAuthors();
+  const { data: ministries, loading: minLoading }  = useMinistries();
+
+  // Group ministries by category
+  const groupedMinistries = ministries.reduce<Record<string, typeof ministries>>((acc, m) => {
+    if (!acc[m.category]) acc[m.category] = [];
+    acc[m.category].push(m);
+    return acc;
+  }, {});
+
+  const [isPlaying, setIsPlaying]   = useState(false);
+  const [progress, setProgress]     = useState(0);
+  const [duration, setDuration]     = useState(0);
+  const [shared, setShared]         = useState(false);
+  const [authorOpen, setAuthorOpen] = useState(false);
+  const [focusMode, setFocusMode]   = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const author = authors[devotional.authorCode as keyof typeof authors];
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const onTime = () => setProgress(audio.currentTime);
+    const onMeta = () => setDuration(audio.duration);
+    audio.addEventListener("timeupdate", onTime);
+    audio.addEventListener("loadedmetadata", onMeta);
+    audio.addEventListener("ended", () => setIsPlaying(false));
+    return () => {
+      audio.removeEventListener("timeupdate", onTime);
+      audio.removeEventListener("loadedmetadata", onMeta);
+    };
+  }, []);
+
+  const toggleAudio = () => {
+    if (!audioRef.current) return;
+    isPlaying ? audioRef.current.pause() : audioRef.current.play();
+    setIsPlaying(!isPlaying);
   };
-  return (
-    <button onClick={copy} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
-      {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
-      {copied ? t("common.copied") : t("common.copy")}
-    </button>
-  );
-}
 
-export default function PujiDanJanji() {
-  const { t } = useI18n();
-  const { data: VERSE_HIGHLIGHTS }  = useVerseHighlights();
-  const { data: BIBLE_READINGS }    = useBibleReadings();
-  const { data: PRAYER_TOPIC }      = usePrayerTopic();
-  const { data: SPECIAL_VERSES }    = useSpecialVerses();
-  const { data: PERIKOP }           = usePerikop();
-  const [date, setDate] = useState<Date | undefined>(new Date());
-  const [calOpen, setCalOpen] = useState(false);
-  const [perikopOpen, setPerikopOpen] = useState(false);
-  const [readVerse, setReadVerse] = useState<string[]>([]);
+  const fmt = (s: number) => isFinite(s) ? `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,"0")}` : "0:00";
 
-  const displayDate = date
-    ? format(date, "EEEE, d MMMM yyyy", { locale: localeId })
-    : "Sabtu, 3 Mei 2026";
+  const share = async () => {
+    try {
+      if (navigator.share) { await navigator.share({ title: devotional.title, url: window.location.href }); }
+      else { await navigator.clipboard.writeText(window.location.href); setShared(true); setTimeout(()=>setShared(false),2000); }
+    } catch {}
+  };
+
+  if (focusMode) {
+    return <FocusMode title={devotional.title} authorCode={devotional.authorCode} body={devotional.body} prayer={devotional.prayer} onExit={() => setFocusMode(false)} />;
+  }
 
   return (
     <AppLayout>
+      <AuthorModal code={devotional.authorCode} open={authorOpen} onOpenChange={setAuthorOpen} />
       <div className="max-w-2xl mx-auto px-4 pt-8 pb-6">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8 pb-5 border-b border-border">
           <div>
-            <p className="text-xs font-bold tracking-widest uppercase mb-1" style={{ color: "var(--gold)" }}>{t("pujidanjanji.title")}</p>
-            <h1 className="font-serif font-bold text-2xl sm:text-3xl" style={{ color: "var(--brand)" }}>{displayDate}</h1>
+            <p className="text-xs font-bold tracking-widest uppercase mb-1" style={{ color: "var(--gold)" }}>{t("janjihidup.title")}</p>
+            <h1 className="font-serif font-bold text-2xl sm:text-3xl" style={{ color: "var(--brand)" }}>Sabtu, 3 Mei 2026</h1>
           </div>
-          <div className="flex gap-2">
-            {/* Perikop button */}
-            <Dialog open={perikopOpen} onOpenChange={setPerikopOpen}>
-              <DialogTrigger asChild>
-                <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                  <ScrollText className="h-4 w-4" />
-                  <span className="hidden sm:inline">{t("pujidanjanji.perikop")}</span>
-                </button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="font-serif" style={{ color: "var(--brand)" }}>{t("pujidanjanji.perikop")}</DialogTitle>
-                </DialogHeader>
-                <div className="flex flex-col gap-3 py-2">
-                  {PERIKOP.map((p, i) => (
-                    <div key={i} className="flex items-start gap-4 p-3 rounded-xl" style={{ backgroundColor: "var(--brand-muted)" }}>
-                      <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: "var(--brand)" }}>{i + 1}</div>
-                      <div>
-                        <p className="font-serif font-semibold" style={{ color: "var(--brand)" }}>
-                          {p.book} {p.chapter}:{p.verses}
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-0.5">{p.heading}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            {/* Calendar button */}
-            <Dialog open={calOpen} onOpenChange={setCalOpen}>
-              <DialogTrigger asChild>
-                <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" aria-label={t("pujidanjanji.chooseDate")}>
-                  <CalendarDays className="h-4 w-4" />
-                  <span className="hidden sm:inline">{t("pujidanjanji.chooseDate")}</span>
-                </button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="font-serif" style={{ color: "var(--brand)" }}>{t("pujidanjanji.chooseDate")}</DialogTitle>
-                </DialogHeader>
-                <div className="flex justify-center p-4">
-                  <Calendar mode="single" selected={date} onSelect={(d) => { setDate(d); setCalOpen(false); }} className="rounded-lg border" />
-                </div>
-              </DialogContent>
-            </Dialog>
+          <div className="flex items-center gap-1.5">
+            <button onClick={() => setFocusMode(true)} className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"><Maximize2 className="h-4 w-4" /></button>
+            <button onClick={share} className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors">
+              {shared ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
+            </button>
+            <button onClick={() => window.print()} className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors no-print"><Printer className="h-4 w-4" /></button>
           </div>
         </div>
+
+        {/* Audio Player */}
+        <section className="mb-8 no-print">
+          <audio ref={audioRef} src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" />
+          <div className="bg-card border border-border rounded-xl p-5">
+            <div className="flex items-center gap-4">
+              <button onClick={toggleAudio} className="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0" style={{ backgroundColor: "var(--brand)" }}>
+                {isPlaying ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current ml-0.5" />}
+              </button>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <Headphones className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-sm font-medium">{t("janjihidup.audio")}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden cursor-pointer" onClick={(e) => {
+                    if (!audioRef.current || !duration) return;
+                    const r = e.currentTarget.getBoundingClientRect();
+                    audioRef.current.currentTime = ((e.clientX - r.left) / r.width) * duration;
+                  }}>
+                    <div className="h-full rounded-full" style={{ backgroundColor: "var(--brand)", width: duration ? `${(progress/duration)*100}%` : "0%" }} />
+                  </div>
+                  <span className="text-xs text-muted-foreground tabular-nums">{fmt(progress)} / {fmt(duration)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* Verse Highlights */}
         <section className="mb-8">
           <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: "var(--gold)" }}>{t("pujidanjanji.highlights")}</p>
-          <div className="flex flex-col gap-3">
-            {VERSE_HIGHLIGHTS.map((v, i) => (
-              <VerseCard key={i} reference={v.reference} text={v.text} id={`highlight-${i}`} />
-            ))}
-          </div>
+          {hlLoading ? <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Memuat...</div> : (
+            <div className="flex flex-col gap-3">
+              {highlights.map((v, i) => <VerseCard key={i} reference={v.reference} text={v.text} id={`jh-hl-${i}`} />)}
+            </div>
+          )}
         </section>
 
         {/* Bible Readings */}
         <section className="mb-8">
           <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: "var(--gold)" }}>{t("pujidanjanji.readings")}</p>
           <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <Accordion type="multiple" className="w-full">
-              {BIBLE_READINGS.map((reading, idx) => (
+            <Accordion type="multiple" defaultValue={["r-0"]} className="w-full">
+              {readings.map((reading, idx) => (
                 <AccordionItem value={`r-${idx}`} key={idx} className="border-b last:border-0">
-                  <AccordionTrigger className="px-5 py-4 hover:bg-muted/50 transition-colors text-left" onClick={() => setReadVerse(p => p.includes(reading.reference) ? p : [...p, reading.reference])}>
+                  <AccordionTrigger className="px-5 py-4 hover:bg-muted/50 transition-colors">
                     <div className="flex flex-col gap-0.5 text-left">
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-2">
                         <BookOpen className="h-4 w-4 shrink-0" style={{ color: "var(--gold)" }} />
                         <span className="font-serif font-semibold" style={{ color: "var(--brand)" }}>{reading.reference}</span>
-                        {readVerse.includes(reading.reference) && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">{t("pujidanjanji.read")}</span>
-                        )}
                       </div>
                       {reading.title && <span className="text-xs text-muted-foreground pl-6">{reading.title}</span>}
                     </div>
@@ -141,9 +155,6 @@ export default function PujiDanJanji() {
                           <p className="text-foreground leading-relaxed text-sm flex-1">{verse.text}</p>
                         </div>
                       ))}
-                      <div className="pt-3 border-t border-border mt-1">
-                        <CopyBtn reference={reading.reference} text={reading.verses.map(v => v.text).join(" ")} />
-                      </div>
                     </div>
                   </AccordionContent>
                 </AccordionItem>
@@ -152,15 +163,51 @@ export default function PujiDanJanji() {
           </div>
         </section>
 
-        {/* Prayer Topic */}
+        {/* Devotional */}
         <section className="mb-8">
           <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <div className="h-0.5 w-full" style={{ backgroundColor: "var(--brand)" }} />
-            <div className="p-5">
-              <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: "var(--gold)" }}>{t("pujidanjanji.prayer")}</p>
-              <h3 className="font-serif font-bold text-lg mb-3" style={{ color: "var(--brand)" }}>{PRAYER_TOPIC.title}</h3>
-              <p className="text-muted-foreground leading-relaxed italic text-sm">{PRAYER_TOPIC.text}</p>
+            <div className="h-1 w-full" style={{ backgroundColor: "var(--brand)" }} />
+            <div className="p-6 sm:p-8">
+              <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: "var(--gold)" }}>{t("janjihidup.devotional")}</p>
+              {devLoading ? (
+                <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /> Memuat renungan...</div>
+              ) : (
+                <>
+                  <h2 className="font-serif font-bold text-2xl sm:text-3xl mb-6" style={{ color: "var(--brand)" }}>{devotional.title}</h2>
+                  <div className="space-y-4">
+                    {devotional.body.split("\n\n").map((para, i) => (
+                      <p key={i} className="text-foreground leading-relaxed">{para}</p>
+                    ))}
+                  </div>
+                  <button onClick={() => setAuthorOpen(true)} className="mt-6 flex items-center gap-2.5 px-3 py-2 rounded-lg border border-border hover:bg-muted transition-colors">
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: "var(--brand)" }}>
+                        ({devotional.authorCode})
+                      </p>
+                    </div>
+                  </button>
+                </>
+              )}
             </div>
+          </div>
+        </section>
+
+        {/* Prayer */}
+        <section className="mb-8">
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="h-0.5 w-full" style={{ backgroundColor: "var(--gold)" }} />
+            <div className="p-5">
+              <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: "var(--gold)" }}>{t("janjihidup.prayer")}</p>
+              <p className="font-serif italic text-lg leading-relaxed" style={{ color: "var(--brand)" }}>&ldquo;{devotional.prayer}&rdquo;</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Prayer Topic */}
+        <section className="mb-8">
+          <div className="bg-card border border-border rounded-xl p-5">
+            <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: "var(--gold)" }}>{t("janjihidup.prayerTopic")}: {prayerTopic.title}</p>
+            <p className="text-sm text-muted-foreground leading-relaxed italic">{prayerTopic.text}</p>
           </div>
         </section>
 
@@ -168,22 +215,43 @@ export default function PujiDanJanji() {
         <section className="mb-8">
           <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: "var(--gold)" }}>{t("pujidanjanji.special")}</p>
           <div className="flex flex-col gap-3">
-            {SPECIAL_VERSES.map((v, i) => (
-              <VerseCard key={i} reference={v.reference} text={v.text} label={v.label} date={v.date} id={`special-${i}`} accentColor="brand" />
+            {specialVerses.map((v, i) => (
+              <VerseCard key={i} reference={v.reference} text={v.text} label={v.label} date={(v as any).date} id={`jh-sv-${i}`} accentColor="brand" />
             ))}
           </div>
         </section>
 
-        {/* CTA */}
-        <Link href="/janjihidup">
-          <div className="flex items-center justify-between p-5 rounded-xl border border-border bg-card hover:shadow-md hover:-translate-y-0.5 transition-all">
-            <div>
-              <p className="text-xs font-bold tracking-widest uppercase mb-1" style={{ color: "var(--gold)" }}>{t("pujidanjanji.next")}</p>
-              <p className="font-serif font-bold text-lg" style={{ color: "var(--brand)" }}>{t("pujidanjanji.readDevotional")}</p>
+        {/* Ministries */}
+        <section>
+          <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: "var(--gold)" }}>
+            {t("janjihidup.ministries") || "Jemaat & Pelayanan"}
+          </p>
+          {minLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Memuat...
             </div>
-            <ChevronRight className="h-6 w-6 text-muted-foreground" />
-          </div>
-        </Link>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {Object.entries(groupedMinistries).map(([category, items]) => (
+                <div key={category} className="bg-card border border-border rounded-xl overflow-hidden">
+                  <div className="px-5 py-3 border-b border-border" style={{ backgroundColor: "var(--brand-muted)" }}>
+                    <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--brand)" }}>
+                      {category}
+                    </p>
+                  </div>
+                  <div className="divide-y divide-border">
+                    {items.map((ministry) => (
+                      <div key={ministry.id} className="flex items-center gap-3 px-5 py-3.5">
+                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: "var(--gold)" }} />
+                        <span className="text-sm font-medium text-foreground">{ministry.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </AppLayout>
   );
