@@ -8,7 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { CalendarDays, ChevronRight, Copy, Check, BookOpen, ScrollText } from "lucide-react";
-import { VERSE_HIGHLIGHTS, BIBLE_READINGS, PRAYER_TOPIC, SPECIAL_VERSES, PERIKOP } from "@/lib/mockData";
+import { useVerseHighlights, useBibleReadings, usePrayerTopic, useSpecialVerses, usePerikop } from "@/lib/hooks/useFirestoreData";
 import { useI18n } from "@/lib/hooks/useI18n";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -31,6 +31,11 @@ function CopyBtn({ text, reference }: { text: string; reference: string }) {
 
 export default function PujiDanJanji() {
   const { t } = useI18n();
+  const { data: VERSE_HIGHLIGHTS }  = useVerseHighlights();
+  const { data: BIBLE_READINGS }    = useBibleReadings();
+  const { data: PRAYER_TOPIC }      = usePrayerTopic();
+  const { data: SPECIAL_VERSES }    = useSpecialVerses();
+  const { data: PERIKOP }           = usePerikop();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [calOpen, setCalOpen] = useState(false);
   const [perikopOpen, setPerikopOpen] = useState(false);

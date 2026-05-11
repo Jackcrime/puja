@@ -23,6 +23,8 @@ interface DataTableProps<T extends { id: string | number }> {
   searchPlaceholder?: string;
   /** Jumlah baris per halaman. Default: 15 */
   pageSize?: number;
+  /** Elemen filter tambahan (select, dll) yang dirender di toolbar */
+  filters?: React.ReactNode;
 }
 
 export function DataTable<T extends { id: string | number }>({
@@ -37,6 +39,7 @@ export function DataTable<T extends { id: string | number }>({
   onSearchChange,
   searchPlaceholder = "Cari...",
   pageSize = 15,
+  filters,
 }: DataTableProps<T>) {
   const [page, setPage] = useState(1);
 
@@ -54,21 +57,22 @@ export function DataTable<T extends { id: string | number }>({
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
       {/* ── Toolbar ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border">
-        {onSearchChange ? (
-          <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-            <input
-              type="text"
-              placeholder={searchPlaceholder}
-              value={searchValue ?? ""}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1"
-            />
-          </div>
-        ) : (
-          <div />
-        )}
+      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap flex-1">
+          {onSearchChange ? (
+            <div className="relative min-w-[160px] max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                placeholder={searchPlaceholder}
+                value={searchValue ?? ""}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1"
+              />
+            </div>
+          ) : null}
+          {filters}
+        </div>
 
         {onAdd && (
           <button
@@ -81,6 +85,7 @@ export function DataTable<T extends { id: string | number }>({
           </button>
         )}
       </div>
+
 
       {/* ── Table ───────────────────────────────────────────────────────────── */}
       <div className="overflow-x-auto">

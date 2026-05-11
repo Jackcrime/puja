@@ -3,14 +3,16 @@
 import React, { useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { VerseCard } from "@/components/ui/VerseCard";
-import { AYAT_CATEGORIES, SPECIAL_VERSES } from "@/lib/mockData";
+import { useAyatCategories, useSpecialVerses } from "@/lib/hooks/useFirestoreData";
 import { useI18n } from "@/lib/hooks/useI18n";
 import { Star, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
 
 export default function AyatEmas() {
   const { t } = useI18n();
+  const { data: AYAT_CATEGORIES } = useAyatCategories();
+  const { data: SPECIAL_VERSES }  = useSpecialVerses();
   const [search, setSearch] = useState("");
-  const [expanded, setExpanded] = useState<string[]>([AYAT_CATEGORIES[0].category]);
+  const [expanded, setExpanded] = useState<string[]>([]);
 
   const allVersesFlat = useMemo(() => [
     ...SPECIAL_VERSES.map(v => ({ ...v, category: "Tuntunan" })),

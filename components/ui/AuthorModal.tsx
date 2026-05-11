@@ -3,7 +3,7 @@
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { User, Church } from "lucide-react";
-import { AUTHORS } from "@/lib/mockData";
+import { useAuthors } from "@/lib/hooks/useFirestoreData";
 import { useI18n } from "@/lib/hooks/useI18n";
 
 interface AuthorModalProps {
@@ -14,6 +14,7 @@ interface AuthorModalProps {
 
 export function AuthorModal({ code, open, onOpenChange }: AuthorModalProps) {
   const { t } = useI18n();
+  const { data: AUTHORS } = useAuthors();
   const author = AUTHORS[code];
 
   if (!author) return null;
@@ -27,10 +28,13 @@ export function AuthorModal({ code, open, onOpenChange }: AuthorModalProps) {
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-5 py-2">
-          {/* Avatar */}
+          {/* Avatar / Photo */}
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl flex items-center justify-center text-white font-serif font-bold text-xl" style={{ backgroundColor: "var(--brand)" }}>
-              {code.charAt(0)}
+            <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 flex items-center justify-center text-white font-serif font-bold text-xl" style={{ backgroundColor: "var(--brand)" }}>
+              {author.photoUrl
+                ? <img src={author.photoUrl} alt={author.name} className="w-full h-full object-cover" />
+                : code.charAt(0)
+              }
             </div>
             <div>
               <p className="text-xs font-bold tracking-widest uppercase mb-1" style={{ color: "var(--gold)" }}>Inisial: {code}</p>

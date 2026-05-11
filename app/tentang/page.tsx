@@ -5,13 +5,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Heart, BookOpen, Shield, Globe, Mail, Phone, MapPin, ChevronRight, Users, ChevronDown, ChevronUp, Headphones, Cpu, Edit3 } from "lucide-react";
-import { AUTHORS, PUBLICATION_INFO, GKPB_INFO } from "@/lib/mockData";
+import { PUBLICATION_INFO, GKPB_INFO } from "@/lib/mockData";
+import { useAuthors } from "@/lib/hooks/useFirestoreData";
 import { useI18n } from "@/lib/hooks/useI18n";
-
-const authorEntries = Object.entries(AUTHORS);
 
 export default function Tentang() {
   const { t } = useI18n();
+  const { data: AUTHORS } = useAuthors();
+  const authorEntries = Object.entries(AUTHORS);
   const [authorsExpanded, setAuthorsExpanded] = useState(false);
   const visibleAuthors = authorsExpanded ? authorEntries : authorEntries.slice(0, 8);
 
@@ -108,8 +109,11 @@ export default function Tentang() {
             {visibleAuthors.map(([code, author]) => (
               <div key={code} className="py-2.5 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: "var(--brand)" }}>
-                    {code.charAt(0)}
+                  <div className="w-8 h-8 rounded-lg shrink-0 overflow-hidden flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: "var(--brand)" }}>
+                    {author.photoUrl
+                      ? <img src={author.photoUrl} alt={author.name} className="w-full h-full object-cover" />
+                      : code.charAt(0)
+                    }
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold leading-snug text-foreground truncate">

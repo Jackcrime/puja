@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { readDoc, readCollection, writeDoc, addItem, updateItem, deleteItem } from "@/lib/firestore";
 import {
   DEVOTIONAL, PERIKOP, VERSE_HIGHLIGHTS, SPECIAL_VERSES,
-  PRAYER_TOPIC, ANNOUNCEMENT, AUTHORS, AYAT_CATEGORIES,
+  PRAYER_TOPIC, ANNOUNCEMENT, AYAT_CATEGORIES,
   PUSTAKA_BOOKS, BIBLE_READINGS, getDailyVerse,
 } from "@/lib/mockData";
 
@@ -129,16 +129,28 @@ export function useAnnouncement() {
 }
 
 // ─── 7. Authors ───────────────────────────────────────────────────────────────
+export type AuthorsMap = Record<string, {
+  name:        string;
+  title:       string;
+  ministry:    string;
+  ministries?: string[];
+  servedFrom?: string;
+  servedUntil?: string;
+  photoUrl?:   string;
+}>;
+
+const EMPTY_AUTHORS: AuthorsMap = {};
+
 export function useAuthors() {
-  const [data, setData]       = useState<typeof AUTHORS>(AUTHORS);
+  const [data, setData]       = useState<AuthorsMap>(EMPTY_AUTHORS);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    readDoc<typeof AUTHORS>("authors", "current", AUTHORS)
+    readDoc<AuthorsMap>("authors", "current", EMPTY_AUTHORS)
       .then(setData).finally(() => setLoading(false));
   }, []);
 
-  const save = useCallback(async (authors: typeof AUTHORS) => {
+  const save = useCallback(async (authors: AuthorsMap) => {
     await writeDoc("authors", "current", authors);
     setData(authors);
   }, []);

@@ -17,16 +17,29 @@ const EMPTY: Omit<PustakaBook, "id"> = {
 
 export default function AdminPustaka() {
   const { data: books, loading, add, update, remove } = usePustakaBooks();
-  const [search, setSearch]   = useState("");
+  const [search, setSearch]           = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterYear, setFilterYear]   = useState("");
   const [modal, setModal]     = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [editing, setEditing] = useState<PustakaBook | null>(null);
   const [form, setForm]       = useState<any>({ ...EMPTY });
   const [target, setTarget]   = useState<PustakaBook | null>(null);
 
+  // Derive unique years from data for the year dropdown
+  const yearOptions = useMemo(() =>
+    [...new Set(books.map((b) => b.year))].sort((a, b) => b - a),
+    [books]
+  );
+
   const filtered = useMemo(() =>
-    books.filter((b) => !search || b.title.toLowerCase().includes(search.toLowerCase())),
-    [books, search]
+    books.filter((b) => {
+      if (search && !b.title.toLowerCase().includes(search.toLowerCase())) return false;
+      if (filterCategory && b.category !== filterCategory) return false;
+      if (filterYear && b.year !== Number(filterYear)) return false;
+      return true;
+    }),
+    [books, search, filterCategory, filterYear]
   );
 
   const openAdd = () => {
@@ -109,6 +122,31 @@ export default function AdminPustaka() {
             onSearchChange={setSearch}
             searchPlaceholder="Cari judul..."
             emptyText="Belum ada dokumen."
+            filters={
+              <>
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="px-2 py-1.5 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1"
+                >
+                  <option value="">Semua Kategori</option>
+                  <option value="BUKU">BUKU</option>
+                  <option value="MATERI">MATERI</option>
+                  <option value="PANDUAN">PANDUAN</option>
+                </select>
+
+                <select
+                  value={filterYear}
+                  onChange={(e) => setFilterYear(e.target.value)}
+                  className="px-2 py-1.5 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1"
+                >
+                  <option value="">Semua Tahun</option>
+                  {yearOptions.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </>
+            }
           />
         )}
 
