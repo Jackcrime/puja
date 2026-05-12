@@ -130,13 +130,13 @@ export function useAnnouncement() {
 
 // ─── 7. Authors ───────────────────────────────────────────────────────────────
 export type AuthorsMap = Record<string, {
-  name:        string;
-  title:       string;
-  ministry:    string;
-  ministries?: string[];
-  servedFrom?: string;
+  name:         string;
+  title:        string;
+  ministry:     string;
+  ministries?:  string[];
+  servedFrom?:  string;
   servedUntil?: string;
-  photoUrl?:   string;
+  photoUrl?:    string;
 }>;
 
 const EMPTY_AUTHORS: AuthorsMap = {};
@@ -208,13 +208,13 @@ export function usePustakaBooks() {
 }
 
 // ─── 10. Ministries ───────────────────────────────────────────────────────────
-// DEFAULT_MINISTRIES — fallback sebelum Firestore load (seed dulu via scripts/seed-ministries.mjs)
-const DEFAULT_MINISTRIES = [
-  { id: "sinode",    name: "Badan Sinode GKPB",  category: "Badan Sinode" },
-  { id: "singaraja", name: "Jemaat Singaraja",    category: "Jemaat"       },
-  { id: "denpasar",  name: "Jemaat Denpasar",     category: "Jemaat"       },
-  { id: "negara",    name: "Jemaat Negara",       category: "Jemaat"       },
-  { id: "tabanan",   name: "Jemaat Tabanan",      category: "Jemaat"       },
+// Fallback minimal — seed lengkap via: node scripts/seed-ministries.mjs
+const DEFAULT_MINISTRIES: Ministry[] = [
+  { id: "sinode-gkpb",          name: "Badan Sinode GKPB",               category: "Badan Sinode"  },
+  { id: "jemaat-kristus-kasih", name: "Jemaat Kristus Kasih – Denpasar", category: "Kota Denpasar" },
+  { id: "jemaat-sabda-bayu",    name: "Jemaat Sabda Bayu – Singaraja",   category: "Buleleng"      },
+  { id: "jemaat-mandira-santi", name: "Jemaat Mandira Santi – Negara",   category: "Jembrana"      },
+  { id: "jemaat-tresna-asih",   name: "Jemaat Tresna Asih – Klungkung",  category: "Bali Timur"    },
 ];
 
 export function useMinistries() {
@@ -246,4 +246,49 @@ export function useDailyVerse() {
 // ─── 12. Bible Readings ───────────────────────────────────────────────────────
 export function useBibleReadings() {
   return { data: BIBLE_READINGS, loading: false };
+}
+
+// ─── 13. Ayat Khusus (Tahun + 12 Bulan + Minggu) ─────────────────────────────
+export interface AyatKhususBulan { reference: string; text: string; }
+export interface AyatKhusus {
+  tahun?:  { year: number; reference: string; text: string };
+  minggu?: { reference: string; text: string; date?: string };
+  bulan?:  Record<string, AyatKhususBulan>; // key: "1"–"12"
+}
+
+const DEFAULT_AYAT_KHUSUS: AyatKhusus = {
+  tahun:  { year: 2026, reference: "Wahyu 21:5", text: "Lihatlah, Aku menjadikan segala sesuatu baru!" },
+  minggu: { reference: "2 Korintus 5:17", text: "Siapa yang ada di dalam Kristus, ia adalah ciptaan baru: yang lama sudah berlalu, sesungguhnya yang baru sudah datang.", date: "" },
+  bulan: {
+    "1":  { reference: "Ulangan 6:5",     text: "Kasihilah TUHAN, Allahmu, dengan segenap hatimu dan dengan segenap jiwamu dan dengan segenap kekuatanmu." },
+    "2":  { reference: "Ulangan 26:11",   text: "Haruslah engkau bersukaria karena segala yang baik yang diberikan TUHAN, Allahmu, kepadamu dan kepada seisi rumahmu." },
+    "3":  { reference: "Yohanes 11:35",   text: "Maka menangislah Yesus." },
+    "4":  { reference: "Yohanes 20:29",   text: "Berbahagialah mereka yang tidak melihat, namun percaya." },
+    "5":  { reference: "Ibrani 6:19",     text: "Pengharapan itu adalah sauh yang kuat dan aman bagi jiwa kita." },
+    "6":  { reference: "Ibrani 13:3",     text: "Ingatlah akan orang-orang hukuman, karena kamu sendiri juga adalah orang-orang hukuman." },
+    "7":  { reference: "Amos 5:24",       text: "Biarlah keadilan bergulung-gulung seperti air dan kebenaran seperti sungai yang selalu mengalir." },
+    "8":  { reference: "Yohanes 10:10b",  text: "Aku datang, supaya mereka mempunyai hidup, dan mempunyainya dalam segala kelimpahan." },
+    "9":  { reference: "Pengkhotbah 4:6", text: "Segenggam ketenangan lebih baik dari pada dua genggam jerih payah dan usaha menjaring angin." },
+    "10": { reference: "Galatia 5:1",     text: "Kristus telah memerdekakan kita. Karena itu berdirilah teguh dan jangan mau lagi dikenakan kuk perhambaan." },
+    "11": { reference: "Yesaya 2:4",      text: "Bangsa tidak akan lagi mengangkat pedang terhadap bangsa, dan mereka tidak akan lagi belajar perang." },
+    "12": { reference: "Yesaya 11:7",     text: "Lembu dan beruang akan sama-sama makan rumput dan anaknya akan sama-sama berbaring, sedang singa akan makan jerami seperti lembu." },
+  },
+};
+
+export function useAyatKhusus() {
+  const [data, setData]       = useState<AyatKhusus>(DEFAULT_AYAT_KHUSUS);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    readDoc<AyatKhusus>("ayat_khusus", "current", DEFAULT_AYAT_KHUSUS)
+      .then(setData)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const save = useCallback(async (next: AyatKhusus) => {
+    await writeDoc("ayat_khusus", "current", next);
+    setData(next);
+  }, []);
+
+  return { data, loading, save };
 }
