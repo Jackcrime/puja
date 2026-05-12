@@ -8,6 +8,7 @@ import { FormModal } from "@/components/admin/FormModal";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { FileUploader } from "@/components/admin/FileUploader";
 import { useAuthors, useMinistries, type Author, type Ministry } from "@/lib/hooks/useFirestoreData";
+import { deleteUploadThingFile } from "@/lib/uploadthing-client";
 import { Loader2, UserCircle, Calendar } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -32,7 +33,6 @@ function dictToArray(dict: Record<string, any>): AuthorRow[] {
     code,
     name:        a.name        ?? "",
     title:       a.title       ?? "",
-    // Backward compat: konversi legacy `ministry` string → array
     ministries:  Array.isArray(a.ministries) ? a.ministries
                    : a.ministry ? [a.ministry] : [],
     servedFrom:  a.servedFrom  ?? "",
@@ -56,7 +56,6 @@ function arrayToDict(arr: AuthorRow[]): Record<string, any> {
   }, {});
 }
 
-// Format label pelayanan untuk ditampilkan di tabel
 function formatServicePeriod(a: AuthorRow): string {
   if (!a.servedFrom) return "";
   return `${a.servedFrom} – ${a.servedUntil || "Sekarang"}`;
@@ -76,6 +75,11 @@ export default function AdminPenulis() {
   const [target,  setTarget]  = useState<AuthorRow | null>(null);
   const [saving,  setSaving]  = useState(false);
 
+  // URL foto lama yang akan dihapus dari UploadThing saat form di-submit.
+  // Di-set saat user hapus/ganti foto — bukan langsung dihapus,
+  // supaya kalau user cancel modal, file asli tidak ikut kehapus.
+  const [pendingDeleteUrl, setPendingDeleteUrl] = useState("");
+
   useEffect(() => {
     if (!authLoading) setAuthors(dictToArray(authorsDict as Record<string, any>));
   }, [authLoading, authorsDict]);
@@ -87,11 +91,34 @@ export default function AdminPenulis() {
     setSaving(false);
   };
 
-  const openAdd    = () => { setEditing(null); setForm(EMPTY); setModal(true); };
-  const openEdit   = (a: AuthorRow) => { setEditing(a); setForm(a); setModal(true); };
+  const openAdd = () => {
+    setEditing(null);
+    setForm(EMPTY);
+    setPendingDeleteUrl("");
+    setModal(true);
+  };
+
+  const openEdit = (a: AuthorRow) => {
+    setEditing(a);
+    setForm(a);
+    setPendingDeleteUrl("");
+    setModal(true);
+  };
+
   const openDelete = (a: AuthorRow) => { setTarget(a); setConfirm(true); };
 
+  // Tutup modal tanpa save → buang pendingDeleteUrl (jangan hapus file asli)
+  const handleModalOpenChange = (open: boolean) => {
+    if (!open) setPendingDeleteUrl("");
+    setModal(open);
+  };
+
   const handleSubmit = async () => {
+    // Baru hapus file lama dari UploadThing setelah user klik Save
+    if (pendingDeleteUrl) {
+      await deleteUploadThingFile(pendingDeleteUrl);
+      setPendingDeleteUrl("");
+    }
     const next = editing
       ? authors.map((a) => (a.id === editing.id ? { ...form, id: editing.id } : a))
       : [...authors, { ...form, id: form.code || `${Date.now()}` }];
@@ -101,17 +128,19 @@ export default function AdminPenulis() {
 
   const handleDelete = async () => {
     if (!target) return;
+    // Simpan dulu sebelum di-null-kan
+    const deletedId       = target.id;
+    const deletedPhotoUrl = target.photoUrl;
     setTarget(null);
-    await persist(authors.filter((a) => a.id !== target.id));
+    if (deletedPhotoUrl) await deleteUploadThingFile(deletedPhotoUrl);
+    await persist(authors.filter((a) => a.id !== deletedId));
   };
 
-  // Buat opsi multi-select ministry dari Firestore, dikelompokkan per kategori
   const ministryOptions = useMemo(() =>
     ministries.map((m) => ({ value: m.id, label: m.name, group: m.category })),
     [ministries]
   );
 
-  // Helper: cari nama ministry dari ID
   const getMinistryName = (id: string) =>
     ministries.find((m) => m.id === id)?.name ?? id;
 
@@ -216,7 +245,7 @@ export default function AdminPenulis() {
         {/* ── Form modal ─────────────────────────────────────────────────── */}
         <FormModal
           open={modal}
-          onOpenChange={setModal}
+          onOpenChange={handleModalOpenChange}
           title="Penulis"
           isEdit={!!editing}
           fields={[
@@ -232,14 +261,12 @@ export default function AdminPenulis() {
               ],
             },
             { key: "name",  label: "Nama Lengkap", placeholder: "I Wayan Mariasa",       required: true },
-            // Multi-select ministry dari Firestore
             {
               key:     "ministries",
               label:   "Unit Pelayanan",
               type:    "multi-select",
               options: ministryOptions,
             },
-            // Periode pelayanan — dua field year (ditangani sebagai custom children di bawah)
           ]}
           values={form}
           onChange={(k, v) => setForm((f) => ({ ...f, [k]: v }))}
@@ -287,8 +314,17 @@ export default function AdminPenulis() {
               accept="image/jpeg,image/png,image/webp"
               isImage
               currentUrl={form.photoUrl}
-              onUploadComplete={(res) => setForm((f) => ({ ...f, photoUrl: res.url }))}
-              onRemove={() => setForm((f) => ({ ...f, photoUrl: "" }))}
+              onUploadComplete={(res) => {
+                // Kalau ada foto lama (ganti foto), tandai untuk dihapus saat save
+                if (form.photoUrl) setPendingDeleteUrl(form.photoUrl);
+                setForm((f) => ({ ...f, photoUrl: res.url }));
+              }}
+              onRemove={() => {
+                // Tandai untuk dihapus saat save — jangan langsung hapus
+                // supaya kalau user cancel, file asli aman
+                if (form.photoUrl) setPendingDeleteUrl(form.photoUrl);
+                setForm((f) => ({ ...f, photoUrl: "" }));
+              }}
             />
           </div>
         </FormModal>

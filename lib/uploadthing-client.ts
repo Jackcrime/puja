@@ -34,6 +34,33 @@ export function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+// ─── Hapus file dari UploadThing via API route ────────────────────────────────
+// Dipanggil saat admin menghapus record yang punya file (foto penulis, PDF pustaka, dll.)
+export async function deleteUploadThingFile(url: string | string[]): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Belum login");
+  const token = await user.getIdToken();
+
+  const urls = Array.isArray(url) ? url : [url];
+  const validUrls = urls.filter(Boolean);
+  if (validUrls.length === 0) return;
+
+  const res = await fetch("/api/uploadthing/delete", {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ urls: validUrls }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    console.error("[deleteUploadThingFile] Gagal:", data.error ?? res.statusText);
+    // Tidak throw — agar proses hapus data Firestore tetap lanjut
+  }
+}
+
 // ─── Validasi sebelum upload ──────────────────────────────────────────────────
 const LIMITS: Record<UploadEndpoint, { maxBytes: number; types: string[]; label: string }> = {
   pustakaUploader: { maxBytes: 32 * 1024 * 1024, types: ["application/pdf"],       label: "PDF, maks 32 MB"  },

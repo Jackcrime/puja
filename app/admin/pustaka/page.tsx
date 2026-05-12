@@ -8,6 +8,7 @@ import { FormModal } from "@/components/admin/FormModal";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { FileUploader } from "@/components/admin/FileUploader";
 import { usePustakaBooks, type PustakaBook } from "@/lib/hooks/useFirestoreData";
+import { deleteUploadThingFile } from "@/lib/uploadthing-client";
 import { Loader2, ExternalLink } from "lucide-react";
 
 const EMPTY: Omit<PustakaBook, "id"> = {
@@ -17,16 +18,20 @@ const EMPTY: Omit<PustakaBook, "id"> = {
 
 export default function AdminPustaka() {
   const { data: books, loading, add, update, remove } = usePustakaBooks();
-  const [search, setSearch]           = useState("");
+  const [search, setSearch]                 = useState("");
   const [filterCategory, setFilterCategory] = useState("");
-  const [filterYear, setFilterYear]   = useState("");
+  const [filterYear, setFilterYear]         = useState("");
   const [modal, setModal]     = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [editing, setEditing] = useState<PustakaBook | null>(null);
   const [form, setForm]       = useState<any>({ ...EMPTY });
   const [target, setTarget]   = useState<PustakaBook | null>(null);
 
-  // Derive unique years from data for the year dropdown
+  // URL file lama yang akan dihapus dari UploadThing saat form di-submit.
+  // Di-set saat user hapus/ganti file — bukan langsung dihapus,
+  // supaya kalau user cancel modal, file asli tidak ikut kehapus.
+  const [pendingDeleteUrl, setPendingDeleteUrl] = useState("");
+
   const yearOptions = useMemo(() =>
     [...new Set(books.map((b) => b.year))].sort((a, b) => b - a),
     [books]
@@ -45,16 +50,29 @@ export default function AdminPustaka() {
   const openAdd = () => {
     setEditing(null);
     setForm({ ...EMPTY });
+    setPendingDeleteUrl("");
     setModal(true);
   };
 
   const openEdit = (b: PustakaBook) => {
     setEditing(b);
     setForm({ ...b });
+    setPendingDeleteUrl("");
     setModal(true);
   };
 
+  // Tutup modal tanpa save → buang pendingDeleteUrl (jangan hapus file asli)
+  const handleModalOpenChange = (open: boolean) => {
+    if (!open) setPendingDeleteUrl("");
+    setModal(open);
+  };
+
   const handleSubmit = async () => {
+    // Baru hapus file lama dari UploadThing setelah user klik Save
+    if (pendingDeleteUrl) {
+      await deleteUploadThingFile(pendingDeleteUrl);
+      setPendingDeleteUrl("");
+    }
     const entry = { ...form, pages: Number(form.pages), year: Number(form.year) };
     if (editing) {
       await update(editing.id, entry);
@@ -66,8 +84,12 @@ export default function AdminPustaka() {
 
   const handleDelete = async () => {
     if (!target) return;
-    await remove(target.id);
+    // Simpan dulu sebelum di-null-kan
+    const deletedId      = target.id;
+    const deletedFileUrl = target.fileUrl;
     setTarget(null);
+    if (deletedFileUrl) await deleteUploadThingFile(deletedFileUrl);
+    await remove(deletedId);
   };
 
   return (
@@ -152,7 +174,7 @@ export default function AdminPustaka() {
 
         <FormModal
           open={modal}
-          onOpenChange={setModal}
+          onOpenChange={handleModalOpenChange}
           title="Dokumen Pustaka"
           isEdit={!!editing}
           fields={[
@@ -183,13 +205,20 @@ export default function AdminPustaka() {
               currentUrl={form.fileUrl}
               currentName={form.fileStoragePath}
               onUploadComplete={(result) => {
+                // Kalau ada file lama (ganti file), tandai untuk dihapus saat save
+                if (form.fileUrl) setPendingDeleteUrl(form.fileUrl);
                 setForm((f: any) => ({
                   ...f,
-                  fileUrl:          result.url,
-                  fileStoragePath:  result.name,
+                  fileUrl:         result.url,
+                  fileStoragePath: result.name,
                 }));
               }}
-              onRemove={() => setForm((f: any) => ({ ...f, fileUrl: "", fileStoragePath: "" }))}
+              onRemove={() => {
+                // Tandai untuk dihapus saat save — jangan langsung hapus
+                // supaya kalau user cancel, file asli aman
+                if (form.fileUrl) setPendingDeleteUrl(form.fileUrl);
+                setForm((f: any) => ({ ...f, fileUrl: "", fileStoragePath: "" }));
+              }}
             />
           </div>
         </FormModal>
