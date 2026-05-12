@@ -111,7 +111,7 @@ export default function Tentang() {
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-8 h-8 rounded-lg shrink-0 overflow-hidden flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: "var(--brand)" }}>
                     {author.photoUrl
-                      ? <img src={author.photoUrl} alt={author.name} className="w-full h-full object-cover" />
+                      ? <Image src={author.photoUrl} alt={author.name} fill sizes="48px" className="object-cover" />
                       : code.charAt(0)
                     }
                   </div>

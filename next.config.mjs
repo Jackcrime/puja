@@ -2,18 +2,17 @@ import withPWA from "@ducanh2912/next-pwa";
 
 const pwaConfig = withPWA({
   dest: "public",
-  customWorkerSrc: "worker",          // ← inject worker/index.ts ke SW
+  customWorkerSrc: "worker",
   cacheOnFrontEndNav: true,
   aggressiveFrontEndNavCaching: true,
   reloadOnOnline: true,
   disable: process.env.NODE_ENV === "development",
   fallbackRoutes: {
-    document: "/offline",             // ← fallback halaman saat offline
+    document: "/offline",
   },
   workboxOptions: {
     disableDevLogs: true,
     runtimeCaching: [
-      // Cache semua halaman app dengan NetworkFirst (offline tetap jalan)
       {
         urlPattern: /^https:\/\/.*\.(?:html)$/i,
         handler: "NetworkFirst",
@@ -22,7 +21,6 @@ const pwaConfig = withPWA({
           expiration: { maxEntries: 32, maxAgeSeconds: 86400 },
         },
       },
-      // Cache font Google
       {
         urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
         handler: "CacheFirst",
@@ -31,7 +29,6 @@ const pwaConfig = withPWA({
           expiration: { maxEntries: 8, maxAgeSeconds: 31536000 },
         },
       },
-      // Cache audio renungan
       {
         urlPattern: /\.(?:mp3|wav|ogg)$/i,
         handler: "CacheFirst",
@@ -48,6 +45,22 @@ const pwaConfig = withPWA({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+
+  images: {
+    formats: ["image/avif", "image/webp"],  // konversi otomatis ke format modern
+    remotePatterns: [
+      // Uploadthing UFS storage (foto penulis, thumbnail, dll)
+      { protocol: "https", hostname: "utfs.io"    },
+      { protocol: "https", hostname: "*.ufs.sh"   },
+      { protocol: "https", hostname: "uploadthing.com" },
+    ],
+  },
+
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production"
+      ? { exclude: ["error", "warn"] }
+      : false,
+  },
 };
 
 export default pwaConfig(nextConfig);

@@ -1,6 +1,24 @@
 import type { Metadata, Viewport } from "next";
+import { Playfair_Display, Inter } from "next/font/google";
 import { Providers } from "./providers";
 import "./globals.css";
+
+// ── Self-hosted via next/font — tidak blocking, tidak butuh DNS lookup ─────────
+// Trim ke weights yang benar-benar dipakai (hemat ~40% ukuran font)
+const playfair = Playfair_Display({
+  subsets:  ["latin"],
+  variable: "--font-playfair",
+  display:  "swap",
+  weight:   ["400", "600", "700"],
+  style:    ["normal", "italic"],
+});
+
+const inter = Inter({
+  subsets:  ["latin"],
+  variable: "--font-inter",
+  display:  "swap",
+  weight:   ["400", "500", "600", "700"],
+});
 
 export const metadata: Metadata = {
   title: "Puji dan Janji",
@@ -18,22 +36,17 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#7B1D1D" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1008" },
+    { media: "(prefers-color-scheme: dark)",  color: "#1a1008"  },
   ],
-  width: "device-width",
+  width:        "device-width",
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" suppressHydrationWarning>
+    <html lang="id" suppressHydrationWarning
+      className={`${playfair.variable} ${inter.variable}`}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
         <link rel="apple-touch-icon" href="/gkpb-logo.png" />
       </head>
       <body className="font-sans antialiased">

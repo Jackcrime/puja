@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
+import Image from "next/image";
 import { Upload, X, FileText, Loader2, ExternalLink, ImageIcon, RefreshCw } from "lucide-react";
 import { useUploadThing, validateFile, type UploadEndpoint, type UploadResult } from "@/lib/uploadthing-client";
 import { auth } from "@/lib/firebase";
@@ -81,7 +82,7 @@ export function FileUploader({
                 </div>
               ) : (
                 <>
-                  <img src={currentUrl} alt="foto" className="w-full h-full object-cover" />
+                  <Image src={currentUrl} alt="foto" fill sizes="96px" className="object-cover" />
                   <button type="button" onClick={() => inputRef.current?.click()}
                     className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity">
                     <RefreshCw className="h-4 w-4 text-white" />
