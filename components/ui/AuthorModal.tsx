@@ -47,13 +47,40 @@ export function AuthorModal({ code, open, onOpenChange }: AuthorModalProps) {
             </div>
           </div>
 
-          {/* Ministry */}
-          <div className="flex items-start gap-3 p-3 rounded-xl" style={{ backgroundColor: "var(--brand-muted)" }}>
-            <Church className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "var(--brand)" }} />
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-0.5">{t("janjihidup.ministry")}</p>
-              <p className="text-sm font-medium" style={{ color: "var(--brand)" }}>{author.ministry}</p>
+          {/* Ministries */}
+          <div className="rounded-xl border border-border overflow-hidden" style={{ backgroundColor: "var(--brand-muted)" }}>
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50">
+              <Church className="h-4 w-4 shrink-0" style={{ color: "var(--brand)" }} />
+              <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--brand)" }}>
+                {t("janjihidup.ministry")}
+              </p>
             </div>
+            <div className="px-4 py-3 flex flex-col gap-2">
+              {(author.ministries && author.ministries.length > 0
+                ? author.ministries
+                : author.ministry
+                  ? [author.ministry]
+                  : []
+              ).map((m, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: "var(--gold)" }} />
+                  <span className="text-sm font-medium" style={{ color: "var(--brand)" }}>{m}</span>
+                </div>
+              ))}
+              {!author.ministries?.length && !author.ministry && (
+                <p className="text-sm text-muted-foreground">—</p>
+              )}
+            </div>
+
+            {/* Served period */}
+            {(author.servedFrom || author.servedUntil) && (
+              <div className="px-4 py-2.5 border-t border-border/50 flex items-center gap-2">
+                <p className="text-xs text-muted-foreground">Masa Pelayanan:</p>
+                <p className="text-xs font-semibold" style={{ color: "var(--brand)" }}>
+                  {author.servedFrom ?? "?"} — {author.servedUntil ?? "sekarang"}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>
