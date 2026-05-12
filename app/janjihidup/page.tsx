@@ -10,7 +10,7 @@ import { Play, Pause, Headphones, BookOpen, Printer, Share2, Check, Maximize2, U
 import { useI18n } from "@/lib/hooks/useI18n";
 import {
   useDevotional, useVerseHighlights, useBibleReadings,
-  usePrayerTopic, useSpecialVerses, useAuthors,
+  usePrayerTopic, useSpecialVerses, useAuthors, useMinistries,
 } from "@/lib/hooks/useFirestoreData";
 
 export default function JanjiHidup() {
@@ -21,6 +21,14 @@ export default function JanjiHidup() {
   const { data: prayerTopic }                      = usePrayerTopic();
   const { data: specialVerses }                    = useSpecialVerses();
   const { data: authors }                          = useAuthors();
+  const { data: ministries, loading: minLoading }  = useMinistries();
+
+  // Group ministries by category
+  const groupedMinistries = ministries.reduce<Record<string, typeof ministries>>((acc, m) => {
+    if (!acc[m.category]) acc[m.category] = [];
+    acc[m.category].push(m);
+    return acc;
+  }, {});
 
   const [isPlaying, setIsPlaying]   = useState(false);
   const [progress, setProgress]     = useState(0);
@@ -204,7 +212,7 @@ export default function JanjiHidup() {
         </section>
 
         {/* Special Verses */}
-        <section>
+        <section className="mb-8">
           <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: "var(--gold)" }}>{t("pujidanjanji.special")}</p>
           <div className="flex flex-col gap-3">
             {specialVerses.map((v, i) => (

@@ -23,8 +23,11 @@ export type CollectionName =
   | "pustaka_books"
   | "announcement"
   | "ayat_categories"
+  | "ayat_khusus"
   | "verse_highlights"
-  | "prayer_topic";
+  | "prayer_topic"
+  | "bible_readings"
+  | "ministries";
 
 // ─── Read single document ──────────────────────────────────────────────────────
 export async function readDoc<T>(

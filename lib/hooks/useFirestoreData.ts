@@ -244,21 +244,51 @@ export function useDailyVerse() {
 }
 
 // ─── 12. Bible Readings ───────────────────────────────────────────────────────
+export interface BibleReading {
+  reference: string;
+  title:     string;
+  verses:    { number: string; text: string }[];
+}
+
 export function useBibleReadings() {
-  return { data: BIBLE_READINGS, loading: false };
+  const [data, setData]       = useState<BibleReading[]>(BIBLE_READINGS);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    readDoc<{ items: BibleReading[] }>(
+      "bible_readings", "current", { items: BIBLE_READINGS }
+    ).then((d) => setData(d.items ?? BIBLE_READINGS))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const save = useCallback(async (items: BibleReading[]) => {
+    await writeDoc("bible_readings", "current", { items });
+    setData(items);
+  }, []);
+
+  return { data, loading, save };
 }
 
 // ─── 13. Ayat Khusus (Tahun + 12 Bulan + Minggu) ─────────────────────────────
 export interface AyatKhususBulan { reference: string; text: string; }
+export interface AyatKhususHarian { reference: string; text: string; }
 export interface AyatKhusus {
   tahun?:  { year: number; reference: string; text: string };
   minggu?: { reference: string; text: string; date?: string };
   bulan?:  Record<string, AyatKhususBulan>; // key: "1"–"12"
+  harian?: AyatKhususHarian[];              // pool ayat harian
 }
 
 const DEFAULT_AYAT_KHUSUS: AyatKhusus = {
   tahun:  { year: 2026, reference: "Wahyu 21:5", text: "Lihatlah, Aku menjadikan segala sesuatu baru!" },
   minggu: { reference: "2 Korintus 5:17", text: "Siapa yang ada di dalam Kristus, ia adalah ciptaan baru: yang lama sudah berlalu, sesungguhnya yang baru sudah datang.", date: "" },
+  harian: [
+    { reference: "Filipi 4:13",  text: "Segala perkara dapat kutanggung di dalam Dia yang memberi kekuatan kepadaku." },
+    { reference: "Yohanes 3:16", text: "Karena begitu besar kasih Allah akan dunia ini, sehingga Ia telah mengaruniakan Anak-Nya yang tunggal." },
+    { reference: "Mazmur 23:1",  text: "TUHAN adalah gembalaku, takkan kekurangan aku." },
+    { reference: "Yeremia 29:11",text: "Sebab Aku ini mengetahui rancangan-rancangan apa yang ada pada-Ku mengenai kamu, demikianlah firman TUHAN, yaitu rancangan damai sejahtera." },
+    { reference: "Yosua 1:9",    text: "Kuatkan dan teguhkanlah hatimu, janganlah kecut dan tawar hati, sebab TUHAN, Allahmu, menyertai engkau ke mana pun engkau pergi." },
+  ],
   bulan: {
     "1":  { reference: "Ulangan 6:5",     text: "Kasihilah TUHAN, Allahmu, dengan segenap hatimu dan dengan segenap jiwamu dan dengan segenap kekuatanmu." },
     "2":  { reference: "Ulangan 26:11",   text: "Haruslah engkau bersukaria karena segala yang baik yang diberikan TUHAN, Allahmu, kepadamu dan kepada seisi rumahmu." },

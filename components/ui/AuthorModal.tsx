@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { User, Church } from "lucide-react";
-import { useAuthors } from "@/lib/hooks/useFirestoreData";
+import { useAuthors, useMinistries } from "@/lib/hooks/useFirestoreData";
 import { useI18n } from "@/lib/hooks/useI18n";
 
 interface AuthorModalProps {
@@ -14,8 +14,19 @@ interface AuthorModalProps {
 
 export function AuthorModal({ code, open, onOpenChange }: AuthorModalProps) {
   const { t } = useI18n();
-  const { data: AUTHORS } = useAuthors();
+  const { data: AUTHORS }    = useAuthors();
+  const { data: ministries } = useMinistries();
   const author = AUTHORS[code];
+
+  // resolve ministry IDs → display names
+  const ministryNames = useMemo(() => {
+    if (!author) return [];
+    const ids = author.ministries ?? [];
+    if (ids.length > 0) {
+      return ids.map((id) => ministries.find((m) => m.id === id)?.name ?? id);
+    }
+    return author.ministry ? [author.ministry] : [];
+  }, [author, ministries]);
 
   if (!author) return null;
 
@@ -56,18 +67,12 @@ export function AuthorModal({ code, open, onOpenChange }: AuthorModalProps) {
               </p>
             </div>
             <div className="px-4 py-3 flex flex-col gap-2">
-              {(author.ministries && author.ministries.length > 0
-                ? author.ministries
-                : author.ministry
-                  ? [author.ministry]
-                  : []
-              ).map((m, i) => (
+              {ministryNames.length > 0 ? ministryNames.map((name, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: "var(--gold)" }} />
-                  <span className="text-sm font-medium" style={{ color: "var(--brand)" }}>{m}</span>
+                  <span className="text-sm font-medium" style={{ color: "var(--brand)" }}>{name}</span>
                 </div>
-              ))}
-              {!author.ministries?.length && !author.ministry && (
+              )) : (
                 <p className="text-sm text-muted-foreground">—</p>
               )}
             </div>

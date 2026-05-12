@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Star, Users, ScrollText,
   Library, BookOpen, Megaphone, LogOut,
-  Menu, ChevronRight, Shield, Church,
+  Menu, ChevronRight, Shield, Church, CalendarDays,
 } from "lucide-react";
 import { logout } from "@/lib/admin/auth";
 
@@ -16,10 +16,12 @@ const NAV_GROUPS = [
     items: [
       { href: "/admin/dashboard",   label: "Dashboard",       icon: LayoutDashboard },
       { href: "/admin/ayat",        label: "Ayat Emas",       icon: Star            },
+      { href: "/admin/ayat-khusus", label: "Ayat Khusus",     icon: CalendarDays    },
       { href: "/admin/renungan",    label: "Renungan",        icon: ScrollText      },
       { href: "/admin/pengumuman",  label: "Pengumuman",      icon: Megaphone       },
       { href: "/admin/pustaka",     label: "Pustaka Digital", icon: Library         },
       { href: "/admin/perikop",     label: "Perikop",         icon: BookOpen        },
+      { href: "/admin/bacaan",      label: "Bacaan Alkitab",  icon: BookOpen        },
     ],
   },
   {
