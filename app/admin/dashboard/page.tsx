@@ -151,7 +151,7 @@ export default function AdminDashboard() {
     {
       href: "/admin/renungan",    icon: ScrollText,   color: "var(--brand)",
       label: "Renungan Harian",
-      description: "Edit renungan yang tampil di halaman utama aplikasi.",
+      description: "Edit teks renungan, penulis, doa, dan upload audio MP3.",
     },
     {
       href: "/admin/pengumuman",  icon: Megaphone,    color: "var(--brand)",

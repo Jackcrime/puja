@@ -6,11 +6,14 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { BookOpenText, ScrollText, Library, Star, ArrowRight, CalendarDays, BookMarked, Loader2 } from "lucide-react";
 import { useI18n } from "@/lib/hooks/useI18n";
 import { useDevotional, useDailyVerse } from "@/lib/hooks/useFirestoreData";
+import { format } from "date-fns";
+import { id as localeId } from "date-fns/locale";
 
 export default function Home() {
   const { t } = useI18n();
   const { data: devotional, loading: devLoading } = useDevotional();
   const { data: dailyVerse } = useDailyVerse();
+  const todayStr = format(new Date(), "EEEE, d MMMM yyyy", { locale: localeId });
 
   const features = [
     { href: "/pujidanjanji", title: t("nav.pujidanjanji"), desc: "Tuntunan membaca Alkitab setiap hari untuk membangun kedisiplinan rohani.", icon: BookOpenText },
@@ -26,7 +29,7 @@ export default function Home() {
         <div className="mb-10">
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
             <CalendarDays className="h-4 w-4" />
-            <span>Sabtu, 3 Mei 2026</span>
+            <span>{todayStr}</span>
           </div>
           <h1 className="font-serif font-bold text-3xl sm:text-4xl leading-tight mb-3">
             {t("home.welcome")}<br />

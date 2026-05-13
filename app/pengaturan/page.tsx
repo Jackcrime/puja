@@ -161,7 +161,7 @@ export default function Pengaturan() {
           </div>
           <div className="mt-3 pt-3 border-t border-border">
             <p className="text-xs text-muted-foreground">
-              Versi <strong>2.0</strong> · Service Worker aktif · Konten tersedia offline
+              Versi <strong>0.8 Beta</strong> · Service Worker aktif · Konten tersedia offline
             </p>
           </div>
         </div>

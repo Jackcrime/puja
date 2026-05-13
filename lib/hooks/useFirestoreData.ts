@@ -10,7 +10,7 @@ import {
 } from "@/lib/mockData";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-export type Devotional   = typeof DEVOTIONAL;
+export type Devotional   = typeof DEVOTIONAL & { audioUrl?: string };
 export type PrayerTopic  = typeof PRAYER_TOPIC;
 export type Announcement = typeof ANNOUNCEMENT;
 
@@ -237,9 +237,22 @@ export function useMinistries() {
   return { data, loading, add, update, remove, reload: load };
 }
 
-// ─── 11. Daily verse ──────────────────────────────────────────────────────────
+// ─── 11. Daily verse (dari Firestore ayat_khusus.harian, fallback getDailyVerse) ─
 export function useDailyVerse() {
-  const [data] = useState(() => getDailyVerse());
+  const [data, setData] = useState(() => getDailyVerse());
+
+  useEffect(() => {
+    readDoc<AyatKhusus>("ayat_khusus", "current", DEFAULT_AYAT_KHUSUS).then((ak) => {
+      const pool = ak.harian;
+      if (!pool || pool.length === 0) return;
+      // Pilih berdasarkan hari dalam tahun agar konsisten dalam satu hari
+      const dayOfYear = Math.floor(
+        (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86_400_000
+      );
+      setData(pool[dayOfYear % pool.length]);
+    });
+  }, []);
+
   return { data };
 }
 

@@ -1,6 +1,5 @@
 // ─── Dates ────────────────────────────────────────────────────────────────────
-export const TODAY = "Sabtu, 3 Mei 2026";
-export const TODAY_SHORT = "3 Mei 2026";
+// TODAY dan TODAY_SHORT sudah tidak dipakai — gunakan format(new Date(), ...) langsung
 
 // ─── Daily verses — rotated by day of year ────────────────────────────────────
 export const DAILY_VERSES = [
@@ -112,6 +111,7 @@ export const AUTHORS: Record<string, { name: string; title: string; ministry: st
 export const DEVOTIONAL = {
   title: "Prinsip Dan Praktik",
   authorCode: "IWM",
+  audioUrl: "",  // diisi admin via UploadThing
   body: `Menjadi Kristen bukan hanya soal status, atau sekadar rutinitas rohani yang dilakukan. Menjadi Kristen berarti kita hidup sesuai dengan prinsip Tuhan dan mengimplementasikannya dalam praktik sehari-hari.
 
 Bacaan pertama merupakan nasihat seorang ibu kepada Raja Lemuel (Amsal 31:1). Umat Allah dipanggil untuk menjadi pembela keadilan bagi mereka yang tidak mampu membela diri. Diam terhadap ketidakadilan bukanlah sikap yang benar sebagai anak Tuhan.

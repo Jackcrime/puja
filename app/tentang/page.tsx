@@ -28,7 +28,7 @@ export default function Tentang() {
           <h1 className="font-serif font-bold text-2xl mb-1" style={{ color: "var(--brand)" }}>Puji dan Janji</h1>
           <p className="text-sm text-muted-foreground mb-1">Versi Digital — Sinode GKPB</p>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            Versi Beta 1.2 · 2026
+            Versi 0.8 Beta · 2026
           </div>
           <div className="mt-4 pt-4 border-t border-border w-full">
             <p className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "var(--gold)" }}>Tema GKPB 2026</p>
@@ -109,7 +109,7 @@ export default function Tentang() {
             {visibleAuthors.map(([code, author]) => (
               <div key={code} className="py-2.5 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-lg shrink-0 overflow-hidden flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: "var(--brand)" }}>
+                  <div className="relative w-8 h-8 rounded-lg shrink-0 overflow-hidden flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: "var(--brand)" }}>
                     {author.photoUrl
                       ? <Image src={author.photoUrl} alt={author.name} fill sizes="48px" className="object-cover" />
                       : code.charAt(0)

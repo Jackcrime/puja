@@ -3,8 +3,10 @@
 import React, { useState, useMemo } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminGuard } from "@/components/admin/AdminGuard";
+import { FileUploader } from "@/components/admin/FileUploader";
 import { useDevotional, useAuthors } from "@/lib/hooks/useFirestoreData";
-import { Save, Check, Eye, EyeOff, Loader2 } from "lucide-react";
+import { deleteUploadThingFile } from "@/lib/uploadthing-client";
+import { Save, Check, Eye, EyeOff, Loader2, Music2, X } from "lucide-react";
 
 export default function AdminRenungan() {
   const { data, loading, update }             = useDevotional();
@@ -116,6 +118,42 @@ export default function AdminRenungan() {
                       Penulis
                     </a>.
                   </p>
+                </div>
+
+                {/* Audio Renungan Upload */}
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
+                    Audio Renungan
+                  </label>
+                  {(current as any).audioUrl ? (
+                    <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-muted/30">
+                      <Music2 className="h-5 w-5 shrink-0" style={{ color: "var(--brand)" }} />
+                      <div className="flex-1 min-w-0">
+                        <audio controls src={(current as any).audioUrl} className="w-full h-8" />
+                        <p className="text-xs text-muted-foreground mt-1 truncate">{(current as any).audioUrl}</p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const url = (current as any).audioUrl;
+                          setField("audioUrl", "");
+                          if (url) await deleteUploadThingFile(url).catch(() => {});
+                        }}
+                        className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500 transition-colors shrink-0"
+                        title="Hapus audio"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <FileUploader
+                      endpoint="audioUploader"
+                      label=""
+                      accept="audio/mpeg,audio/wav,audio/ogg"
+                      currentUrl=""
+                      onUploadComplete={(res) => setField("audioUrl", res.url)}
+                    />
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">MP3/WAV, maks 64 MB. Setelah upload, simpan ke Firestore.</p>
                 </div>
 
                 <TextareaField label="Isi Renungan (paragraf dipisah baris kosong)" fieldKey="body" rows={12} />

@@ -5,12 +5,16 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { VerseCard } from "@/components/ui/VerseCard";
 import { AuthorModal } from "@/components/ui/AuthorModal";
 import { FocusMode } from "@/components/ui/FocusMode";
+import { PerikopButton } from "@/components/ui/PerikopModal";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Play, Pause, Headphones, BookOpen, Printer, Share2, Check, Maximize2, User, Loader2 } from "lucide-react";
+import { Play, Pause, Headphones, BookOpen, Printer, Share2, Check, Maximize2, Loader2, ScrollText } from "lucide-react";
 import { useI18n } from "@/lib/hooks/useI18n";
+import { format } from "date-fns";
+import { id as localeId } from "date-fns/locale";
 import {
   useDevotional, useVerseHighlights, useBibleReadings,
-  usePrayerTopic, useSpecialVerses, useAuthors, useMinistries,
+  usePrayerTopic, useSpecialVerses, useAuthors,
+  usePerikop,
 } from "@/lib/hooks/useFirestoreData";
 
 export default function JanjiHidup() {
@@ -21,14 +25,7 @@ export default function JanjiHidup() {
   const { data: prayerTopic }                      = usePrayerTopic();
   const { data: specialVerses }                    = useSpecialVerses();
   const { data: authors }                          = useAuthors();
-  const { data: ministries, loading: minLoading }  = useMinistries();
-
-  // Group ministries by category
-  const groupedMinistries = ministries.reduce<Record<string, typeof ministries>>((acc, m) => {
-    if (!acc[m.category]) acc[m.category] = [];
-    acc[m.category].push(m);
-    return acc;
-  }, {});
+  const { data: perikop }                          = usePerikop();
 
   const [isPlaying, setIsPlaying]   = useState(false);
   const [progress, setProgress]     = useState(0);
@@ -38,6 +35,7 @@ export default function JanjiHidup() {
   const [focusMode, setFocusMode]   = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const todayStr = format(new Date(), "EEEE, d MMMM yyyy", { locale: localeId });
   const author = authors[devotional.authorCode as keyof typeof authors];
 
   useEffect(() => {
@@ -82,7 +80,7 @@ export default function JanjiHidup() {
         <div className="flex items-center justify-between mb-8 pb-5 border-b border-border">
           <div>
             <p className="text-xs font-bold tracking-widest uppercase mb-1" style={{ color: "var(--gold)" }}>{t("janjihidup.title")}</p>
-            <h1 className="font-serif font-bold text-2xl sm:text-3xl" style={{ color: "var(--brand)" }}>Sabtu, 3 Mei 2026</h1>
+            <h1 className="font-serif font-bold text-2xl sm:text-3xl" style={{ color: "var(--brand)" }}>{todayStr}</h1>
           </div>
           <div className="flex items-center gap-1.5">
             <button onClick={() => setFocusMode(true)} className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"><Maximize2 className="h-4 w-4" /></button>
@@ -93,9 +91,10 @@ export default function JanjiHidup() {
           </div>
         </div>
 
-        {/* Audio Player */}
+        {/* Audio Player — hanya tampil jika admin sudah upload audio */}
+        {(devotional as any).audioUrl ? (
         <section className="mb-8 no-print">
-          <audio ref={audioRef} src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" />
+          <audio ref={audioRef} src={(devotional as any).audioUrl} preload="metadata" />
           <div className="bg-card border border-border rounded-xl p-5">
             <div className="flex items-center gap-4">
               <button onClick={toggleAudio} className="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0" style={{ backgroundColor: "var(--brand)" }}>
@@ -120,6 +119,45 @@ export default function JanjiHidup() {
             </div>
           </div>
         </section>
+        ) : <audio ref={audioRef} src="" />}
+
+        {/* Perikop */}
+        {perikop.length > 0 && (
+        <section className="mb-8 no-print">
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-3 border-b border-border" style={{ backgroundColor: "var(--brand-muted)" }}>
+              <ScrollText className="h-4 w-4" style={{ color: "var(--brand)" }} />
+              <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--brand)" }}>Perikop Hari Ini</p>
+            </div>
+            <div className="divide-y divide-border">
+              {(perikop as any[]).map((p: any, i: number) => (
+                <div key={i} className="flex items-center justify-between px-5 py-3 gap-3">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <span className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-bold text-white mt-0.5" style={{ backgroundColor: "var(--brand)" }}>{i + 1}</span>
+                    <div className="min-w-0">
+                      <p className="font-serif font-semibold text-sm leading-snug" style={{ color: "var(--brand)" }}>
+                        {p.bookName ?? p.book} {p.chapter}:{p.verses ?? `${p.verseFrom}–${p.verseTo}`}
+                      </p>
+                      {p.heading && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{p.heading}</p>}
+                    </div>
+                  </div>
+                  {p.bookSlug && (
+                    <PerikopButton
+                      bookSlug={p.bookSlug}
+                      bookName={p.bookName ?? p.book}
+                      chapter={p.chapter}
+                      verseFrom={p.verseFrom ?? 1}
+                      verseTo={p.verseTo ?? 99}
+                      heading={p.heading}
+                      label="Baca"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+        )}
 
         {/* Verse Highlights */}
         <section className="mb-8">
@@ -180,10 +218,14 @@ export default function JanjiHidup() {
                     ))}
                   </div>
                   <button onClick={() => setAuthorOpen(true)} className="mt-6 flex items-center gap-2.5 px-3 py-2 rounded-lg border border-border hover:bg-muted transition-colors">
-                    <div>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ backgroundColor: "var(--brand)" }}>
+                      {author ? (author.name?.[0] ?? "?") : devotional.authorCode[0]}
+                    </div>
+                    <div className="text-left">
                       <p className="text-sm font-semibold" style={{ color: "var(--brand)" }}>
-                        ({devotional.authorCode})
+                        {author ? `${author.title ? author.title + " " : ""}${author.name}` : `(${devotional.authorCode})`}
                       </p>
+                      {author?.ministry && <p className="text-xs text-muted-foreground">{author.ministry}</p>}
                     </div>
                   </button>
                 </>
