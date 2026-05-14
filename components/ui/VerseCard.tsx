@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { Copy, Check, Highlighter, X } from "lucide-react";
+import { Copy, Check, Highlighter, X, BookOpen } from "lucide-react";
 import { useHighlights, HIGHLIGHT_COLORS, type HighlightColor } from "@/lib/hooks/useHighlights";
 import { useI18n } from "@/lib/hooks/useI18n";
+import { parseReference } from "@/lib/bible-books";
+import { PerikopModal } from "@/components/ui/PerikopModal";
 
 interface VerseCardProps {
   reference:    string;
@@ -13,19 +15,24 @@ interface VerseCardProps {
   id?:          string;
   accentColor?: "brand" | "gold";
   highlightable?: boolean;
+  showPerikop?: boolean;  // tampilkan tombol Perikop (TB) seperti di referensi web
 }
 
 export function VerseCard({
-  reference, text, label, date, accentColor = "gold", highlightable = true,
+  reference, text, label, date, accentColor = "gold", highlightable = true, showPerikop = false,
 }: VerseCardProps) {
   const [copied,      setCopied]      = useState(false);
   const [colorPicker, setColorPicker] = useState(false);
+  const [perikopOpen, setPerikopOpen] = useState(false);
   const { setHighlight, removeHighlight, getHighlight } = useHighlights();
   const { t } = useI18n();
 
   const highlight    = getHighlight(reference);
   const isHighlighted = !!highlight;
   const accent       = accentColor === "brand" ? "var(--brand)" : "var(--gold)";
+
+  // Parse referensi untuk Perikop modal — "Ayub 12: 10" → { book, chapter, verseFrom }
+  const parsed = showPerikop ? parseReference(reference) : null;
 
   const copy = () => {
     navigator.clipboard?.writeText(`${reference}\n"${text}"`).catch(() => {});
@@ -42,7 +49,7 @@ export function VerseCard({
     <div
       className="border rounded-xl overflow-hidden transition-colors duration-300"
       style={{
-        backgroundColor: isHighlighted ? HIGHLIGHT_COLORS[highlight.color].bg   : "var(--card)",
+        backgroundColor: isHighlighted ? HIGHLIGHT_COLORS[highlight.color].bg    : "var(--card)",
         borderColor:     isHighlighted ? HIGHLIGHT_COLORS[highlight.color].border : "var(--border)",
       }}
     >
@@ -55,19 +62,37 @@ export function VerseCard({
             {label}
           </p>
         )}
-        <p className="font-serif font-semibold text-lg mb-3" style={{ color: "var(--brand)" }}>{reference}</p>
-        <p className="text-foreground leading-relaxed italic">&ldquo;{text}&rdquo;</p>
-        {date && <p className="text-xs text-muted-foreground mt-3">{date}</p>}
 
+        {/* Teks ayat */}
+        <p className="text-foreground leading-relaxed italic mb-3">&ldquo;{text}&rdquo;</p>
+
+        {/* Baris referensi + tombol Perikop — persis seperti referensi web */}
+        <div className="flex items-center justify-between gap-2">
+          <p className="font-serif font-semibold text-base" style={{ color: "var(--brand)" }}>
+            {reference}
+          </p>
+          {parsed && (
+            <button
+              onClick={() => setPerikopOpen(true)}
+              className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition-colors hover:bg-muted"
+              style={{ color: "var(--brand)", borderColor: "var(--brand-border)" }}
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              Perikop (TB)
+            </button>
+          )}
+        </div>
+
+        {date && <p className="text-xs text-muted-foreground mt-2">{date}</p>}
+
+        {/* Aksi: copy + highlight */}
         <div className="flex items-center gap-1 mt-4 pt-3 border-t border-border/50 flex-wrap">
-          {/* Copy */}
           <button onClick={copy}
             className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-2.5 py-1.5 rounded-md hover:bg-black/5">
             {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
             {copied ? t("common.copied") : t("common.copy")}
           </button>
 
-          {/* Highlight */}
           {highlightable && (
             <div className="relative">
               {!colorPicker ? (
@@ -103,6 +128,19 @@ export function VerseCard({
           )}
         </div>
       </div>
+
+      {/* Perikop Modal — full chapter */}
+      {parsed && (
+        <PerikopModal
+          open={perikopOpen}
+          onOpenChange={setPerikopOpen}
+          bookSlug={parsed.book.slug}
+          bookName={parsed.book.name}
+          chapter={parsed.chapter}
+          verseFrom={1}
+          verseTo={999}
+        />
+      )}
     </div>
   );
 }

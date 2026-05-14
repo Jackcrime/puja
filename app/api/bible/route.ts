@@ -1,20 +1,32 @@
-// ─── Next.js API Route — Proxy ke LAI Bible API ───────────────────────────────
-// GET /api/bible?book=1samuel&chapter=2&from=1&to=36
+// ─── Next.js API Route — Proxy Bible API ──────────────────────────────────────
+// GET /api/bible?book=yohanes&chapter=3&from=16&to=17          (Indonesia, default)
+// GET /api/bible?book=yohanes&chapter=3&from=16&to=17&lang=en  (English KJV)
 //
-// Menyembunyikan LAI_BIBLE_API_KEY dari client.
-// Tambahkan ke .env.local:
+// Strategi (urutan prioritas):
+//   Indonesia: 1. LAI Bible API (jika key di-set)  2. AYT SABDA (fallback)
+//   English:   bolls.life KJV (gratis, no key)
+//
+// .env.local (semua opsional):
 //   LAI_BIBLE_API_KEY=your_key_here
 //   LAI_BIBLE_API_URL=https://bible-api.alkitab.or.id/bible-api/api/v1
+//   NEXT_PUBLIC_SITE_URL=gkpb.or.id
+//   EN_BIBLE_VERSION=KJV   (bisa KJV | WEB | ASV | YLT)
 
 import { NextRequest, NextResponse } from "next/server";
+import { BIBLE_BOOKS } from "@/lib/bible-books";
 
-const LAI_URL = process.env.LAI_BIBLE_API_URL ??
-                "https://bible-api.alkitab.or.id/bible-api/api/v1";
-const LAI_KEY = process.env.LAI_BIBLE_API_KEY ?? "";
+// ── Konstanta ──────────────────────────────────────────────────────────────────
+const LAI_URL    = process.env.LAI_BIBLE_API_URL ?? "https://bible-api.alkitab.or.id/bible-api/api/v1";
+const LAI_KEY    = process.env.LAI_BIBLE_API_KEY ?? "";
+const AYT_URL    = "https://api.ayt.co/v1";
+const AYT_SRC    = process.env.NEXT_PUBLIC_SITE_URL ?? "gkpb.or.id";
+const BOLLS_URL  = "https://bolls.life/get-passage";
+const EN_VERSION = process.env.EN_BIBLE_VERSION ?? "KJV";
 
+// ── Tipe publik ────────────────────────────────────────────────────────────────
 export interface BibleVerse {
-  verse:   number;
-  text:    string;
+  verse: number;
+  text:  string;
 }
 
 export interface BiblePassageResponse {
@@ -24,14 +36,18 @@ export interface BiblePassageResponse {
   verseTo:   number;
   verses:    BibleVerse[];
   headings:  { beforeVerse: number; text: string }[];
+  source:    "LAI" | "AYT" | "KJV" | "WEB" | "ASV" | string;
+  lang:      "id" | "en";
 }
 
+// ── Handler utama ──────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const book    = searchParams.get("book");
   const chapter = searchParams.get("chapter");
   const from    = searchParams.get("from");
   const to      = searchParams.get("to");
+  const lang    = (searchParams.get("lang") ?? "id") as "id" | "en";
 
   if (!book || !chapter || !from || !to) {
     return NextResponse.json(
@@ -40,92 +56,167 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  if (!LAI_KEY) {
-    return NextResponse.json(
-      { error: "LAI_BIBLE_API_KEY belum di-set di .env.local" },
-      { status: 503 }
-    );
+  const chapterNum = Number(chapter);
+  const verseFrom  = Number(from);
+  const verseTo    = Number(to);
+
+  const bookIndex = BIBLE_BOOKS.findIndex(b => b.slug === book);
+  if (bookIndex === -1) {
+    return NextResponse.json({ error: `Kitab tidak dikenal: ${book}` }, { status: 400 });
+  }
+  const bookMeta = BIBLE_BOOKS[bookIndex];
+  const bookNum  = bookIndex + 1; // bolls.life pakai nomor 1–66
+
+  const cacheHeaders = { "Cache-Control": "public, max-age=86400, s-maxage=86400" };
+
+  // ── English: bolls.life ────────────────────────────────────────────────────
+  if (lang === "en") {
+    try {
+      const result = await fetchFromBolls(bookNum, bookMeta.name, chapterNum, verseFrom, verseTo);
+      return NextResponse.json(result, { headers: cacheHeaders });
+    } catch (e) {
+      console.error("[bible-proxy] bolls.life gagal:", e);
+      return NextResponse.json({ error: "Gagal mengambil teks Alkitab (EN)." }, { status: 500 });
+    }
   }
 
-  const verseRange = from === to ? from : `${from}-${to}`;
-  const endpoint   = `${LAI_URL}/bible/tb/${book}/${chapter}/${verseRange}`;
+  // ── Indonesia: LAI → AYT ───────────────────────────────────────────────────
+  if (LAI_KEY) {
+    try {
+      const result = await fetchFromLAI(book, chapterNum, verseFrom, verseTo, bookMeta.name);
+      return NextResponse.json(result, { headers: cacheHeaders });
+    } catch (e) {
+      console.warn("[bible-proxy] LAI gagal, fallback ke AYT:", e);
+    }
+  }
 
   try {
-    const res = await fetch(endpoint, {
-      headers: {
-        Authorization: `Bearer ${LAI_KEY}`,
-        Accept:        "application/json",
-      },
-      // Cache 24 jam — teks Alkitab tidak berubah
-      next: { revalidate: 86400 },
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("[bible-proxy] LAI API error:", res.status, text);
-      return NextResponse.json(
-        { error: `LAI API error: ${res.status}` },
-        { status: res.status }
-      );
-    }
-
-    const raw = await res.json();
-
-    // ── Normalize respons LAI ke format standar ─────────────────────────────
-    // TODO: sesuaikan setelah dapat akses API dan melihat struktur respons asli.
-    // Struktur yang mungkin dari LAI:
-    //   raw.data.verses[] | raw.verses[] | raw.verse (single) | raw.passage[]
-    const normalized: BiblePassageResponse = normalizeResponse(raw, book, Number(chapter), Number(from), Number(to));
-
-    return NextResponse.json(normalized, {
-      headers: { "Cache-Control": "public, max-age=86400, s-maxage=86400" },
-    });
+    const result = await fetchFromAYT(bookMeta.abbr, chapterNum, verseFrom, verseTo, bookMeta.name);
+    return NextResponse.json(result, { headers: cacheHeaders });
   } catch (e) {
-    console.error("[bible-proxy] fetch error:", e);
-    return NextResponse.json({ error: "Gagal menghubungi LAI Bible API." }, { status: 500 });
+    console.error("[bible-proxy] AYT juga gagal:", e);
+    return NextResponse.json({ error: "Gagal mengambil teks Alkitab." }, { status: 500 });
   }
 }
 
-// ─── Normalizer — sesuaikan dengan respons aktual LAI setelah testing ─────────
-function normalizeResponse(
-  raw: any,
-  book: string,
-  chapter: number,
-  verseFrom: number,
-  verseTo: number
+// ── Fetcher: bolls.life (English) ─────────────────────────────────────────────
+// GET https://bolls.life/get-passage/KJV/{bookNum}/{chapter}/{from}/{to}/
+// Response: [{ pk, verse, text }, ...]
+async function fetchFromBolls(
+  bookNum: number, bookName: string, chapter: number, verseFrom: number, verseTo: number
+): Promise<BiblePassageResponse> {
+  const url = `${BOLLS_URL}/${EN_VERSION}/${bookNum}/${chapter}/${verseFrom}/${verseTo}/`;
+
+  const res = await fetch(url, {
+    headers: { Accept: "application/json" },
+    next: { revalidate: 86400 },
+  });
+  if (!res.ok) throw new Error(`bolls.life ${res.status}`);
+
+  const raw: { pk: number; verse: number; text: string }[] = await res.json();
+
+  const verses: BibleVerse[] = raw.map(v => ({
+    verse: v.verse,
+    // bolls.life kadang include HTML tags di beberapa versi — strip jika ada
+    text:  v.text.replace(/<[^>]+>/g, "").trim(),
+  }));
+
+  return { book: bookName, chapter, verseFrom, verseTo, verses, headings: [], source: EN_VERSION, lang: "en" };
+}
+
+// ── Fetcher: LAI (Indonesia, TB resmi) ────────────────────────────────────────
+async function fetchFromLAI(
+  slug: string, chapter: number, verseFrom: number, verseTo: number, bookName: string
+): Promise<BiblePassageResponse> {
+  const verseRange = verseFrom === verseTo ? String(verseFrom) : `${verseFrom}-${verseTo}`;
+  const url = `${LAI_URL}/bible/tb/${slug}/${chapter}/${verseRange}`;
+
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${LAI_KEY}`, Accept: "application/json" },
+    next: { revalidate: 86400 },
+  });
+  if (!res.ok) throw new Error(`LAI ${res.status}`);
+
+  const raw = await res.json();
+  return normalizeLAI(raw, bookName, chapter, verseFrom, verseTo);
+}
+
+// ── Fetcher: AYT SABDA (Indonesia, fallback) ──────────────────────────────────
+async function fetchFromAYT(
+  abbr: string, chapter: number, verseFrom: number, verseTo: number, bookName: string
+): Promise<BiblePassageResponse> {
+  const passageStr = verseFrom === verseTo
+    ? `${abbr} ${chapter}:${verseFrom}`
+    : `${abbr} ${chapter}:${verseFrom}-${verseTo}`;
+
+  const url = `${AYT_URL}/passage.php?passage=${encodeURIComponent(passageStr)}&source=${AYT_SRC}`;
+
+  const res = await fetch(url, {
+    headers: { Accept: "application/json" },
+    next: { revalidate: 86400 },
+  });
+  if (!res.ok) throw new Error(`AYT ${res.status}`);
+
+  const raw = await res.json();
+  return normalizeAYT(raw, bookName, chapter, verseFrom, verseTo);
+}
+
+// ── Normalizer: LAI ────────────────────────────────────────────────────────────
+function normalizeLAI(
+  raw: any, book: string, chapter: number, verseFrom: number, verseTo: number
 ): BiblePassageResponse {
-  let verses: BibleVerse[]    = [];
-  let headings: { beforeVerse: number; text: string }[] = [];
+  const verses:   BibleVerse[]                             = [];
+  const headings: { beforeVerse: number; text: string }[] = [];
 
-  // Coba berbagai kemungkinan struktur respons
   const rawVerses: any[] =
-    raw?.data?.verses ??
-    raw?.data?.passage ??
-    raw?.verses ??
-    raw?.passage ??
-    (Array.isArray(raw?.verse) ? raw.verse : null) ??
-    [];
+    raw?.data?.verses ?? raw?.data?.passage ?? raw?.verses ?? raw?.passage ??
+    (Array.isArray(raw?.verse) ? raw.verse : null) ?? [];
 
-  if (rawVerses.length > 0) {
-    // Format array: [{ verse: 1, text: "..." }, ...]
-    for (const v of rawVerses) {
-      if (v.type === "title" || v.type === "heading") {
-        headings.push({ beforeVerse: v.verse ?? verses.length + 1, text: v.content ?? v.text ?? "" });
-        continue;
-      }
-      if (v.type === "text" || v.type === "content" || v.text || v.content) {
-        verses.push({
-          verse: Number(v.verse ?? v.verse_number ?? v.number),
-          text:  String(v.text ?? v.content ?? ""),
-        });
-      }
+  for (const v of rawVerses) {
+    if (v.type === "title" || v.type === "heading") {
+      headings.push({ beforeVerse: v.verse ?? verses.length + 1, text: v.content ?? v.text ?? "" });
+      continue;
     }
-  } else if (raw?.verse?.text) {
-    // Format single verse
-    verses = [{ verse: verseFrom, text: raw.verse.text }];
-  } else if (typeof raw?.text === "string") {
-    verses = [{ verse: verseFrom, text: raw.text }];
+    if (v.text || v.content) {
+      verses.push({ verse: Number(v.verse ?? v.verse_number ?? v.number), text: String(v.text ?? v.content) });
+    }
+  }
+  if (verses.length === 0 && raw?.verse?.text) {
+    verses.push({ verse: verseFrom, text: raw.verse.text });
   }
 
-  return { book, chapter, verseFrom, verseTo, verses, headings };
+  return { book, chapter, verseFrom, verseTo, verses, headings, source: "LAI", lang: "id" };
+}
+
+// ── Normalizer: AYT ───────────────────────────────────────────────────────────
+function normalizeAYT(
+  raw: any, book: string, chapter: number, verseFrom: number, verseTo: number
+): BiblePassageResponse {
+  const verses:   BibleVerse[]                             = [];
+  const headings: { beforeVerse: number; text: string }[] = [];
+
+  const refs: any[] = Array.isArray(raw) ? raw : [];
+
+  for (const ref of refs) {
+    const bookData = ref?.res ? (Object.values(ref.res)[0] as any) : null;
+    if (!bookData?.data) continue;
+
+    const chapData = Object.values(bookData.data)[0] as any;
+    if (!chapData) continue;
+
+    for (const entry of Object.values(chapData) as any[]) {
+      const verseNum = Number(entry.verse);
+      if (verseNum < verseFrom || verseNum > verseTo) continue;
+
+      if (entry.title && !headings.find(h => h.beforeVerse === verseNum)) {
+        headings.push({ beforeVerse: verseNum, text: entry.title });
+      }
+      if (!verses.find(v => v.verse === verseNum)) {
+        verses.push({ verse: verseNum, text: String(entry.text ?? "") });
+      }
+    }
+  }
+
+  verses.sort((a, b) => a.verse - b.verse);
+  return { book, chapter, verseFrom, verseTo, verses, headings, source: "AYT", lang: "id" };
 }

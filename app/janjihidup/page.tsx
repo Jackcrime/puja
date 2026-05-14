@@ -5,7 +5,6 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { VerseCard } from "@/components/ui/VerseCard";
 import { AuthorModal } from "@/components/ui/AuthorModal";
 import { FocusMode } from "@/components/ui/FocusMode";
-import { PerikopButton } from "@/components/ui/PerikopModal";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Play, Pause, Headphones, BookOpen, Printer, Share2, Check, Maximize2, Loader2, ScrollText } from "lucide-react";
 import { useI18n } from "@/lib/hooks/useI18n";
@@ -131,27 +130,14 @@ export default function JanjiHidup() {
             </div>
             <div className="divide-y divide-border">
               {(perikop as any[]).map((p: any, i: number) => (
-                <div key={i} className="flex items-center justify-between px-5 py-3 gap-3">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <span className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-bold text-white mt-0.5" style={{ backgroundColor: "var(--brand)" }}>{i + 1}</span>
-                    <div className="min-w-0">
-                      <p className="font-serif font-semibold text-sm leading-snug" style={{ color: "var(--brand)" }}>
-                        {p.bookName ?? p.book} {p.chapter}:{p.verses ?? `${p.verseFrom}–${p.verseTo}`}
-                      </p>
-                      {p.heading && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{p.heading}</p>}
-                    </div>
+                <div key={i} className="flex items-start gap-3 px-5 py-3">
+                  <span className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-bold text-white mt-0.5" style={{ backgroundColor: "var(--brand)" }}>{i + 1}</span>
+                  <div className="min-w-0">
+                    <p className="font-serif font-semibold text-sm leading-snug" style={{ color: "var(--brand)" }}>
+                      {p.bookName ?? p.book} {p.chapter}:{p.verses ?? `${p.verseFrom}–${p.verseTo}`}
+                    </p>
+                    {p.heading && <p className="text-xs text-muted-foreground mt-0.5">{p.heading}</p>}
                   </div>
-                  {p.bookSlug && (
-                    <PerikopButton
-                      bookSlug={p.bookSlug}
-                      bookName={p.bookName ?? p.book}
-                      chapter={p.chapter}
-                      verseFrom={p.verseFrom ?? 1}
-                      verseTo={p.verseTo ?? 99}
-                      heading={p.heading}
-                      label="Baca"
-                    />
-                  )}
                 </div>
               ))}
             </div>
@@ -164,7 +150,7 @@ export default function JanjiHidup() {
           <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: "var(--gold)" }}>{t("pujidanjanji.highlights")}</p>
           {hlLoading ? <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Memuat...</div> : (
             <div className="flex flex-col gap-3">
-              {highlights.map((v, i) => <VerseCard key={i} reference={v.reference} text={v.text} id={`jh-hl-${i}`} />)}
+              {highlights.map((v, i) => <VerseCard key={i} reference={v.reference} text={v.text} id={`jh-hl-${i}`} showPerikop />)}
             </div>
           )}
         </section>

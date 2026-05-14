@@ -12,7 +12,6 @@ import { useVerseHighlights, useBibleReadings, usePrayerTopic, useSpecialVerses,
 import { useI18n } from "@/lib/hooks/useI18n";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
-import { PerikopButton } from "@/components/ui/PerikopModal";
 
 function CopyBtn({ text, reference }: { text: string; reference: string }) {
   const [copied, setCopied] = useState(false);
@@ -71,27 +70,14 @@ export default function PujiDanJanji() {
                 </DialogHeader>
                 <div className="flex flex-col gap-2 py-2">
                   {PERIKOP.map((p: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between gap-3 p-3 rounded-xl" style={{ backgroundColor: "var(--brand-muted)" }}>
-                      <div className="flex items-start gap-3 min-w-0">
-                        <div className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: "var(--brand)" }}>{i + 1}</div>
-                        <div className="min-w-0">
-                          <p className="font-serif font-semibold text-sm leading-snug" style={{ color: "var(--brand)" }}>
-                            {p.bookName ?? p.book} {p.chapter}:{p.verses ?? `${p.verseFrom}–${p.verseTo}`}
-                          </p>
-                          {p.heading && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{p.heading}</p>}
-                        </div>
+                    <div key={i} className="flex items-start gap-3 p-3 rounded-xl" style={{ backgroundColor: "var(--brand-muted)" }}>
+                      <div className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: "var(--brand)" }}>{i + 1}</div>
+                      <div className="min-w-0">
+                        <p className="font-serif font-semibold text-sm leading-snug" style={{ color: "var(--brand)" }}>
+                          {p.bookName ?? p.book} {p.chapter}:{p.verses ?? `${p.verseFrom}–${p.verseTo}`}
+                        </p>
+                        {p.heading && <p className="text-xs text-muted-foreground mt-0.5">{p.heading}</p>}
                       </div>
-                      {p.bookSlug && (
-                        <PerikopButton
-                          bookSlug={p.bookSlug}
-                          bookName={p.bookName ?? p.book}
-                          chapter={p.chapter}
-                          verseFrom={p.verseFrom ?? 1}
-                          verseTo={p.verseTo ?? 99}
-                          heading={p.heading}
-                          label="Baca"
-                        />
-                      )}
                     </div>
                   ))}
                 </div>
@@ -123,7 +109,7 @@ export default function PujiDanJanji() {
           <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: "var(--gold)" }}>{t("pujidanjanji.highlights")}</p>
           <div className="flex flex-col gap-3">
             {VERSE_HIGHLIGHTS.map((v, i) => (
-              <VerseCard key={i} reference={v.reference} text={v.text} id={`highlight-${i}`} />
+              <VerseCard key={i} reference={v.reference} text={v.text} id={`highlight-${i}`} showPerikop />
             ))}
           </div>
         </section>
@@ -155,28 +141,8 @@ export default function PujiDanJanji() {
                           <p className="text-foreground leading-relaxed text-sm flex-1">{verse.text}</p>
                         </div>
                       ))}
-                      <div className="pt-3 border-t border-border mt-1 flex items-center justify-between gap-2">
+                      <div className="pt-3 border-t border-border mt-1">
                         <CopyBtn reference={reading.reference} text={reading.verses.map(v => v.text).join(" ")} />
-                        {/* Tombol baca perikop TB — cocokkan dengan data perikop admin */}
-                        {(() => {
-                          const matched = (PERIKOP as any[]).find((p: any) =>
-                            p.bookSlug && (
-                              reading.reference.startsWith(p.bookName ?? p.book) ||
-                              (p.bookName && reading.reference.startsWith(p.bookName))
-                            )
-                          );
-                          return matched?.bookSlug ? (
-                            <PerikopButton
-                              bookSlug={matched.bookSlug}
-                              bookName={matched.bookName ?? matched.book}
-                              chapter={matched.chapter}
-                              verseFrom={matched.verseFrom ?? 1}
-                              verseTo={matched.verseTo ?? 99}
-                              heading={matched.heading}
-                              label="Baca Perikop (TB)"
-                            />
-                          ) : null;
-                        })()}
                       </div>
                     </div>
                   </AccordionContent>

@@ -4,61 +4,117 @@ import React, { useState, useEffect, useMemo } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminGuard } from "@/components/admin/AdminGuard";
 import { DataTable } from "@/components/admin/DataTable";
-import { FormModal } from "@/components/admin/FormModal";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { FileUploader } from "@/components/admin/FileUploader";
-import { useAuthors, useMinistries, type Author, type Ministry } from "@/lib/hooks/useFirestoreData";
+import { useAuthors, useMinistries, type Author, type ServiceEntry } from "@/lib/hooks/useFirestoreData";
 import { deleteUploadThingFile } from "@/lib/uploadthing-client";
-import { Loader2, UserCircle, Calendar } from "lucide-react";
+import { TITLE_OPTIONS } from "@/lib/mockData";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Loader2, UserCircle, Plus, X, GripVertical } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type AuthorRow = Author & { id: string };
 
+const EMPTY_SERVICE: ServiceEntry = { ministryId: "", from: "", until: "Sekarang" };
+
 const EMPTY: AuthorRow = {
-  id: "", code: "", name: "", title: "Pendeta",
-  ministries: [], servedFrom: "", servedUntil: "Sekarang",
-  photoUrl: "", ministry: "",
+  id: "", code: "", name: "", titles: [], photoUrl: "", serviceHistory: [{ ...EMPTY_SERVICE }],
 };
 
 const CURRENT_YEAR = new Date().getFullYear();
-const YEAR_OPTIONS = Array.from({ length: 50 }, (_, i) => {
-  const y = String(CURRENT_YEAR - i);
-  return { value: y, label: y };
-});
+const YEAR_OPTIONS = Array.from({ length: 60 }, (_, i) => String(CURRENT_YEAR - i));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function dictToArray(dict: Record<string, any>): AuthorRow[] {
   return Object.entries(dict).map(([code, a]) => ({
-    id:          code,
+    id:             code,
     code,
-    name:        a.name        ?? "",
-    title:       a.title       ?? "",
-    ministries:  Array.isArray(a.ministries) ? a.ministries
-                   : a.ministry ? [a.ministry] : [],
-    servedFrom:  a.servedFrom  ?? "",
-    servedUntil: a.servedUntil ?? "Sekarang",
-    photoUrl:    a.photoUrl    ?? "",
-    ministry:    a.ministry    ?? "",
+    name:           a.name           ?? "",
+    // Migrasi legacy: title string → titles array
+    titles:         Array.isArray(a.titles) ? a.titles
+                      : a.title ? [a.title] : [],
+    photoUrl:       a.photoUrl       ?? "",
+    // Migrasi legacy: ministries + servedFrom/Until → serviceHistory
+    serviceHistory: Array.isArray(a.serviceHistory) && a.serviceHistory.length > 0
+                      ? a.serviceHistory
+                      : Array.isArray(a.ministries) && a.ministries.length > 0
+                        ? a.ministries.map((m: string) => ({
+                            ministryId: m,
+                            from:       a.servedFrom  ?? "",
+                            until:      a.servedUntil ?? "Sekarang",
+                          }))
+                        : [{ ...EMPTY_SERVICE }],
   }));
 }
 
 function arrayToDict(arr: AuthorRow[]): Record<string, any> {
   return arr.reduce<Record<string, any>>((acc, a) => {
     acc[a.code] = {
-      name:        a.name,
-      title:       a.title,
-      ministries:  a.ministries,
-      servedFrom:  a.servedFrom,
-      servedUntil: a.servedUntil,
-      photoUrl:    a.photoUrl,
+      name:           a.name,
+      titles:         a.titles,
+      photoUrl:       a.photoUrl,
+      serviceHistory: a.serviceHistory,
     };
     return acc;
   }, {});
 }
 
-function formatServicePeriod(a: AuthorRow): string {
-  if (!a.servedFrom) return "";
-  return `${a.servedFrom} – ${a.servedUntil || "Sekarang"}`;
+// ─── Service History Row ──────────────────────────────────────────────────────
+function ServiceRow({
+  entry, index, ministryOptions, onChange, onRemove, canRemove,
+}: {
+  entry:           ServiceEntry;
+  index:           number;
+  ministryOptions: { value: string; label: string }[];
+  onChange:        (i: number, field: keyof ServiceEntry, val: string) => void;
+  onRemove:        (i: number) => void;
+  canRemove:       boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2 p-2 rounded-lg border border-border bg-muted/30">
+      <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
+      <div className="flex-1 min-w-0">
+        <select
+          value={entry.ministryId}
+          onChange={(e) => onChange(index, "ministryId", e.target.value)}
+          className="w-full px-2 py-1.5 text-xs border border-border rounded bg-background focus:outline-none mb-1.5"
+        >
+          <option value="">Pilih lokasi pelayanan...</option>
+          {ministryOptions.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+        <div className="flex items-center gap-1.5">
+          <select
+            value={entry.from}
+            onChange={(e) => onChange(index, "from", e.target.value)}
+            className="flex-1 px-2 py-1 text-xs border border-border rounded bg-background focus:outline-none"
+          >
+            <option value="">Mulai...</option>
+            {YEAR_OPTIONS.map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <span className="text-muted-foreground text-xs shrink-0">–</span>
+          <select
+            value={entry.until}
+            onChange={(e) => onChange(index, "until", e.target.value)}
+            className="flex-1 px-2 py-1 text-xs border border-border rounded bg-background focus:outline-none"
+          >
+            <option value="Sekarang">Sekarang</option>
+            {YEAR_OPTIONS.map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </div>
+      </div>
+      {canRemove && (
+        <button
+          type="button"
+          onClick={() => onRemove(index)}
+          className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive shrink-0"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  );
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -74,10 +130,6 @@ export default function AdminPenulis() {
   const [form,    setForm]    = useState<AuthorRow>(EMPTY);
   const [target,  setTarget]  = useState<AuthorRow | null>(null);
   const [saving,  setSaving]  = useState(false);
-
-  // URL foto lama yang akan dihapus dari UploadThing saat form di-submit.
-  // Di-set saat user hapus/ganti foto — bukan langsung dihapus,
-  // supaya kalau user cancel modal, file asli tidak ikut kehapus.
   const [pendingDeleteUrl, setPendingDeleteUrl] = useState("");
 
   useEffect(() => {
@@ -93,28 +145,26 @@ export default function AdminPenulis() {
 
   const openAdd = () => {
     setEditing(null);
-    setForm(EMPTY);
+    setForm({ ...EMPTY, serviceHistory: [{ ...EMPTY_SERVICE }] });
     setPendingDeleteUrl("");
     setModal(true);
   };
 
   const openEdit = (a: AuthorRow) => {
     setEditing(a);
-    setForm(a);
+    setForm({ ...a, serviceHistory: a.serviceHistory.length > 0 ? a.serviceHistory : [{ ...EMPTY_SERVICE }] });
     setPendingDeleteUrl("");
     setModal(true);
   };
 
   const openDelete = (a: AuthorRow) => { setTarget(a); setConfirm(true); };
 
-  // Tutup modal tanpa save → buang pendingDeleteUrl (jangan hapus file asli)
   const handleModalOpenChange = (open: boolean) => {
     if (!open) setPendingDeleteUrl("");
     setModal(open);
   };
 
   const handleSubmit = async () => {
-    // Baru hapus file lama dari UploadThing setelah user klik Save
     if (pendingDeleteUrl) {
       await deleteUploadThingFile(pendingDeleteUrl);
       setPendingDeleteUrl("");
@@ -128,17 +178,35 @@ export default function AdminPenulis() {
 
   const handleDelete = async () => {
     if (!target) return;
-    // Simpan dulu sebelum di-null-kan
-    const deletedId       = target.id;
+    const deletedId = target.id;
     const deletedPhotoUrl = target.photoUrl;
     setTarget(null);
     if (deletedPhotoUrl) await deleteUploadThingFile(deletedPhotoUrl);
     await persist(authors.filter((a) => a.id !== deletedId));
   };
 
+  // ─── Service history helpers ───────────────────────────────────────────────
+  const updateService = (i: number, field: keyof ServiceEntry, val: string) => {
+    const next = form.serviceHistory.map((s, idx) => idx === i ? { ...s, [field]: val } : s);
+    setForm((f) => ({ ...f, serviceHistory: next }));
+  };
+
+  const addService = () =>
+    setForm((f) => ({ ...f, serviceHistory: [...f.serviceHistory, { ...EMPTY_SERVICE }] }));
+
+  const removeService = (i: number) =>
+    setForm((f) => ({ ...f, serviceHistory: f.serviceHistory.filter((_, idx) => idx !== i) }));
+
+  // ─── Title helpers ─────────────────────────────────────────────────────────
+  const toggleTitle = (val: string) =>
+    setForm((f) => ({
+      ...f,
+      titles: f.titles.includes(val) ? f.titles.filter((t) => t !== val) : [...f.titles, val],
+    }));
+
   const ministryOptions = useMemo(() =>
-    ministries.map((m) => ({ value: m.id, label: m.name, group: m.category })),
-    [ministries]
+    ministries.map((m) => ({ value: m.id, label: m.name })),
+    [ministries],
   );
 
   const getMinistryName = (id: string) =>
@@ -148,9 +216,9 @@ export default function AdminPenulis() {
     authors.filter((a) =>
       !search ||
       a.name.toLowerCase().includes(search.toLowerCase()) ||
-      a.code.toLowerCase().includes(search.toLowerCase())
+      a.code.toLowerCase().includes(search.toLowerCase()),
     ),
-    [authors, search]
+    [authors, search],
   );
 
   const loading = authLoading || minLoading;
@@ -196,38 +264,40 @@ export default function AdminPenulis() {
                   </span>
                 ),
               },
-              { key: "title", label: "Gelar", width: "80px" },
+              {
+                key: "titles", label: "Gelar",
+                render: (a) => (
+                  <div className="flex flex-wrap gap-1">
+                    {a.titles.length === 0
+                      ? <span className="text-xs text-muted-foreground italic">—</span>
+                      : a.titles.map((t) => (
+                          <span key={t} className="text-[10px] font-medium px-1.5 py-0.5 rounded-full border border-border text-muted-foreground">
+                            {t}
+                          </span>
+                        ))}
+                  </div>
+                ),
+              },
               {
                 key: "name", label: "Nama",
                 render: (a) => <span className="font-medium">{a.name}</span>,
               },
               {
-                key: "ministries", label: "Pelayanan di",
+                key: "serviceHistory", label: "Riwayat Pelayanan",
                 render: (a) => (
-                  <div className="flex flex-wrap gap-1">
-                    {a.ministries.length === 0 ? (
-                      <span className="text-xs text-muted-foreground italic">—</span>
-                    ) : (
-                      a.ministries.slice(0, 2).map((id) => (
-                        <span key={id} className="text-[10px] font-medium px-1.5 py-0.5 rounded-full border border-border text-muted-foreground">
-                          {getMinistryName(id)}
-                        </span>
-                      ))
-                    )}
-                    {a.ministries.length > 2 && (
-                      <span className="text-[10px] text-muted-foreground">+{a.ministries.length - 2}</span>
+                  <div className="flex flex-col gap-0.5">
+                    {a.serviceHistory.length === 0
+                      ? <span className="text-xs text-muted-foreground italic">—</span>
+                      : a.serviceHistory.slice(0, 2).map((s, i) => (
+                          <span key={i} className="text-[10px] text-muted-foreground">
+                            {getMinistryName(s.ministryId)} ({s.from || "?"} – {s.until})
+                          </span>
+                        ))}
+                    {a.serviceHistory.length > 2 && (
+                      <span className="text-[10px] text-muted-foreground">+{a.serviceHistory.length - 2} lainnya</span>
                     )}
                   </div>
                 ),
-              },
-              {
-                key: "servedFrom", label: "Periode", width: "130px",
-                render: (a) => a.servedFrom ? (
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Calendar className="h-3 w-3 shrink-0" />
-                    {formatServicePeriod(a)}
-                  </span>
-                ) : <span className="text-xs text-muted-foreground italic">—</span>,
               },
             ]}
             data={filtered}
@@ -242,92 +312,145 @@ export default function AdminPenulis() {
           />
         )}
 
-        {/* ── Form modal ─────────────────────────────────────────────────── */}
-        <FormModal
-          open={modal}
-          onOpenChange={handleModalOpenChange}
-          title="Penulis"
-          isEdit={!!editing}
-          fields={[
-            { key: "code",  label: "Kode (contoh: IWM)", placeholder: "IWM",             required: true },
-            {
-              key: "title", label: "Gelar", type: "select",
-              options: [
-                { value: "Pendeta",  label: "Pendeta"     },
-                { value: "Vikaris",  label: "Vikaris"     },
-                { value: "Ev.",      label: "Evangelis"   },
-                { value: "Pnt.",     label: "Penatua"     },
-                { value: "",         label: "Tanpa gelar" },
-              ],
-            },
-            { key: "name",  label: "Nama Lengkap", placeholder: "I Wayan Mariasa",       required: true },
-            {
-              key:     "ministries",
-              label:   "Unit Pelayanan",
-              type:    "multi-select",
-              options: ministryOptions,
-            },
-          ]}
-          values={form}
-          onChange={(k, v) => setForm((f) => ({ ...f, [k]: v }))}
-          onSubmit={handleSubmit}
-        >
-          {/* Periode pelayanan */}
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: "var(--gold)" }}>
-              Periode Pelayanan
-            </p>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <select
-                  value={form.servedFrom}
-                  onChange={(e) => setForm((f) => ({ ...f, servedFrom: e.target.value }))}
+        {/* ── Form modal ───────────────────────────────────────────────────── */}
+        <Dialog open={modal} onOpenChange={handleModalOpenChange}>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editing ? "Edit" : "Tambah"} Penulis</DialogTitle>
+            </DialogHeader>
+
+            <div className="flex flex-col gap-4 py-2">
+              {/* Kode */}
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider mb-1 block" style={{ color: "var(--gold)" }}>
+                  Kode <span className="text-destructive">*</span>
+                </label>
+                <input
+                  value={form.code}
+                  onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
+                  placeholder="Contoh: IWM"
                   className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none"
-                >
-                  <option value="">Tahun mulai</option>
-                  {YEAR_OPTIONS.map((y) => (
-                    <option key={y.value} value={y.value}>{y.label}</option>
-                  ))}
-                </select>
+                  disabled={!!editing}
+                />
               </div>
-              <span className="text-muted-foreground text-sm shrink-0">sampai</span>
-              <div className="flex-1">
-                <select
-                  value={form.servedUntil}
-                  onChange={(e) => setForm((f) => ({ ...f, servedUntil: e.target.value }))}
+
+              {/* Nama */}
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider mb-1 block" style={{ color: "var(--gold)" }}>
+                  Nama Lengkap <span className="text-destructive">*</span>
+                </label>
+                <input
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="I Wayan Mariasa"
                   className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none"
-                >
-                  <option value="Sekarang">Sekarang</option>
-                  {YEAR_OPTIONS.map((y) => (
-                    <option key={y.value} value={y.value}>{y.label}</option>
+                />
+              </div>
+
+              {/* Gelar — multiple toggle */}
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--gold)" }}>
+                  Gelar (pilih semua yang sesuai)
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {TITLE_OPTIONS.map((opt) => {
+                    const active = form.titles.includes(opt.value);
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => toggleTitle(opt.value)}
+                        className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                          active
+                            ? "border-transparent text-white"
+                            : "border-border text-muted-foreground hover:border-foreground/30"
+                        }`}
+                        style={active ? { backgroundColor: "var(--brand)" } : {}}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {form.titles.length > 0 && (
+                  <p className="text-[11px] text-muted-foreground mt-1.5">
+                    Dipilih: {form.titles.join(", ")}
+                  </p>
+                )}
+              </div>
+
+              {/* Riwayat Pelayanan */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--gold)" }}>
+                    Riwayat Pelayanan
+                  </p>
+                  <button
+                    type="button"
+                    onClick={addService}
+                    className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-border hover:border-foreground/30 text-muted-foreground transition-colors"
+                  >
+                    <Plus className="h-3 w-3" /> Tambah Lokasi
+                  </button>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {form.serviceHistory.map((s, i) => (
+                    <ServiceRow
+                      key={i}
+                      entry={s}
+                      index={i}
+                      ministryOptions={ministryOptions}
+                      onChange={updateService}
+                      onRemove={removeService}
+                      canRemove={form.serviceHistory.length > 1}
+                    />
                   ))}
-                </select>
+                </div>
+              </div>
+
+              {/* Foto */}
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: "var(--gold)" }}>
+                  Foto Penulis (opsional)
+                </p>
+                <FileUploader
+                  endpoint="imageUploader"
+                  label=""
+                  accept="image/jpeg,image/png,image/webp"
+                  isImage
+                  currentUrl={form.photoUrl}
+                  onUploadComplete={(res) => {
+                    if (form.photoUrl) setPendingDeleteUrl(form.photoUrl);
+                    setForm((f) => ({ ...f, photoUrl: res.url }));
+                  }}
+                  onRemove={() => {
+                    if (form.photoUrl) setPendingDeleteUrl(form.photoUrl);
+                    setForm((f) => ({ ...f, photoUrl: "" }));
+                  }}
+                />
               </div>
             </div>
-          </div>
 
-          {/* Upload foto */}
-          <div className="mt-1">
-            <FileUploader
-              endpoint="imageUploader"
-              label="Foto Penulis (opsional)"
-              accept="image/jpeg,image/png,image/webp"
-              isImage
-              currentUrl={form.photoUrl}
-              onUploadComplete={(res) => {
-                // Kalau ada foto lama (ganti foto), tandai untuk dihapus saat save
-                if (form.photoUrl) setPendingDeleteUrl(form.photoUrl);
-                setForm((f) => ({ ...f, photoUrl: res.url }));
-              }}
-              onRemove={() => {
-                // Tandai untuk dihapus saat save — jangan langsung hapus
-                // supaya kalau user cancel, file asli aman
-                if (form.photoUrl) setPendingDeleteUrl(form.photoUrl);
-                setForm((f) => ({ ...f, photoUrl: "" }));
-              }}
-            />
-          </div>
-        </FormModal>
+            <DialogFooter>
+              <button
+                type="button"
+                onClick={() => handleModalOpenChange(false)}
+                className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={!form.code || !form.name}
+                className="px-4 py-2 text-sm rounded-lg text-white font-medium transition-opacity disabled:opacity-40"
+                style={{ backgroundColor: "var(--brand)" }}
+              >
+                {editing ? "Simpan Perubahan" : "Tambah Penulis"}
+              </button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <ConfirmDialog
           open={confirm}

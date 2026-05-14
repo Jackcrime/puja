@@ -124,7 +124,7 @@ export default function AyatEmas() {
             ) : (
               searchResults.map((v: any, i: number) => (
                 <VerseCard key={i} reference={v.reference} text={v.text} label={v.label} date={v.date}
-                  accentColor={i % 2 === 0 ? "gold" : "brand"} />
+                  accentColor={i % 2 === 0 ? "gold" : "brand"} showPerikop />
               ))
             )}
           </div>
@@ -149,6 +149,7 @@ export default function AyatEmas() {
                     text={khusus.tahun.text}
                     label={`AYAT TAHUN ${khusus.tahun.year}`}
                     accentColor="brand"
+                    showPerikop
                   />
                 )}
 
@@ -160,6 +161,7 @@ export default function AyatEmas() {
                       text={ayatBulanIni.text}
                       label={`AYAT BULAN ${BULAN[currentMonth - 1].toUpperCase()}`}
                       accentColor="gold"
+                      showPerikop
                     />
                   )}
                   {khusus.minggu && (
@@ -169,6 +171,7 @@ export default function AyatEmas() {
                       label="AYAT MINGGU"
                       date={khusus.minggu.date}
                       accentColor="brand"
+                      showPerikop
                     />
                   )}
                 </div>
@@ -272,6 +275,7 @@ export default function AyatEmas() {
                       text={v.text}
                       label={v.label}
                       accentColor={i % 2 === 0 ? "gold" : "brand"}
+                      showPerikop
                     />
                   ))}
                 </div>

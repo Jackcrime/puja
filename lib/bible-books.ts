@@ -98,3 +98,28 @@ export function formatRef(bookName: string, chapter: number, verseFrom: number, 
   if (verseFrom === verseTo) return `${bookName} ${chapter}:${verseFrom}`;
   return `${bookName} ${chapter}:${verseFrom}–${verseTo}`;
 }
+/**
+ * Parse referensi ayat → book + chapter + verse
+ * Handles: "Ayub 12: 10", "1 Samuel 3:1-5", "Lukas 23: 46", "Yohanes 3: 16"
+ */
+export interface ParsedRef {
+  book:      BibleBook;
+  chapter:   number;
+  verseFrom: number;
+  verseTo:   number;
+}
+
+export function parseReference(ref: string): ParsedRef | null {
+  // Regex: {bookName} {chapter}:{verseFrom}[-{verseTo}]
+  // bookName bisa "Ayub", "1 Samuel", "2 Raja-raja", dll.
+  const m = ref.trim().match(/^(.+?)\s+(\d+)\s*[:：]\s*(\d+)(?:\s*[-–—]\s*(\d+))?/);
+  if (!m) return null;
+  const book = findBook(m[1].trim());
+  if (!book) return null;
+  return {
+    book,
+    chapter:   parseInt(m[2]),
+    verseFrom: parseInt(m[3]),
+    verseTo:   m[4] ? parseInt(m[4]) : parseInt(m[3]),
+  };
+}
