@@ -137,8 +137,8 @@ export function VerseCard({
           bookSlug={parsed.book.slug}
           bookName={parsed.book.name}
           chapter={parsed.chapter}
-          verseFrom={1}
-          verseTo={999}
+          verseFrom={parsed.verseFrom}
+          verseTo={parsed.verseTo}
         />
       )}
     </div>

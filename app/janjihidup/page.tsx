@@ -5,7 +5,6 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { VerseCard } from "@/components/ui/VerseCard";
 import { AuthorModal } from "@/components/ui/AuthorModal";
 import { FocusMode } from "@/components/ui/FocusMode";
-import { PerikopButton } from "@/components/ui/PerikopModal";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Play, Pause, Headphones, BookOpen, Printer, Share2, Check, Maximize2, Loader2, ScrollText } from "lucide-react";
 import { useI18n } from "@/lib/hooks/useI18n";
@@ -44,7 +43,6 @@ export default function JanjiHidup() {
     const audio = audioRef.current;
     if (!audio || !audioUrl) return;
 
-    // Reset state setiap kali src baru ke-load dari Firestore
     setProgress(0);
     setDuration(0);
     setIsPlaying(false);
@@ -57,7 +55,6 @@ export default function JanjiHidup() {
     audio.addEventListener("loadedmetadata", onMeta);
     audio.addEventListener("ended",          onEnded);
 
-    // Kalau audio sudah cached (readyState >= 1), langsung ambil duration
     if (audio.readyState >= 1) setDuration(audio.duration);
 
     return () => {
@@ -98,7 +95,14 @@ export default function JanjiHidup() {
             <h1 className="font-serif font-bold text-2xl sm:text-3xl" style={{ color: "var(--brand)" }}>{todayStr}</h1>
           </div>
           <div className="flex items-center gap-1.5">
-            <button onClick={() => setFocusMode(true)} className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"><Maximize2 className="h-4 w-4" /></button>
+            <button onClick={() => {
+              // Pause audio sebelum masuk FocusMode supaya state tidak stuck
+              if (audioRef.current && isPlaying) {
+                audioRef.current.pause();
+                setIsPlaying(false);
+              }
+              setFocusMode(true);
+            }} className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"><Maximize2 className="h-4 w-4" /></button>
             <button onClick={share} className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors">
               {shared ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
             </button>
@@ -106,8 +110,7 @@ export default function JanjiHidup() {
           </div>
         </div>
 
-        {/* Audio Player — hanya tampil jika admin sudah upload audio */}
-        {/* Audio selalu di-render supaya ref konsisten, tapi player UI hanya muncul jika ada audioUrl */}
+        {/* Audio — selalu render supaya ref konsisten, UI hanya muncul jika audioUrl ada */}
         <audio ref={audioRef} src={audioUrl ?? ""} preload="metadata" />
         {audioUrl ? (
         <section className="mb-8 no-print">
@@ -117,7 +120,7 @@ export default function JanjiHidup() {
                 {isPlaying ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current ml-0.5" />}
               </button>
               <div className="flex-1 min-w-0">
-                <p className="font-serif font-semibold text-sm leading-snug truncate mb-0.5" style={{ color: "var(--brand)" }}>{devotional.title}</p>
+                <p className="font-serif font-semibold text-sm leading-snug truncate mb-1" style={{ color: "var(--brand)" }}>{devotional.title}</p>
                 <div className="flex items-center gap-2 mb-2">
                   <Headphones className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground">{t("janjihidup.audio")}</span>
@@ -137,48 +140,6 @@ export default function JanjiHidup() {
           </div>
         </section>
         ) : null}
-
-        {/* Verse Highlights */}
-        <section className="mb-8">
-          <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: "var(--gold)" }}>{t("pujidanjanji.highlights")}</p>
-          {hlLoading ? <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Memuat...</div> : (
-            <div className="flex flex-col gap-3">
-              {highlights.map((v, i) => <VerseCard key={i} reference={v.reference} text={v.text} id={`jh-hl-${i}`} />)}
-            </div>
-          )}
-        </section>
-
-        {/* Bible Readings */}
-        <section className="mb-8">
-          <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: "var(--gold)" }}>{t("pujidanjanji.readings")}</p>
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <Accordion type="multiple" defaultValue={["r-0"]} className="w-full">
-              {readings.map((reading, idx) => (
-                <AccordionItem value={`r-${idx}`} key={idx} className="border-b last:border-0">
-                  <AccordionTrigger className="px-5 py-4 hover:bg-muted/50 transition-colors">
-                    <div className="flex flex-col gap-0.5 text-left">
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="h-4 w-4 shrink-0" style={{ color: "var(--gold)" }} />
-                        <span className="font-serif font-semibold" style={{ color: "var(--brand)" }}>{reading.reference}</span>
-                      </div>
-                      {reading.title && <span className="text-xs text-muted-foreground pl-6">{reading.title}</span>}
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-5 pb-5 pt-2 bg-muted/20">
-                    <div className="flex flex-col gap-3">
-                      {reading.verses.map((verse, vi) => (
-                        <div key={vi} className="flex items-start gap-3">
-                          <span className="text-xs font-bold min-w-[1.5rem] pt-0.5" style={{ color: "var(--brand)" }}>{verse.number.split(":")[1]}</span>
-                          <p className="text-foreground leading-relaxed text-sm flex-1">{verse.text}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </div>
-        </section>
 
         {/* Devotional */}
         <section className="mb-8">
@@ -229,6 +190,49 @@ export default function JanjiHidup() {
           <div className="bg-card border border-border rounded-xl p-5">
             <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: "var(--gold)" }}>{t("janjihidup.prayerTopic")}: {prayerTopic.title}</p>
             <p className="text-sm text-muted-foreground leading-relaxed italic">{prayerTopic.text}</p>
+          </div>
+        </section>
+
+        
+        {/* Verse Highlights */}
+        <section className="mb-8">
+          <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: "var(--gold)" }}>{t("pujidanjanji.highlights")}</p>
+          {hlLoading ? <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Memuat...</div> : (
+            <div className="flex flex-col gap-3">
+              {highlights.map((v, i) => <VerseCard key={i} reference={v.reference} text={v.text} id={`jh-hl-${i}`} showPerikop />)}
+            </div>
+          )}
+        </section>
+
+        {/* Bible Readings */}
+        <section className="mb-8">
+          <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: "var(--gold)" }}>{t("pujidanjanji.readings")}</p>
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <Accordion type="multiple" defaultValue={["r-0"]} className="w-full">
+              {readings.map((reading, idx) => (
+                <AccordionItem value={`r-${idx}`} key={idx} className="border-b last:border-0">
+                  <AccordionTrigger className="px-5 py-4 hover:bg-muted/50 transition-colors">
+                    <div className="flex flex-col gap-0.5 text-left">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="h-4 w-4 shrink-0" style={{ color: "var(--gold)" }} />
+                        <span className="font-serif font-semibold" style={{ color: "var(--brand)" }}>{reading.reference}</span>
+                      </div>
+                      {reading.title && <span className="text-xs text-muted-foreground pl-6">{reading.title}</span>}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-5 pb-5 pt-2 bg-muted/20">
+                    <div className="flex flex-col gap-3">
+                      {reading.verses.map((verse, vi) => (
+                        <div key={vi} className="flex items-start gap-3">
+                          <span className="text-xs font-bold min-w-[1.5rem] pt-0.5" style={{ color: "var(--brand)" }}>{verse.number.split(":")[1]}</span>
+                          <p className="text-foreground leading-relaxed text-sm flex-1">{verse.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </div>
         </section>
 

@@ -5,8 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Star, Users, ScrollText,
-  Library, BookOpen, Megaphone, LogOut,
-  Menu, ChevronRight, Shield, Church, CalendarDays,
+  Library, Megaphone, LogOut,
+  Menu, ChevronRight, Shield, Church,
 } from "lucide-react";
 import { logout } from "@/lib/admin/auth";
 
@@ -14,14 +14,11 @@ const NAV_GROUPS = [
   {
     label: "Konten",
     items: [
-      { href: "/admin/dashboard",   label: "Dashboard",       icon: LayoutDashboard },
-      { href: "/admin/ayat",        label: "Ayat Emas",       icon: Star            },
-      { href: "/admin/ayat-khusus", label: "Ayat Khusus",     icon: CalendarDays    },
-      { href: "/admin/renungan",    label: "Renungan",        icon: ScrollText      },
-      { href: "/admin/pengumuman",  label: "Pengumuman",      icon: Megaphone       },
-      { href: "/admin/pustaka",     label: "Pustaka Digital", icon: Library         },
-      { href: "/admin/perikop",     label: "Perikop",         icon: BookOpen        },
-      { href: "/admin/bacaan",      label: "Bacaan Alkitab",  icon: BookOpen        },
+      { href: "/admin/dashboard",  label: "Dashboard",       icon: LayoutDashboard },
+      { href: "/admin/ayat",       label: "Ayat",            icon: Star            },
+      { href: "/admin/renungan",   label: "Renungan",        icon: ScrollText      },
+      { href: "/admin/pengumuman", label: "Pengumuman",      icon: Megaphone       },
+      { href: "/admin/pustaka",    label: "Pustaka Digital", icon: Library         },
     ],
   },
   {
@@ -74,7 +71,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
                   <Link key={href} href={href}
                     onClick={() => setOpen(false)}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
-                    style={active
+                    style={pathname === href || (href !== "/admin/dashboard" && pathname.startsWith(href))
                       ? { backgroundColor: "var(--brand)", color: "white" }
                       : { color: "hsl(var(--muted-foreground))" }
                     }
