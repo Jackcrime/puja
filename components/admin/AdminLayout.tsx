@@ -3,11 +3,14 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import {
   LayoutDashboard, Star, Users, ScrollText,
   Library, Megaphone, LogOut,
   Menu, ChevronRight, Shield, Church,
+  Sun, Moon
 } from "lucide-react";
+import { toast } from "sonner";       
 import { logout } from "@/lib/admin/auth";
 
 const NAV_GROUPS = [
@@ -38,9 +41,26 @@ interface AdminLayoutProps {
 export function AdminLayout({ children, title }: AdminLayoutProps) {
   const pathname     = usePathname();
   const router       = useRouter();
+  const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
 
   const handleLogout = () => { logout(); router.push("/admin/login"); };
+
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    toast.success(`Mode ${newTheme === "dark" ? "Gelap" : "Terang"} diaktifkan`);
+  };
+
+  const showNotification = (message: string, type: "success" | "error" | "info" = "success") => {
+    if (type === "success") toast.success(message);
+    else if (type === "error") toast.error(message);
+    else toast.info(message);
+  };
+
+  React.useEffect(() => {
+    (window as any).showAdminToast = showNotification;
+  }, []);
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -125,10 +145,25 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
             </button>
             <h1 className="font-serif font-bold text-lg" style={{ color: "var(--brand)" }}>{title}</h1>
           </div>
-          <button onClick={handleLogout}
-            className="p-2 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors">
-            <LogOut className="h-4 w-4" />
-          </button>
+
+          <div className="flex items-center gap-2">
+            {/* Dark/Light Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg text-muted-foreground hover:bg-muted transition-colors"
+              title="Toggle Theme"
+            >
+              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
+
+            {/* Logout */}
+            <button 
+              onClick={handleLogout}
+              className="p-2 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
+          </div>
         </header>
 
         <main className="flex-1 p-4 sm:p-6">{children}</main>

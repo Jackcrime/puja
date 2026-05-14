@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { Toaster } from "sonner";
 import { I18nContext, useI18nProvider } from "@/lib/hooks/useI18n";
 
 function I18nProvider({ children }: { children: React.ReactNode }) {
@@ -12,7 +13,10 @@ function I18nProvider({ children }: { children: React.ReactNode }) {
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <NextThemesProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <I18nProvider>{children}</I18nProvider>
+      <I18nProvider>
+        {children}
+        <Toaster position="bottom-right" richColors closeButton />
+      </I18nProvider>
     </NextThemesProvider>
   );
 }
