@@ -160,64 +160,96 @@ export function AyatDWMYTab() {
 
       <div className="space-y-5">
 
-        {/* ── Ayat Tahun ─────────────────────────────────────────────────────── */}
-        <SectionCard icon={Star} title="Ayat Tahun">
-          <div>
-            <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
-              Tahun
-            </label>
-            <input
-              type="number"
-              value={form.tahunYear}
-              onChange={(e) => setForm((f) => ({ ...f, tahunYear: Number(e.target.value) }))}
-              className="w-28 px-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none"
-            />
+        {/* ── Ayat Tahun & Minggu (satu card, dua kolom) ─────────────────────── */}
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          {/* Card header */}
+          <div className="flex items-center gap-2 px-5 py-3 border-b border-border" style={{ backgroundColor: "var(--brand-muted)" }}>
+            <Star className="h-4 w-4" style={{ color: "var(--brand)" }} />
+            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--brand)" }}>
+              Ayat Tahun &amp; Minggu
+            </p>
           </div>
-          <BibleVerseSelector
-            value={form.tahunSel}
-            onChange={(sel) => setForm((f) => ({ ...f, tahunSel: sel }))}
-            onPreview={(d) => setTahunPreview(d ? d.verses.map((v) => v.text).join(" ") : null)}
-          />
-          {/* Tampilkan nilai tersimpan saat ini */}
-          {data.tahun?.reference && !form.tahunSel.bookSlug && (
-            <div className="px-4 py-3 rounded-xl bg-muted/30 border border-border">
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "var(--gold)" }}>
-                Tersimpan saat ini
-              </p>
-              <p className="text-xs font-bold mb-0.5" style={{ color: "var(--brand)" }}>{data.tahun.reference}</p>
-              <p className="text-sm text-muted-foreground leading-relaxed">{data.tahun.text}</p>
-            </div>
-          )}
-        </SectionCard>
 
-        {/* ── Ayat Minggu ────────────────────────────────────────────────────── */}
-        <SectionCard icon={Sun} title="Ayat Minggu Ini">
-          <div>
-            <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
-              Tanggal Minggu (opsional)
-            </label>
-            <input
-              type="date"
-              value={form.mingguDate}
-              onChange={(e) => setForm((f) => ({ ...f, mingguDate: e.target.value }))}
-              className="w-full max-w-xs px-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none"
-            />
-          </div>
-          <BibleVerseSelector
-            value={form.mingguSel}
-            onChange={(sel) => setForm((f) => ({ ...f, mingguSel: sel }))}
-            onPreview={(d) => setMingguPreview(d ? d.verses.map((v) => v.text).join(" ") : null)}
-          />
-          {data.minggu?.reference && !form.mingguSel.bookSlug && (
-            <div className="px-4 py-3 rounded-xl bg-muted/30 border border-border">
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "var(--gold)" }}>
-                Tersimpan saat ini
-              </p>
-              <p className="text-xs font-bold mb-0.5" style={{ color: "var(--brand)" }}>{data.minggu.reference}</p>
-              <p className="text-sm text-muted-foreground leading-relaxed">{data.minggu.text}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
+
+            {/* ── Kiri: Ayat Tahun ───────────────────────────────────────────── */}
+            <div className="p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <Star className="h-3.5 w-3.5" style={{ color: "var(--gold)" }} />
+                <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--gold)" }}>
+                  Ayat Tahun
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
+                  Tahun
+                </label>
+                <input
+                  type="number"
+                  value={form.tahunYear}
+                  onChange={(e) => setForm((f) => ({ ...f, tahunYear: Number(e.target.value) }))}
+                  className="w-28 px-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none"
+                />
+              </div>
+
+              <BibleVerseSelector
+                value={form.tahunSel}
+                onChange={(sel) => setForm((f) => ({ ...f, tahunSel: sel }))}
+                onPreview={(d) => setTahunPreview(d ? d.verses.map((v) => v.text).join(" ") : null)}
+              />
+
+              {data.tahun?.reference && !form.tahunSel.bookSlug && (
+                <div className="px-4 py-3 rounded-xl bg-muted/30 border border-border">
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "var(--gold)" }}>
+                    Tersimpan saat ini
+                  </p>
+                  <p className="text-xs font-bold mb-0.5" style={{ color: "var(--brand)" }}>{data.tahun.reference}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{data.tahun.text}</p>
+                </div>
+              )}
             </div>
-          )}
-        </SectionCard>
+
+            {/* ── Kanan: Ayat Minggu ─────────────────────────────────────────── */}
+            <div className="p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <Sun className="h-3.5 w-3.5" style={{ color: "var(--gold)" }} />
+                <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--gold)" }}>
+                  Ayat Minggu Ini
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
+                  Tanggal Minggu (opsional)
+                </label>
+                <input
+                  type="date"
+                  value={form.mingguDate}
+                  onChange={(e) => setForm((f) => ({ ...f, mingguDate: e.target.value }))}
+                  className="w-full px-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none"
+                />
+              </div>
+
+              <BibleVerseSelector
+                value={form.mingguSel}
+                onChange={(sel) => setForm((f) => ({ ...f, mingguSel: sel }))}
+                onPreview={(d) => setMingguPreview(d ? d.verses.map((v) => v.text).join(" ") : null)}
+              />
+
+              {data.minggu?.reference && !form.mingguSel.bookSlug && (
+                <div className="px-4 py-3 rounded-xl bg-muted/30 border border-border">
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "var(--gold)" }}>
+                    Tersimpan saat ini
+                  </p>
+                  <p className="text-xs font-bold mb-0.5" style={{ color: "var(--brand)" }}>{data.minggu.reference}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{data.minggu.text}</p>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
 
         {/* ── Ayat Harian (Pool D) ────────────────────────────────────────────── */}
         <SectionCard icon={CalendarDays} title={`Ayat Harian — Pool (${form.harianSels.length} ayat)`}>
