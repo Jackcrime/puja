@@ -6,187 +6,181 @@ import {
   useAyatCategories,
   useAuthors,
   usePustakaBooks,
-  usePerikop,
   useMinistries,
+  useBibleReadings,
+  useAyatKhusus,
+  useDevotional,
 } from "@/lib/hooks/useFirestoreData";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { AdminGuard } from "@/components/admin/AdminGuard";
+import { AdminGuard }  from "@/components/admin/AdminGuard";
 import {
   Star, Users, Library, BookOpen, Megaphone, ScrollText,
-  ArrowUpRight, Church, CalendarDays, Cross,
+  ArrowUpRight, Church, CalendarDays, ChevronRight,
+  FileText, Layers, Pencil,
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function today(): string {
+function todayFull(): string {
   return new Date().toLocaleDateString("id-ID", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
 }
 
+function todayShort(): string {
+  return new Date().toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+}
+
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 function StatCard({
-  label, value, icon: Icon, color, delay = 0,
+  label, value, icon: Icon, accent, delay = 0,
 }: {
   label: string; value: number | "…"; icon: React.ElementType;
-  color: string; delay?: number;
+  accent: string; delay?: number;
 }) {
   return (
     <div
-      className="relative bg-card border border-border rounded-2xl p-5 overflow-hidden"
-      style={{ animationDelay: `${delay}ms`, animation: "fadeUp 0.5s ease both" }}
+      className="relative bg-card border border-border rounded-2xl p-5 overflow-hidden group hover:border-opacity-70 transition-all duration-200"
+      style={{ animation: `fadeUp 0.5s ease ${delay}ms both` }}
     >
-      {/* Decorative circle */}
-      <div
-        className="absolute -right-4 -top-4 w-20 h-20 rounded-full opacity-10"
-        style={{ backgroundColor: color }}
-      />
-      <div
-        className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
-        style={{ backgroundColor: `${color}18` }}
-      >
-        <Icon className="h-5 w-5" style={{ color }} />
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        style={{ background: `radial-gradient(ellipse at top right, ${accent}08 0%, transparent 70%)` }} />
+
+      <div className="flex items-start justify-between mb-4">
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+          style={{ backgroundColor: `${accent}14` }}>
+          <Icon className="h-4.5 w-4.5" style={{ color: accent }} />
+        </div>
+        <div className="w-1.5 h-1.5 rounded-full mt-1.5" style={{ backgroundColor: accent, opacity: 0.4 }} />
       </div>
-      <p className="text-3xl font-bold tracking-tight" style={{ color, fontFamily: "var(--font-serif)" }}>
-        {value === "…" ? (
-          <span className="inline-block w-10 h-8 bg-muted rounded-lg animate-pulse align-middle" />
-        ) : value}
+
+      <p className="text-3xl font-bold leading-none mb-1.5"
+        style={{ color: accent, fontFamily: "var(--font-serif)" }}>
+        {value === "…"
+          ? <span className="inline-block w-10 h-7 bg-muted rounded animate-pulse align-middle" />
+          : value}
       </p>
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mt-1">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </p>
     </div>
   );
 }
 
-// ─── Module Card ──────────────────────────────────────────────────────────────
-function ModuleCard({
-  href, label, description, icon: Icon, color, badge, delay = 0,
+// ─── Quick Action ─────────────────────────────────────────────────────────────
+function QuickAction({
+  href, label, sub, icon: Icon, delay = 0,
 }: {
-  href: string; label: string; description: string;
+  href: string; label: string; sub: string;
+  icon: React.ElementType; delay?: number;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex items-center gap-4 bg-card border border-border rounded-2xl px-5 py-4 hover:shadow-sm transition-all duration-200"
+      style={{ animation: `fadeUp 0.5s ease ${delay}ms both` }}
+    >
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
+        style={{ backgroundColor: "var(--brand-muted)" }}>
+        <Icon className="h-4 w-4" style={{ color: "var(--brand)" }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold leading-tight">{label}</p>
+        <p className="text-xs text-muted-foreground mt-0.5 truncate">{sub}</p>
+      </div>
+      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
+    </Link>
+  );
+}
+
+// ─── Module Tile (grid besar) ─────────────────────────────────────────────────
+function ModuleTile({
+  href, label, desc, icon: Icon, color, badge, delay = 0,
+}: {
+  href: string; label: string; desc: string;
   icon: React.ElementType; color: string; badge?: number | "…";
   delay?: number;
 }) {
   return (
     <Link
       href={href}
-      className="group relative bg-card border border-border rounded-2xl p-5 flex flex-col gap-3 hover:shadow-md hover:border-opacity-60 transition-all duration-200"
-      style={{
-        animationDelay: `${delay}ms`,
-        animation: "fadeUp 0.5s ease both",
-      }}
+      className="group relative bg-card border border-border rounded-2xl p-5 flex flex-col gap-3 hover:shadow-md transition-all duration-200 overflow-hidden"
+      style={{ animation: `fadeUp 0.5s ease ${delay}ms both` }}
     >
-      {/* Top row */}
+      {/* Hover bg bloom */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        style={{ background: `radial-gradient(ellipse at top left, ${color}07 0%, transparent 60%)` }} />
+
       <div className="flex items-start justify-between">
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-          style={{ backgroundColor: `${color}15` }}
-        >
-          <Icon className="h-5 w-5 transition-transform group-hover:scale-110" style={{ color }} />
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+          style={{ backgroundColor: `${color}14` }}>
+          <Icon className="h-5 w-5 transition-transform group-hover:scale-110 duration-200" style={{ color }} />
         </div>
         <div className="flex items-center gap-2">
           {badge !== undefined && (
-            <span
-              className="text-xs font-bold px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: `${color}15`, color }}
-            >
+            <span className="text-xs font-bold tabular-nums px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: `${color}14`, color }}>
               {badge === "…" ? "—" : badge}
             </span>
           )}
-          <ArrowUpRight
-            className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all"
-          />
+          <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
         </div>
       </div>
 
-      {/* Text */}
       <div>
-        <p className="font-semibold text-sm" style={{ fontFamily: "var(--font-serif)", color: "var(--foreground)" }}>
-          {label}
-        </p>
-        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
+        <p className="font-semibold text-sm" style={{ fontFamily: "var(--font-serif)" }}>{label}</p>
+        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{desc}</p>
       </div>
 
-      {/* Bottom accent line */}
-      <div
-        className="absolute bottom-0 left-5 right-5 h-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-        style={{ backgroundColor: color }}
-      />
+      {/* Bottom accent */}
+      <div className="absolute bottom-0 left-5 right-5 h-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ backgroundColor: color }} />
     </Link>
   );
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
-  const { data: ayatCats,    loading: loadAyat     } = useAyatCategories();
-  const { data: authorsDict, loading: loadAuthors  } = useAuthors();
-  const { data: pustaka,     loading: loadPustaka  } = usePustakaBooks();
-  const { data: perikops,    loading: loadPerikop  } = usePerikop();
-  const { data: ministries,  loading: loadMinistry } = useMinistries();
+  const { data: ayatCats,   loading: lAyat      } = useAyatCategories();
+  const { data: authors,    loading: lAuthors    } = useAuthors();
+  const { data: pustaka,    loading: lPustaka    } = usePustakaBooks();
+  const { data: ministries, loading: lMinistries } = useMinistries();
+  const { data: readings,   loading: lReadings   } = useBibleReadings();
+  const { data: ayatKhusus, loading: lKhusus     } = useAyatKhusus();
+  const { data: devotional, loading: lDevotional } = useDevotional();
 
-  const totalAyat = loadAyat
-    ? "…"
-    : (ayatCats as any[]).reduce((s: number, c: any) => s + (c.verses?.length ?? 0), 0);
-  const totalAuthors   = loadAuthors  ? "…" : Object.keys(authorsDict as object).length;
-  const totalPustaka   = loadPustaka  ? "…" : (pustaka as any[]).length;
-  const totalPerikop   = loadPerikop  ? "…" : (perikops as any[]).length;
-  const totalMinistry  = loadMinistry ? "…" : (ministries as any[]).length;
+  const totalAyat      = lAyat      ? "…" : (ayatCats as any[]).reduce((s: number, c: any) => s + (c.verses?.length ?? 0), 0);
+  const totalAuthors   = lAuthors   ? "…" : Object.keys(authors as object).length;
+  const totalPustaka   = lPustaka   ? "…" : (pustaka  as any[]).length;
+  const totalMinistries= lMinistries? "…" : (ministries as any[]).length;
+  const totalReadings  = lReadings  ? "…" : (readings as any[]).length;
+
+  // Ayat tahun
+  const ayatTahun = ayatKhusus?.tahun;
+  // Ayat minggu
+  const ayatMinggu = ayatKhusus?.minggu;
 
   const stats = [
-    { label: "Ayat Emas",       value: totalAyat,    icon: Star,      color: "var(--gold)"  },
-    { label: "Penulis",         value: totalAuthors, icon: Users,     color: "var(--brand)" },
-    { label: "Pustaka Digital", value: totalPustaka, icon: Library,   color: "var(--gold)"  },
-    { label: "Perikop",         value: totalPerikop, icon: BookOpen,  color: "var(--brand)" },
+    { label: "Ayat Kategori",   value: totalAyat,        icon: Star,      accent: "var(--gold)"  },
+    { label: "Penulis",         value: totalAuthors,     icon: Users,     accent: "var(--brand)" },
+    { label: "Pustaka Digital", value: totalPustaka,     icon: Library,   accent: "var(--gold)"  },
+    { label: "Bacaan",          value: totalReadings,    icon: BookOpen,  accent: "var(--brand)" },
+    { label: "Unit Pelayanan",  value: totalMinistries,  icon: Church,    accent: "var(--gold)"  },
+  ];
+
+  const quickActions = [
+    { href: "/admin/ayat?tab=dwmy",    icon: CalendarDays, label: "Update Ayat Minggu",   sub: ayatMinggu?.reference ? `Saat ini: ${ayatMinggu.reference}` : "Belum diset" },
+    { href: "/admin/renungan",         icon: Pencil,       label: "Edit Renungan",         sub: devotional?.title ?? "Renungan harian" },
+    { href: "/admin/ayat?tab=bacaan",  icon: BookOpen,     label: "Tambah Bacaan",         sub: `${totalReadings} bacaan aktif` },
+    { href: "/admin/pengumuman",       icon: Megaphone,    label: "Atur Pengumuman",       sub: "Warta jemaat terbaru" },
   ];
 
   const modules = [
-    {
-      href: "/admin/ayat",        icon: Star,         color: "var(--gold)",
-      label: "Ayat Emas",
-      description: "Kelola koleksi ayat-ayat pilihan yang ditampilkan ke jemaat.",
-      badge: totalAyat,
-    },
-    {
-      href: "/admin/ayat-khusus", icon: CalendarDays, color: "var(--gold)",
-      label: "Ayat Khusus",
-      description: "Ayat tematik untuk hari raya dan momen peribadatan khusus.",
-    },
-    {
-      href: "/admin/renungan",    icon: ScrollText,   color: "var(--brand)",
-      label: "Renungan Harian",
-      description: "Edit teks renungan, penulis, doa, dan upload audio MP3.",
-    },
-    {
-      href: "/admin/pengumuman",  icon: Megaphone,    color: "var(--brand)",
-      label: "Pengumuman",
-      description: "Informasi dan warta jemaat yang aktif ditampilkan.",
-    },
-    {
-      href: "/admin/pustaka",     icon: Library,      color: "var(--gold)",
-      label: "Pustaka Digital",
-      description: "Upload dan kelola buku, materi, serta panduan GKPB.",
-      badge: totalPustaka,
-    },
-    {
-      href: "/admin/perikop",     icon: BookOpen,     color: "var(--brand)",
-      label: "Perikop",
-      description: "Atur jadwal bacaan Alkitab mingguan.",
-      badge: totalPerikop,
-    },
-    {
-      href: "/admin/bacaan",      icon: BookOpen,     color: "var(--brand)",
-      label: "Bacaan Alkitab",
-      description: "Kelola daftar bacaan harian untuk jemaat.",
-    },
-    {
-      href: "/admin/penulis",     icon: Users,        color: "var(--brand)",
-      label: "Penulis",
-      description: "Data pendeta dan pengkhotbah yang bertugas di GKPB.",
-      badge: totalAuthors,
-    },
-    {
-      href: "/admin/ministries",  icon: Church,       color: "var(--gold)",
-      label: "Unit Pelayanan",
-      description: "Daftar jemaat dan unit pelayanan seluruh sinode.",
-      badge: totalMinistry,
-    },
+    { href: "/admin/ayat",        icon: Star,         color: "var(--gold)",  label: "Ayat",              desc: "Kategori, DWMY, bacaan & perikop.", badge: totalAyat },
+    { href: "/admin/renungan",    icon: ScrollText,   color: "var(--brand)", label: "Renungan Harian",   desc: "Teks, penulis, doa, dan audio MP3." },
+    { href: "/admin/pengumuman",  icon: Megaphone,    color: "var(--brand)", label: "Pengumuman",        desc: "Warta dan informasi jemaat aktif." },
+    { href: "/admin/pustaka",     icon: Library,      color: "var(--gold)",  label: "Pustaka Digital",   desc: "Buku, materi, dan panduan GKPB.", badge: totalPustaka },
+    { href: "/admin/penulis",     icon: Users,        color: "var(--brand)", label: "Penulis",           desc: "Pendeta dan pengkhotbah GKPB.", badge: totalAuthors },
+    { href: "/admin/ministries",  icon: Church,       color: "var(--gold)",  label: "Unit Pelayanan",    desc: "Jemaat dan unit sinode.", badge: totalMinistries },
   ];
 
   return (
@@ -194,86 +188,132 @@ export default function AdminDashboard() {
       <AdminLayout title="Dashboard">
         <style>{`
           @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(16px); }
+            from { opacity: 0; transform: translateY(14px); }
             to   { opacity: 1; transform: translateY(0); }
           }
           @keyframes fadeIn {
             from { opacity: 0; }
             to   { opacity: 1; }
           }
+          @keyframes shimmer {
+            0%   { background-position: -200% center; }
+            100% { background-position:  200% center; }
+          }
         `}</style>
 
-        {/* ── Hero ────────────────────────────────────────────────────────── */}
-        <div
-          className="relative mb-6 rounded-2xl overflow-hidden"
-          style={{ animation: "fadeIn 0.4s ease both" }}
-        >
-          {/* Background */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background: "linear-gradient(135deg, var(--brand) 0%, #3d0e0e 100%)",
-            }}
-          />
-          {/* Geometric cross pattern */}
-          <svg
-            className="absolute inset-0 w-full h-full opacity-[0.06]"
-            xmlns="http://www.w3.org/2000/svg"
-          >
+        {/* ── Hero banner ─────────────────────────────────────────────────── */}
+        <div className="relative mb-6 rounded-2xl overflow-hidden"
+          style={{ animation: "fadeIn 0.4s ease both" }}>
+          {/* Base gradient */}
+          <div className="absolute inset-0"
+            style={{ background: "linear-gradient(135deg, var(--brand) 0%, #3a0a0a 100%)" }} />
+
+          {/* Cross pattern */}
+          <svg className="absolute inset-0 w-full h-full opacity-[0.05]" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <pattern id="cross" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
-                <rect x="18" y="6" width="4" height="28" fill="white" />
-                <rect x="6" y="17" width="28" height="6" fill="white" />
+              <pattern id="cp" x="0" y="0" width="44" height="44" patternUnits="userSpaceOnUse">
+                <rect x="19" y="6" width="6" height="32" fill="white" rx="1" />
+                <rect x="6" y="18" width="32" height="6" fill="white" rx="1" />
               </pattern>
             </defs>
-            <rect width="100%" height="100%" fill="url(#cross)" />
+            <rect width="100%" height="100%" fill="url(#cp)" />
           </svg>
-          {/* Gold accent bar */}
-          <div
-            className="absolute top-0 left-0 right-0 h-0.5"
-            style={{ background: "linear-gradient(90deg, transparent, var(--gold), transparent)" }}
-          />
 
-          <div className="relative px-6 py-8 sm:px-8">
-            <p className="text-xs font-bold tracking-[0.2em] uppercase mb-2" style={{ color: "rgba(255,255,255,0.55)" }}>
-              {today()}
-            </p>
-            <h2
-              className="text-2xl sm:text-3xl font-bold text-white mb-1"
-              style={{ fontFamily: "var(--font-serif)", lineHeight: 1.2 }}
-            >
-              Selamat datang,<br />Admin GKPB
-            </h2>
-            <p className="text-sm mt-3" style={{ color: "rgba(255,255,255,0.60)" }}>
-              Kelola seluruh konten aplikasi Puji dan Janji dari panel ini.
-            </p>
+          {/* Gold shimmer line top */}
+          <div className="absolute top-0 left-0 right-0 h-px"
+            style={{ background: "linear-gradient(90deg, transparent 0%, var(--gold) 40%, var(--gold) 60%, transparent 100%)" }} />
 
-            {/* Gold divider */}
-            <div className="flex items-center gap-3 mt-5">
-              <div className="h-px flex-1 opacity-20" style={{ backgroundColor: "var(--gold)" }} />
-              <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--gold)" }} />
-              <div className="h-px flex-1 opacity-20" style={{ backgroundColor: "var(--gold)" }} />
+          {/* Gold shimmer line bottom */}
+          <div className="absolute bottom-0 left-0 right-0 h-px opacity-40"
+            style={{ background: "linear-gradient(90deg, transparent 0%, var(--gold) 50%, transparent 100%)" }} />
+
+          <div className="relative px-6 py-7 sm:px-8 flex flex-col sm:flex-row sm:items-end gap-5 sm:gap-10">
+            {/* Left: greeting */}
+            <div className="flex-1">
+              <p className="text-[10px] font-bold tracking-[0.22em] uppercase mb-2.5"
+                style={{ color: "rgba(255,255,255,0.45)" }}>
+                {todayFull()}
+              </p>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight"
+                style={{ fontFamily: "var(--font-serif)" }}>
+                Panel Admin<br />
+                <span style={{ color: "var(--gold)" }}>GKPB Sinode</span>
+              </h2>
+              <p className="text-sm mt-3 leading-relaxed" style={{ color: "rgba(255,255,255,0.55)" }}>
+                Puji dan Janji — kelola seluruh konten aplikasi dari sini.
+              </p>
             </div>
+
+            {/* Right: ayat tahun pill */}
+            {ayatTahun?.reference && (
+              <div className="shrink-0 max-w-xs bg-white/[0.06] border border-white/10 rounded-xl px-5 py-4 backdrop-blur-sm">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] mb-1.5"
+                  style={{ color: "var(--gold)" }}>
+                  Ayat Tahun {ayatTahun.year}
+                </p>
+                <p className="text-xs font-bold mb-1 text-white/80">{ayatTahun.reference}</p>
+                <p className="text-xs leading-relaxed line-clamp-2" style={{ color: "rgba(255,255,255,0.55)" }}>
+                  {ayatTahun.text}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
+        {/* ── Ayat Minggu callout (if set) ─────────────────────────────────── */}
+        {!lKhusus && ayatMinggu?.reference && (
+          <div className="mb-5 flex items-start gap-4 rounded-2xl border border-border bg-card px-5 py-4"
+            style={{ animation: "fadeUp 0.45s ease 80ms both" }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{ backgroundColor: "var(--brand-muted)" }}>
+              <CalendarDays className="h-4 w-4" style={{ color: "var(--brand)" }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: "var(--gold)" }}>
+                Ayat Minggu Ini
+              </p>
+              <p className="text-sm font-semibold" style={{ color: "var(--brand)" }}>
+                {ayatMinggu.reference}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">
+                {ayatMinggu.text}
+              </p>
+            </div>
+            <Link href="/admin/ayat"
+              className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors hover:bg-muted"
+              style={{ color: "var(--brand)", borderColor: "var(--brand-border)" }}>
+              Edit
+            </Link>
+          </div>
+        )}
+
         {/* ── Statistik ───────────────────────────────────────────────────── */}
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground mb-3 px-0.5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground mb-3">
           Ringkasan Konten
         </p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-7">
           {stats.map((s, i) => (
-            <StatCard key={s.label} {...s} delay={i * 60} />
+            <StatCard key={s.label} {...s} delay={i * 55} />
           ))}
         </div>
 
-        {/* ── Modul ───────────────────────────────────────────────────────── */}
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground mb-3 px-0.5">
+        {/* ── Aksi Cepat ──────────────────────────────────────────────────── */}
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground mb-3">
+          Aksi Cepat
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-7">
+          {quickActions.map((a, i) => (
+            <QuickAction key={a.href} {...a} delay={300 + i * 50} />
+          ))}
+        </div>
+
+        {/* ── Semua Modul ─────────────────────────────────────────────────── */}
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground mb-3">
           Kelola Konten
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {modules.map((m, i) => (
-            <ModuleCard key={m.href} {...m} delay={240 + i * 50} />
+            <ModuleTile key={m.href} {...m} delay={520 + i * 50} />
           ))}
         </div>
       </AdminLayout>
