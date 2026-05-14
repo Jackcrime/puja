@@ -59,8 +59,9 @@ async function seed() {
   log("announcement/current");
 
   // ─── 7. Authors ───────────────────────────────────────────────────────────
+  // Struktur baru: titles (array), serviceHistory (array per lokasi)
   await setDoc(doc(db, "authors", "current"), AUTHORS);
-  log("authors/current");
+  log(`authors/current (${Object.keys(AUTHORS).length} penulis)`);
 
   // ─── 8. Ayat Categories ───────────────────────────────────────────────────
   await setDoc(doc(db, "ayat_categories", "current"), { items: AYAT_CATEGORIES });

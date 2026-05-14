@@ -68,44 +68,65 @@ export const BIBLE_READINGS = [
 ];
 
 // ─── Authors ──────────────────────────────────────────────────────────────────
-export const AUTHORS: Record<string, { name: string; title: string; ministry: string }> = {
-  IWM: { name: "I Wayan Mariasa", title: "Pendeta", ministry: "Jemaat GKPB Singaraja" },
-  KDPA: { name: "Kadek Dwi Prayoga Aditya", title: "Pendeta", ministry: "Jemaat GKPB Denpasar" },
-  ISUN: { name: "Dewi Sundari", title: "Pendeta", ministry: "Jemaat GKPB Tabanan" },
-  VMYB: { name: "Viyata Margareta Yuliana Bolla, S.Si. Teol", title: "Pendeta", ministry: "Jemaat GKPB Gianyar" },
-  MFGA: { name: "Made Fennoni Gressia Asrining, S.Si. Teol", title: "Pendeta", ministry: "Jemaat GKPB Badung" },
-  IMAAP: { name: "I Made Andika Adi Putra", title: "Pendeta", ministry: "Sinode GKPB" },
-  VIJE: { name: "Julius Jefry Lumansik", title: "Pendeta", ministry: "Jemaat GKPB Kupang" },
-  ATAANO: { name: "Martha Yunita Ano", title: "Pendeta", ministry: "Sinode GKPB" },
-  KAJ: { name: "Komang Agus Juliawan", title: "Pendeta", ministry: "Jemaat GKPB Klungkung" },
-  KY: { name: "Karenda Yucha, S.Si., Teol", title: "Pendeta", ministry: "Jemaat GKPB Buleleng" },
-  HW: { name: "Hety Widowaty Soewondo", title: "Pendeta", ministry: "Sinode GKPB" },
-  PJD: { name: "Paulina Jasri Danggo", title: "Pendeta", ministry: "Sinode GKPB" },
-  WAW: { name: "Wayan Agus Wiratama", title: "Pendeta", ministry: "Jemaat GKPB Negara" },
-  KS: { name: "Kadek Suriani", title: "Pendeta", ministry: "Sinode GKPB" },
-  JoJo: { name: "Jonnie Josua", title: "Vikaris", ministry: "Jemaat GKPB Denpasar" },
-  PAP: { name: "Penta Astari Prasetya", title: "", ministry: "Sinode GKPB" },
-  PSA: { name: "Putu Surya Adinata", title: "Vikaris", ministry: "Jemaat GKPB Bali Utara" },
-  NJL: { name: "Nafthalia Julita Leander", title: "Pendeta", ministry: "Sinode GKPB" },
-  CWP: { name: "Christiana Welda Putranti", title: "Pendeta", ministry: "Sinode GKPB" },
-  IPEUS: { name: "I Putu Elika Uria Setiawan", title: "Vikaris", ministry: "Jemaat GKPB Karangasem" },
-  KBWU: { name: "Kadek Bagus Wisesa Uryana", title: "Pendeta", ministry: "Sinode GKPB" },
-  IRHB: { name: "Izak Rio Hernemus Bainuan", title: "Pendeta", ministry: "Sinode GKPB" },
-  TW: { name: "Trifena Wati", title: "Pendeta", ministry: "Sinode GKPB" },
-  PR: { name: "Putu Recita", title: "Pendeta", ministry: "Jemaat GKPB Buleleng" },
-  DS: { name: "Debora Seilatu", title: "Pendeta", ministry: "Sinode GKPB" },
-  SH: { name: "Somenifati Hia", title: "Pendeta", ministry: "Sinode GKPB" },
-  FPP: { name: "Fajar Pratama Putra", title: "Pendeta", ministry: "Jemaat GKPB Mengwi" },
-  A3P: { name: "Anak Agung Ayu Perani", title: "Pendeta", ministry: "Sinode GKPB" },
-  DEAP: { name: "Dewa Gede Adi Pranata", title: "Pendeta", ministry: "Sinode GKPB" },
-  MHS: { name: "Merry Handayani Sayuna", title: "Pendeta", ministry: "Sinode GKPB" },
-  FAO: { name: "Finsensius Apola Oematan", title: "Pendeta", ministry: "Sinode GKPB" },
-  YDS: { name: "Yosef Destian Setiawan", title: "Pendeta", ministry: "Sinode GKPB" },
-  JVS: { name: "Gd Jesico Valerius Sasmita", title: "Pendeta", ministry: "Sinode GKPB" },
-  AS: { name: "Nyoman Ayu Suryantininghati", title: "Pendeta", ministry: "Sinode GKPB" },
-  GAKLIE: { name: "Gusti Ayu Ketut Lintang Indah Esterlita", title: "Pendeta", ministry: "Sinode GKPB" },
-  AEPTB: { name: "Anggrayni Eka Putri Tresna Bunga", title: "Pendeta", ministry: "Sinode GKPB" },
+// titles  : array gelar, bisa multiple (Pendeta, Emeritus, Bishop, dll)
+// serviceHistory : riwayat pelayanan per lokasi { ministryId, from, until }
+export const AUTHORS: Record<string, {
+  name:           string;
+  titles:         string[];
+  photoUrl?:      string;
+  serviceHistory: { ministryId: string; from: string; until: string }[];
+}> = {
+  IWM:    { name: "I Wayan Mariasa",                           titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2010", until: "Sekarang" }] },
+  KDPA:   { name: "Kadek Dwi Prayoga Aditya",                  titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2015", until: "Sekarang" }] },
+  ISUN:   { name: "Dewi Sundari",                              titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2012", until: "Sekarang" }] },
+  VMYB:   { name: "Viyata Margareta Yuliana Bolla, S.Si. Teol", titles: ["Pendeta"],         serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2014", until: "Sekarang" }] },
+  MFGA:   { name: "Made Fennoni Gressia Asrining, S.Si. Teol", titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2016", until: "Sekarang" }] },
+  IMAAP:  { name: "I Made Andika Adi Putra",                   titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2013", until: "Sekarang" }] },
+  VIJE:   { name: "Julius Jefry Lumansik",                     titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2011", until: "Sekarang" }] },
+  ATAANO: { name: "Martha Yunita Ano",                         titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2018", until: "Sekarang" }] },
+  KAJ:    { name: "Komang Agus Juliawan",                      titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2017", until: "Sekarang" }] },
+  KY:     { name: "Karenda Yucha, S.Si., Teol",                titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2019", until: "Sekarang" }] },
+  HW:     { name: "Hety Widowaty Soewondo",                    titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2009", until: "Sekarang" }] },
+  PJD:    { name: "Paulina Jasri Danggo",                      titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2020", until: "Sekarang" }] },
+  WAW:    { name: "Wayan Agus Wiratama",                       titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2016", until: "Sekarang" }] },
+  KS:     { name: "Kadek Suriani",                             titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2021", until: "Sekarang" }] },
+  JoJo:   { name: "Jonnie Josua",                              titles: ["Vikaris"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2022", until: "Sekarang" }] },
+  PAP:    { name: "Penta Astari Prasetya",                     titles: [],                   serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2023", until: "Sekarang" }] },
+  PSA:    { name: "Putu Surya Adinata",                        titles: ["Vikaris"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2022", until: "Sekarang" }] },
+  NJL:    { name: "Nafthalia Julita Leander",                  titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2018", until: "Sekarang" }] },
+  CWP:    { name: "Christiana Welda Putranti",                 titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2015", until: "Sekarang" }] },
+  IPEUS:  { name: "I Putu Elika Uria Setiawan",                titles: ["Vikaris"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2023", until: "Sekarang" }] },
+  KBWU:   { name: "Kadek Bagus Wisesa Uryana",                 titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2020", until: "Sekarang" }] },
+  IRHB:   { name: "Izak Rio Hernemus Bainuan",                 titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2017", until: "Sekarang" }] },
+  TW:     { name: "Trifena Wati",                              titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2019", until: "Sekarang" }] },
+  PR:     { name: "Putu Recita",                               titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2021", until: "Sekarang" }] },
+  DS:     { name: "Debora Seilatu",                            titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2018", until: "Sekarang" }] },
+  SH:     { name: "Somenifati Hia",                            titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2016", until: "Sekarang" }] },
+  FPP:    { name: "Fajar Pratama Putra",                       titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2020", until: "Sekarang" }] },
+  A3P:    { name: "Anak Agung Ayu Perani",                     titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2014", until: "Sekarang" }] },
+  DEAP:   { name: "Dewa Gede Adi Pranata",                     titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2022", until: "Sekarang" }] },
+  MHS:    { name: "Merry Handayani Sayuna",                    titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2019", until: "Sekarang" }] },
+  FAO:    { name: "Finsensius Apola Oematan",                  titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2021", until: "Sekarang" }] },
+  YDS:    { name: "Yosef Destian Setiawan",                    titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2023", until: "Sekarang" }] },
+  JVS:    { name: "Gd Jesico Valerius Sasmita",                titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2022", until: "Sekarang" }] },
+  AS:     { name: "Nyoman Ayu Suryantininghati",               titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2018", until: "Sekarang" }] },
+  GAKLIE: { name: "Gusti Ayu Ketut Lintang Indah Esterlita",   titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2020", until: "Sekarang" }] },
+  AEPTB:  { name: "Anggrayni Eka Putri Tresna Bunga",          titles: ["Pendeta"],          serviceHistory: [{ ministryId: "sinode-gkpb",            from: "2021", until: "Sekarang" }] },
 };
+
+// Daftar gelar yang tersedia di GKPB
+export const TITLE_OPTIONS = [
+  { value: "Pdt.",        label: "Pendeta (Pdt.)"                    },
+  { value: "Pdt. Em.",    label: "Pendeta Emeritus (Pdt. Em.)"       },
+  { value: "Biskop",      label: "Biskop"                            },
+  { value: "Vikaris",     label: "Vikaris"                           },
+  { value: "Ev.",         label: "Evangelis (Ev.)"                   },
+  { value: "Pnt.",        label: "Penatua (Pnt.)"                    },
+  { value: "Diaken",      label: "Diaken"                            },
+  { value: "S.Si. Teol",  label: "S.Si. Teol"                        },
+  { value: "M.Th.",       label: "M.Th."                             },
+  { value: "D.Th.",       label: "D.Th."                             },
+];
 
 // ─── Devotional ───────────────────────────────────────────────────────────────
 export const DEVOTIONAL = {

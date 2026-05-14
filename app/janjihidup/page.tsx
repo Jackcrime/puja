@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { VerseCard } from "@/components/ui/VerseCard";
 import { AuthorModal } from "@/components/ui/AuthorModal";
 import { FocusMode } from "@/components/ui/FocusMode";
+import { PerikopButton } from "@/components/ui/PerikopModal";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Play, Pause, Headphones, BookOpen, Printer, Share2, Check, Maximize2, Loader2, ScrollText } from "lucide-react";
 import { useI18n } from "@/lib/hooks/useI18n";
@@ -37,19 +38,34 @@ export default function JanjiHidup() {
   const todayStr = format(new Date(), "EEEE, d MMMM yyyy", { locale: localeId });
   const author = authors[devotional.authorCode as keyof typeof authors];
 
+  const audioUrl = (devotional as any).audioUrl as string | undefined;
+
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
-    const onTime = () => setProgress(audio.currentTime);
-    const onMeta = () => setDuration(audio.duration);
-    audio.addEventListener("timeupdate", onTime);
+    if (!audio || !audioUrl) return;
+
+    // Reset state setiap kali src baru ke-load dari Firestore
+    setProgress(0);
+    setDuration(0);
+    setIsPlaying(false);
+
+    const onTime  = () => setProgress(audio.currentTime);
+    const onMeta  = () => setDuration(audio.duration);
+    const onEnded = () => setIsPlaying(false);
+
+    audio.addEventListener("timeupdate",     onTime);
     audio.addEventListener("loadedmetadata", onMeta);
-    audio.addEventListener("ended", () => setIsPlaying(false));
+    audio.addEventListener("ended",          onEnded);
+
+    // Kalau audio sudah cached (readyState >= 1), langsung ambil duration
+    if (audio.readyState >= 1) setDuration(audio.duration);
+
     return () => {
-      audio.removeEventListener("timeupdate", onTime);
+      audio.removeEventListener("timeupdate",     onTime);
       audio.removeEventListener("loadedmetadata", onMeta);
+      audio.removeEventListener("ended",          onEnded);
     };
-  }, []);
+  }, [audioUrl]);
 
   const toggleAudio = () => {
     if (!audioRef.current) return;
@@ -91,18 +107,20 @@ export default function JanjiHidup() {
         </div>
 
         {/* Audio Player — hanya tampil jika admin sudah upload audio */}
-        {(devotional as any).audioUrl ? (
+        {/* Audio selalu di-render supaya ref konsisten, tapi player UI hanya muncul jika ada audioUrl */}
+        <audio ref={audioRef} src={audioUrl ?? ""} preload="metadata" />
+        {audioUrl ? (
         <section className="mb-8 no-print">
-          <audio ref={audioRef} src={(devotional as any).audioUrl} preload="metadata" />
           <div className="bg-card border border-border rounded-xl p-5">
             <div className="flex items-center gap-4">
               <button onClick={toggleAudio} className="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0" style={{ backgroundColor: "var(--brand)" }}>
                 {isPlaying ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current ml-0.5" />}
               </button>
               <div className="flex-1 min-w-0">
+                <p className="font-serif font-semibold text-sm leading-snug truncate mb-0.5" style={{ color: "var(--brand)" }}>{devotional.title}</p>
                 <div className="flex items-center gap-2 mb-2">
                   <Headphones className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-sm font-medium">{t("janjihidup.audio")}</span>
+                  <span className="text-xs text-muted-foreground">{t("janjihidup.audio")}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden cursor-pointer" onClick={(e) => {
@@ -118,39 +136,14 @@ export default function JanjiHidup() {
             </div>
           </div>
         </section>
-        ) : <audio ref={audioRef} src="" />}
-
-        {/* Perikop */}
-        {perikop.length > 0 && (
-        <section className="mb-8 no-print">
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3 border-b border-border" style={{ backgroundColor: "var(--brand-muted)" }}>
-              <ScrollText className="h-4 w-4" style={{ color: "var(--brand)" }} />
-              <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--brand)" }}>Perikop Hari Ini</p>
-            </div>
-            <div className="divide-y divide-border">
-              {(perikop as any[]).map((p: any, i: number) => (
-                <div key={i} className="flex items-start gap-3 px-5 py-3">
-                  <span className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-bold text-white mt-0.5" style={{ backgroundColor: "var(--brand)" }}>{i + 1}</span>
-                  <div className="min-w-0">
-                    <p className="font-serif font-semibold text-sm leading-snug" style={{ color: "var(--brand)" }}>
-                      {p.bookName ?? p.book} {p.chapter}:{p.verses ?? `${p.verseFrom}–${p.verseTo}`}
-                    </p>
-                    {p.heading && <p className="text-xs text-muted-foreground mt-0.5">{p.heading}</p>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-        )}
+        ) : null}
 
         {/* Verse Highlights */}
         <section className="mb-8">
           <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: "var(--gold)" }}>{t("pujidanjanji.highlights")}</p>
           {hlLoading ? <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Memuat...</div> : (
             <div className="flex flex-col gap-3">
-              {highlights.map((v, i) => <VerseCard key={i} reference={v.reference} text={v.text} id={`jh-hl-${i}`} showPerikop />)}
+              {highlights.map((v, i) => <VerseCard key={i} reference={v.reference} text={v.text} id={`jh-hl-${i}`} />)}
             </div>
           )}
         </section>
@@ -239,15 +232,6 @@ export default function JanjiHidup() {
           </div>
         </section>
 
-        {/* Special Verses */}
-        <section className="mb-8">
-          <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: "var(--gold)" }}>{t("pujidanjanji.special")}</p>
-          <div className="flex flex-col gap-3">
-            {specialVerses.map((v, i) => (
-              <VerseCard key={i} reference={v.reference} text={v.text} label={v.label} date={(v as any).date} id={`jh-sv-${i}`} accentColor="brand" />
-            ))}
-          </div>
-        </section>
       </div>
     </AppLayout>
   );

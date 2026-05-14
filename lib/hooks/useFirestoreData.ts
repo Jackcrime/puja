@@ -20,15 +20,24 @@ export interface Ministry {
   category: string;
 }
 
+export interface ServiceEntry {
+  ministryId: string;
+  from:       string;
+  until:      string;
+}
+
 export interface Author {
-  code:        string;
-  name:        string;
-  title:       string;
-  ministries:  string[];
-  servedFrom:  string;
-  servedUntil: string;
-  photoUrl:    string;
-  ministry?:   string; // legacy field
+  code:           string;
+  name:           string;
+  titles:         string[];   // bisa multiple: ["Pendeta", "Pdt. Em."]
+  photoUrl:       string;
+  serviceHistory: ServiceEntry[];
+  // legacy compat
+  title?:         string;
+  ministries?:    string[];
+  ministry?:      string;
+  servedFrom?:    string;
+  servedUntil?:   string;
 }
 
 // ─── 1. Devotional ────────────────────────────────────────────────────────────
@@ -130,13 +139,16 @@ export function useAnnouncement() {
 
 // ─── 7. Authors ───────────────────────────────────────────────────────────────
 export type AuthorsMap = Record<string, {
-  name:         string;
-  title:        string;
-  ministry:     string;
-  ministries?:  string[];
-  servedFrom?:  string;
-  servedUntil?: string;
-  photoUrl?:    string;
+  name:           string;
+  titles:         string[];
+  photoUrl?:      string;
+  serviceHistory: ServiceEntry[];
+  // legacy compat
+  title?:         string;
+  ministry?:      string;
+  ministries?:    string[];
+  servedFrom?:    string;
+  servedUntil?:   string;
 }>;
 
 const EMPTY_AUTHORS: AuthorsMap = {};
