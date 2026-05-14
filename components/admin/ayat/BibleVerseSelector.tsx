@@ -47,6 +47,8 @@ export function BibleVerseSelector({
   const selectedBook = BIBLE_BOOKS.find((b) => b.slug === value.bookSlug);
   const chapterMax   = selectedBook?.chapters ?? 1;
 
+  const VERSE_MAX = 176; // ayat terpanjang di Alkitab (Mazmur 119)
+
   const set = (key: keyof VerseSelection, val: any) =>
     onChange({ ...value, [key]: val });
 
@@ -56,6 +58,23 @@ export function BibleVerseSelector({
     setPreview(null);
     onPreview?.(null);
     setPreErr("");
+  };
+
+  const handleChapterChange = (raw: number) => {
+    const chapter = Math.max(1, Math.min(chapterMax, raw || 1));
+    onChange({ ...value, chapter, verseFrom: 1, verseTo: 1 });
+    setPreview(null); onPreview?.(null);
+  };
+
+  const handleVerseFromChange = (raw: number) => {
+    const verseFrom = Math.max(1, Math.min(VERSE_MAX, raw || 1));
+    const verseTo   = Math.max(verseFrom, value.verseTo);
+    onChange({ ...value, verseFrom, verseTo });
+  };
+
+  const handleVerseToChange = (raw: number) => {
+    const verseTo = Math.max(value.verseFrom, Math.min(VERSE_MAX, raw || value.verseFrom));
+    set("verseTo", verseTo);
   };
 
   const handlePreview = async () => {
@@ -120,35 +139,40 @@ export function BibleVerseSelector({
           <input
             type="number" min={1} max={chapterMax}
             value={value.chapter}
-            onChange={(e) => set("chapter", Number(e.target.value))}
+            onChange={(e) => handleChapterChange(Number(e.target.value))}
+            onBlur={(e) => handleChapterChange(Number(e.target.value))}
             disabled={!value.bookSlug}
             className="w-full px-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none disabled:opacity-50"
           />
-          {selectedBook && <p className="text-[10px] text-muted-foreground mt-1">maks {chapterMax}</p>}
+          {selectedBook && <p className="text-[10px] text-muted-foreground mt-1">1 – {chapterMax}</p>}
         </div>
         <div>
           <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
             Ayat mulai
           </label>
           <input
-            type="number" min={1}
+            type="number" min={1} max={VERSE_MAX}
             value={value.verseFrom}
-            onChange={(e) => set("verseFrom", Number(e.target.value))}
+            onChange={(e) => handleVerseFromChange(Number(e.target.value))}
+            onBlur={(e) => handleVerseFromChange(Number(e.target.value))}
             disabled={!value.bookSlug}
             className="w-full px-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none disabled:opacity-50"
           />
+          {selectedBook && <p className="text-[10px] text-muted-foreground mt-1">1 – {VERSE_MAX}</p>}
         </div>
         <div>
           <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
             Ayat selesai
           </label>
           <input
-            type="number" min={value.verseFrom}
+            type="number" min={value.verseFrom} max={VERSE_MAX}
             value={value.verseTo}
-            onChange={(e) => set("verseTo", Number(e.target.value))}
+            onChange={(e) => handleVerseToChange(Number(e.target.value))}
+            onBlur={(e) => handleVerseToChange(Number(e.target.value))}
             disabled={!value.bookSlug}
             className="w-full px-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none disabled:opacity-50"
           />
+          {selectedBook && <p className="text-[10px] text-muted-foreground mt-1">≥ ayat mulai</p>}
         </div>
       </div>
 

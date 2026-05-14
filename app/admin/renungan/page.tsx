@@ -7,6 +7,7 @@ import { FileUploader } from "@/components/admin/FileUploader";
 import { useDevotional, useAuthors } from "@/lib/hooks/useFirestoreData";
 import { deleteUploadThingFile } from "@/lib/uploadthing-client";
 import { Save, Check, Eye, EyeOff, Loader2, Music2, X } from "lucide-react";
+import { showToast } from "@/lib/utils/toast";
 
 export default function AdminRenungan() {
   const { data, loading, update }             = useDevotional();
@@ -30,7 +31,12 @@ export default function AdminRenungan() {
 
   const handleSave = async () => {
     setSaving(true);
-    await update(current);
+    try {
+      await update(current);
+      showToast.success("Renungan harian berhasil disimpan.");
+    } catch {
+      showToast.error("Gagal menyimpan renungan. Coba lagi.");
+    }
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);

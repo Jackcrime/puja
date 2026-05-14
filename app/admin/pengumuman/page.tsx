@@ -5,6 +5,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminGuard } from "@/components/admin/AdminGuard";
 import { useAnnouncement } from "@/lib/hooks/useFirestoreData";
 import { Megaphone, Save, Check, Loader2 } from "lucide-react";
+import { showToast } from "@/lib/utils/toast";
 
 export default function AdminPengumuman() {
   const { data, loading, update } = useAnnouncement();
@@ -20,7 +21,12 @@ export default function AdminPengumuman() {
 
   const handleSave = async () => {
     setSaving(true);
-    await update({ text, link });
+    try {
+      await update({ text, link });
+      showToast.success("Pengumuman berhasil disimpan.");
+    } catch {
+      showToast.error("Gagal menyimpan pengumuman. Coba lagi.");
+    }
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);

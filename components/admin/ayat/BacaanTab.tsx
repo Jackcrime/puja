@@ -6,6 +6,7 @@ import { useBibleReadings, usePerikop, type BibleReading } from "@/lib/hooks/use
 import { BibleVerseSelector, type VerseSelection, refLabel, emptySelection } from "./BibleVerseSelector";
 import { formatRef, BIBLE_BOOKS } from "@/lib/bible-books";
 import type { BiblePassageResponse } from "@/app/api/bible/route";
+import { showToast } from "@/lib/utils/toast";
 import {
   Loader2, Plus, Pencil, Trash2, ChevronDown, ChevronUp,
   X, Eye, BookOpen, Link2,
@@ -269,23 +270,30 @@ export function BacaanTab() {
   const persist = async (updated: ReadingWithPerikop[]) => {
     setSaving(true);
     setItems(updated);
-    await save(updated as BibleReading[]);
+    try {
+      await save(updated as BibleReading[]);
+    } catch {
+      showToast.error("Gagal menyimpan bacaan. Coba lagi.");
+    }
     setSaving(false);
   };
 
   const handleSave = async (r: ReadingWithPerikop) => {
-    const next = editing !== null
-      ? items.map((x, i) => i === editing.index ? r : x)
+    const isEdit = editing !== null;
+    const next = isEdit
+      ? items.map((x, i) => i === editing!.index ? r : x)
       : [...items, r];
     setForm(false);
     setEditing(null);
     await persist(next);
+    showToast.success(isEdit ? "Bacaan berhasil diperbarui." : "Bacaan baru berhasil ditambahkan.");
   };
 
   const handleDelete = async () => {
     if (target === null) return;
     await persist(items.filter((_, i) => i !== target));
     setTarget(null);
+    showToast.success("Bacaan berhasil dihapus.");
   };
 
   const toggleExpand = (i: number) =>

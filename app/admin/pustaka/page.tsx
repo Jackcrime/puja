@@ -10,6 +10,7 @@ import { FileUploader } from "@/components/admin/FileUploader";
 import { usePustakaBooks, type PustakaBook } from "@/lib/hooks/useFirestoreData";
 import { deleteUploadThingFile } from "@/lib/uploadthing-client";
 import { Loader2, ExternalLink } from "lucide-react";
+import { showToast } from "@/lib/utils/toast";
 
 const EMPTY: Omit<PustakaBook, "id"> = {
   title: "", year: new Date().getFullYear(), category: "BUKU",
@@ -68,28 +69,40 @@ export default function AdminPustaka() {
   };
 
   const handleSubmit = async () => {
+    const isEdit = !!editing;
     // Baru hapus file lama dari UploadThing setelah user klik Save
     if (pendingDeleteUrl) {
       await deleteUploadThingFile(pendingDeleteUrl);
       setPendingDeleteUrl("");
     }
     const entry = { ...form, pages: Number(form.pages), year: Number(form.year) };
-    if (editing) {
-      await update(editing.id, entry);
-    } else {
-      await add(entry);
+    try {
+      if (isEdit) {
+        await update(editing!.id, entry);
+        showToast.success(`Buku "${form.title}" berhasil diperbarui.`);
+      } else {
+        await add(entry);
+        showToast.success(`Buku "${form.title}" berhasil ditambahkan.`);
+      }
+    } catch {
+      showToast.error("Gagal menyimpan buku. Coba lagi.");
     }
     setModal(false);
   };
 
   const handleDelete = async () => {
     if (!target) return;
-    // Simpan dulu sebelum di-null-kan
     const deletedId      = target.id;
+    const deletedTitle   = target.title;
     const deletedFileUrl = target.fileUrl;
     setTarget(null);
-    if (deletedFileUrl) await deleteUploadThingFile(deletedFileUrl);
-    await remove(deletedId);
+    try {
+      if (deletedFileUrl) await deleteUploadThingFile(deletedFileUrl);
+      await remove(deletedId);
+      showToast.success(`Buku "${deletedTitle}" berhasil dihapus.`);
+    } catch {
+      showToast.error("Gagal menghapus buku. Coba lagi.");
+    }
   };
 
   return (

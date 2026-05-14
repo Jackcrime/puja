@@ -10,7 +10,11 @@ import {
 
 const DAYS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
-export function NotificationSettings() {
+interface NotificationSettingsProps {
+  onSettingsChange?: (enabled: boolean) => void;
+}
+
+export function NotificationSettings({ onSettingsChange }: NotificationSettingsProps = {}) {
   const [settings, setSettings] = useState<NotifSettings>({ enabled: false, time: "06:00", days: [0,1,2,3,4,5,6] });
   const [permission, setPermission] = useState<string>("default");
   const [testSent, setTestSent] = useState(false);
@@ -31,10 +35,12 @@ export function NotificationSettings() {
       setSettings(updated);
       saveSettings(updated);
       await scheduleWithSW(updated);
+      onSettingsChange?.(true);
     } else {
       const updated = { ...settings, enabled: false };
       setSettings(updated);
       saveSettings(updated);
+      onSettingsChange?.(false);
     }
   };
 

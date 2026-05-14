@@ -8,6 +8,7 @@ import { FormModal } from "@/components/admin/FormModal";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { useMinistries, type Ministry } from "@/lib/hooks/useFirestoreData";
 import { Loader2 } from "lucide-react";
+import { showToast } from "@/lib/utils/toast";
 
 const EMPTY = { id: "", name: "", category: "" };
 
@@ -53,18 +54,31 @@ export default function AdminMinistries() {
   const openDelete = (m: Ministry) => { setTarget(m); setConfirm(true); };
 
   const handleSubmit = async () => {
+    const isEdit = !!editing;
     setModal(false);
-    if (editing) {
-      await update(editing.id, { name: form.name, category: form.category });
-    } else {
-      await add({ name: form.name, category: form.category });
+    try {
+      if (isEdit) {
+        await update(editing!.id, { name: form.name, category: form.category });
+        showToast.success(`Unit Pelayanan "${form.name}" berhasil diperbarui.`);
+      } else {
+        await add({ name: form.name, category: form.category });
+        showToast.success(`Unit Pelayanan "${form.name}" berhasil ditambahkan.`);
+      }
+    } catch {
+      showToast.error("Gagal menyimpan. Coba lagi.");
     }
   };
 
   const handleDelete = async () => {
     if (!target) return;
+    const name = target.name;
     setTarget(null);
-    await remove(target.id);
+    try {
+      await remove(target.id);
+      showToast.success(`Unit Pelayanan "${name}" berhasil dihapus.`);
+    } catch {
+      showToast.error("Gagal menghapus. Coba lagi.");
+    }
   };
 
   const filtered = data.filter((m) =>

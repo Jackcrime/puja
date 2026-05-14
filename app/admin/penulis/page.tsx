@@ -11,6 +11,7 @@ import { deleteUploadThingFile } from "@/lib/uploadthing-client";
 import { TITLE_OPTIONS } from "@/lib/mockData";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, UserCircle, Plus, X, GripVertical } from "lucide-react";
+import { showToast } from "@/lib/utils/toast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type AuthorRow = Author & { id: string };
@@ -139,7 +140,11 @@ export default function AdminPenulis() {
   const persist = async (updated: AuthorRow[]) => {
     setSaving(true);
     setAuthors(updated);
-    await saveDict(arrayToDict(updated) as any);
+    try {
+      await saveDict(arrayToDict(updated) as any);
+    } catch {
+      showToast.error("Gagal menyimpan data penulis. Coba lagi.");
+    }
     setSaving(false);
   };
 
@@ -165,24 +170,28 @@ export default function AdminPenulis() {
   };
 
   const handleSubmit = async () => {
+    const isEdit = !!editing;
     if (pendingDeleteUrl) {
       await deleteUploadThingFile(pendingDeleteUrl);
       setPendingDeleteUrl("");
     }
-    const next = editing
-      ? authors.map((a) => (a.id === editing.id ? { ...form, id: editing.id } : a))
+    const next = isEdit
+      ? authors.map((a) => (a.id === editing!.id ? { ...form, id: editing!.id } : a))
       : [...authors, { ...form, id: form.code || `${Date.now()}` }];
     setModal(false);
     await persist(next);
+    showToast.success(isEdit ? `Penulis "${form.name}" berhasil diperbarui.` : `Penulis "${form.name}" berhasil ditambahkan.`);
   };
 
   const handleDelete = async () => {
     if (!target) return;
     const deletedId = target.id;
+    const deletedName = target.name;
     const deletedPhotoUrl = target.photoUrl;
     setTarget(null);
     if (deletedPhotoUrl) await deleteUploadThingFile(deletedPhotoUrl);
     await persist(authors.filter((a) => a.id !== deletedId));
+    showToast.success(`Penulis "${deletedName}" berhasil dihapus.`);
   };
 
   // ─── Service history helpers ───────────────────────────────────────────────

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -8,10 +8,12 @@ import {
   LayoutDashboard, Star, Users, ScrollText,
   Library, Megaphone, LogOut,
   Menu, ChevronRight, Shield, Church,
-  Sun, Moon
+  Sun, Moon, Bell, BellRing, BellOff, X
 } from "lucide-react";
-import { toast } from "sonner";       
+import { toast } from "sonner";
 import { logout } from "@/lib/admin/auth";
+import { NotificationSettings } from "@/components/ui/NotificationSettings";
+import { loadSettings, initNotifications } from "@/lib/notifications";
 
 const NAV_GROUPS = [
   {
@@ -43,6 +45,26 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
   const router       = useRouter();
   const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifEnabled, setNotifEnabled] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    initNotifications();
+    const s = loadSettings();
+    setNotifEnabled(s.enabled);
+  }, []);
+
+  // Close notif panel on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
+    }
+    if (notifOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [notifOpen]);
 
   const handleLogout = () => { logout(); router.push("/admin/login"); };
 
@@ -155,6 +177,43 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
             >
               {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </button>
+
+            {/* Notification Bell */}
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setNotifOpen((v) => !v)}
+                className="relative p-2 rounded-lg text-muted-foreground hover:bg-muted transition-colors"
+                title="Pengaturan Notifikasi"
+              >
+                {notifEnabled
+                  ? <BellRing className="h-5 w-5" style={{ color: "var(--brand)" }} />
+                  : <Bell className="h-5 w-5" />}
+                {notifEnabled && (
+                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full"
+                    style={{ backgroundColor: "var(--brand)" }} />
+                )}
+              </button>
+
+              {/* Notif Dropdown Panel */}
+              {notifOpen && (
+                <div className="absolute right-0 top-full mt-2 w-80 z-50 rounded-2xl border border-border bg-card shadow-xl overflow-hidden"
+                  style={{ animation: "fadeUp 0.15s ease both" }}>
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                    <div className="flex items-center gap-2">
+                      <Bell className="h-4 w-4" style={{ color: "var(--brand)" }} />
+                      <p className="text-sm font-bold" style={{ color: "var(--brand)" }}>Notifikasi</p>
+                    </div>
+                    <button onClick={() => setNotifOpen(false)}
+                      className="p-1 rounded-lg text-muted-foreground hover:bg-muted transition-colors">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="p-3">
+                    <NotificationSettings onSettingsChange={(enabled) => setNotifEnabled(enabled)} />
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Logout */}
             <button 

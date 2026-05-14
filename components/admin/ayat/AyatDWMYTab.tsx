@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useAyatKhusus, type AyatKhusus } from "@/lib/hooks/useFirestoreData";
 import { BibleVerseSelector, type VerseSelection, refLabel, emptySelection } from "./BibleVerseSelector";
 import { Loader2, Save, Calendar, Star, Sun, CalendarDays } from "lucide-react";
+import { showToast } from "@/lib/utils/toast";
 import { formatRef } from "@/lib/bible-books";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -122,7 +123,12 @@ export function AyatDWMYTab() {
       harian: harianItems.filter((h) => h.reference),
     };
 
-    await save(next);
+    try {
+      await save(next);
+      showToast.success("Data DWMY berhasil disimpan.");
+    } catch {
+      showToast.error("Gagal menyimpan DWMY. Coba lagi.");
+    }
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);

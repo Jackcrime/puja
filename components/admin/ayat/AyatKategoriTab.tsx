@@ -6,6 +6,7 @@ import { FormModal }    from "@/components/admin/FormModal";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { useAyatCategories } from "@/lib/hooks/useFirestoreData";
 import { Loader2 } from "lucide-react";
+import { showToast } from "@/lib/utils/toast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type Verse = {
@@ -73,7 +74,13 @@ export function AyatKategoriTab() {
   const persist = async (updated: Verse[]) => {
     setSaving(true);
     setVerses(updated);
-    await saveCategories(flatToCategories(updated) as any);
+    try {
+      await saveCategories(flatToCategories(updated) as any);
+    } catch {
+      showToast.error("Gagal menyimpan ayat. Coba lagi.");
+      setSaving(false);
+      return;
+    }
     setSaving(false);
   };
 
@@ -82,17 +89,21 @@ export function AyatKategoriTab() {
   const openDelete = (v: Verse) => { setTarget(v); setConfirm(true); };
 
   const handleSubmit = async () => {
-    const next = editing
+    const isEdit = !!editing;
+    const next = isEdit
       ? verses.map((v) => (v.id === editing.id ? { ...form, id: editing.id } : v))
       : [...verses, { ...form, id: `${Date.now()}` }];
     setModal(false);
     await persist(next);
+    showToast.success(isEdit ? "Ayat berhasil diperbarui." : "Ayat baru berhasil ditambahkan.");
   };
 
   const handleDelete = async () => {
     if (!target) return;
+    const name = target.reference || target.label;
     setTarget(null);
     await persist(verses.filter((v) => v.id !== target.id));
+    showToast.success(`Ayat "${name}" berhasil dihapus.`);
   };
 
   const filtered = useMemo(() =>
