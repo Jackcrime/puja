@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Sun, Moon, Type, ChevronDown, BookOpenText, ScrollText, Star, Info, Settings, Library } from "lucide-react";
+import { Sun, Moon, Type, ChevronDown, BookOpenText, ScrollText, Star, Info, Settings, Library, Menu, X, Monitor } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useFontSize } from "@/lib/hooks/useFontSize";
 import { useI18n } from "@/lib/hooks/useI18n";
@@ -26,11 +26,31 @@ export function Header() {
     { href: "/pengaturan", label: "Pengaturan", icon: Settings },
   ];
 
+  const mobileLinks = [
+    { href: "/tentang", label: t("nav.tentang"), icon: Info },
+    { href: "/pengaturan", label: "Pengaturan", icon: Settings },
+  ];
+
+  const themes = [
+    { value: "light", icon: Sun },
+    { value: "dark", icon: Moon },
+    { value: "system", icon: Monitor },
+  ];
+
+  const MobilefontSizes = [
+    { value: "sm", label: "SM", cls: "text-xs" },
+    { value: "md", label: "M", cls: "text-sm" },
+    { value: "lg", label: "L", cls: "text-base" },
+    { value: "xl", label: "XL", cls: "text-lg" },
+    { value: "xxl", label: "XXL", cls: "text-xl" },
+  ];
+
   const fontSizes = [
     { value: "sm", label: "Kecil", cls: "text-xs" },
     { value: "md", label: "Normal", cls: "text-sm" },
     { value: "lg", label: "Besar", cls: "text-base" },
     { value: "xl", label: "Sangat Besar", cls: "text-lg" },
+    { value: "xxl", label: "Ekstra Besar", cls: "text-xl" },
   ];
 
   return (
@@ -60,16 +80,17 @@ export function Header() {
                 {/* Tablet: icon only */}
                 {link.icon && (
                   <link.icon className={`h-4 w-4 ${
-                    fontSize === "lg" || fontSize === "xl" ? "block" : "lg:hidden"
+                    fontSize === "xl" || fontSize === "xxl" ? "block" : "lg:hidden"
                   }`} />
                 )}
 
                 {/* Desktop: text only */}
                 <span className={`${
-                  fontSize === "lg" || fontSize === "xl" ? "hidden" : "hidden lg:inline"
+                  fontSize === "xl" || fontSize === "xxl" ? "hidden" : "hidden lg:inline"
                 }`}>
                   {link.label}
                 </span>
+
               </Link>
             ))}
           </nav>
@@ -116,7 +137,7 @@ export function Header() {
 
             {/* Theme Toggle */}
             <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors relative ml-0.5"
+              className="p-2 hidden sm:block rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors relative ml-0.5"
               aria-label="Ganti tema"
             >
               <Sun className="h-4 w-4 rotate-0 scale-100 dark:-rotate-90 dark:scale-0 transition-all" />
@@ -124,19 +145,19 @@ export function Header() {
             </button>
 
             {/* Mobile Menu */}
-            {/* <button className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            <button className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               onClick={() => setMobileOpen(!mobileOpen)} aria-label="Menu"
             >
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button> */}
+            </button>
           </div>
         </div>
 
         {/* Mobile Dropdown */}
-        {/* {mobileOpen && (
+        {mobileOpen && (
           <div className="md:hidden border-t bg-card">
             <nav className="max-w-5xl mx-auto px-4 py-3 flex flex-col gap-1">
-              {navLinks.map((link) => (
+              {mobileLinks.map((link) => (
                 <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)}
                   className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     pathname === link.href ? "font-semibold" : "text-muted-foreground"
@@ -147,6 +168,19 @@ export function Header() {
                 </Link>
               ))}
               <div className="border-t pt-3 mt-1 space-y-3">
+                  <div className="flex gap-2">
+                    {themes.map(({ value, icon: Icon }) => (
+                      <button key={value} onClick={() => setTheme(value)}
+                        className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl border text-xs font-semibold transition-colors"
+                        style={theme === value
+                          ? { backgroundColor: "var(--brand)", color: "white", borderColor: "var(--brand)" }
+                          : { borderColor: "hsl(var(--border))", color: "hsl(var(--muted-foreground))" }
+                        }
+                      >
+                        <Icon className="h-4 w-4" />
+                      </button>
+                    ))}
+                  </div>
                 <div>
                   <p className="text-xs text-muted-foreground px-3 mb-2 font-semibold uppercase tracking-wider">Bahasa</p>
                   <div className="flex gap-2 px-3">
@@ -163,7 +197,7 @@ export function Header() {
                 <div>
                   <p className="text-xs text-muted-foreground px-3 mb-2 font-semibold uppercase tracking-wider">Ukuran Teks</p>
                   <div className="flex gap-2 px-3">
-                    {fontSizes.map((f) => (
+                    {MobilefontSizes.map((f) => (
                       <button key={f.value} onClick={() => setFontSize(f.value as any)}
                         className="flex-1 py-2 rounded-lg border text-xs font-semibold transition-colors"
                         style={fontSize === f.value ? { color: "var(--brand)", borderColor: "var(--brand)", backgroundColor: "var(--brand-muted)" } : { borderColor: "hsl(var(--border))" }}
@@ -176,7 +210,7 @@ export function Header() {
               </div>
             </nav>
           </div>
-        )} */}
+        )}
       </header>
       {fontOpen && <div className="fixed inset-0 z-40" onClick={() => setFontOpen(false)} />}
     </>

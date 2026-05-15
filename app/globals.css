@@ -66,6 +66,7 @@
   html[data-font-size="md"] { font-size: 16px; }
   html[data-font-size="lg"] { font-size: 18px; }
   html[data-font-size="xl"] { font-size: 20px; }
+  html[data-font-size="xxl"] { font-size: 22px; }
 }
 @keyframes accordion-down {
   from { height: 0; }

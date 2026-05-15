@@ -35,24 +35,6 @@ export default function Pengaturan() {
     setTimeout(() => { setCleared(false); window.location.reload(); }, 1500);
   };
 
-  const fontSizes = [
-    { value: "sm", label: "Kecil", sample: "text-xs" },
-    { value: "md", label: "Normal", sample: "text-sm" },
-    { value: "lg", label: "Besar", sample: "text-base" },
-    { value: "xl", label: "XL", sample: "text-xl" },
-  ];
-
-  const themes = [
-    { value: "light", label: "Terang", icon: Sun },
-    { value: "dark", label: "Gelap", icon: Moon },
-    { value: "system", label: "Sistem", icon: Monitor },
-  ];
-
-  const langs = [
-    { value: "id", label: "Indonesia" },
-    { value: "en", label: "English" },
-  ];
-
   return (
     <AppLayout>
       <div className="max-w-xl mx-auto px-4 pt-8 pb-6 space-y-4">
@@ -68,73 +50,6 @@ export default function Pengaturan() {
 
         {/* Notifikasi */}
         <NotificationSettings />
-
-        {/* Tampilan */}
-        <div className="bg-card border border-border rounded-xl p-5 space-y-5">
-          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--gold)" }}>Tampilan</p>
-
-          {/* Tema */}
-          <div>
-            <p className="text-sm font-semibold mb-2">Mode Warna</p>
-            <div className="flex gap-2">
-              {themes.map(({ value, label, icon: Icon }) => (
-                <button key={value} onClick={() => setTheme(value)}
-                  className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl border text-xs font-semibold transition-colors"
-                  style={theme === value
-                    ? { backgroundColor: "var(--brand)", color: "white", borderColor: "var(--brand)" }
-                    : { borderColor: "hsl(var(--border))", color: "hsl(var(--muted-foreground))" }
-                  }
-                >
-                  <Icon className="h-4 w-4" />
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Font size */}
-          <div>
-            <p className="text-sm font-semibold mb-2 flex items-center gap-2">
-              <Type className="h-4 w-4" style={{ color: "var(--gold)" }} />
-              Ukuran Teks
-            </p>
-            <div className="flex gap-2">
-              {fontSizes.map((f) => (
-                <button key={f.value} onClick={() => setFontSize(f.value as any)}
-                  className="flex-1 py-2.5 rounded-xl border text-sm transition-colors font-semibold"
-                  style={fontSize === f.value
-                    ? { backgroundColor: "var(--brand)", color: "white", borderColor: "var(--brand)" }
-                    : { borderColor: "hsl(var(--border))", color: "hsl(var(--muted-foreground))" }
-                  }
-                >
-                  <span className={`font-serif font-bold ${f.sample}`}>A</span>
-                  <span className="block text-[10px] mt-0.5">{f.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Bahasa */}
-          <div>
-            <p className="text-sm font-semibold mb-2 flex items-center gap-2">
-              <Languages className="h-4 w-4" style={{ color: "var(--gold)" }} />
-              Bahasa
-            </p>
-            <div className="flex gap-2">
-              {langs.map((l) => (
-                <button key={l.value} onClick={() => setLang(l.value as any)}
-                  className="flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-colors"
-                  style={lang === l.value
-                    ? { backgroundColor: "var(--brand)", color: "white", borderColor: "var(--brand)" }
-                    : { borderColor: "hsl(var(--border))", color: "hsl(var(--muted-foreground))" }
-                  }
-                >
-                  {l.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
 
         {/* PWA Status */}
         <div className="bg-card border border-border rounded-xl p-5">

@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BookOpenText, ScrollText, Star, Settings } from "lucide-react";
+import { Home, BookOpenText, ScrollText, Star, Library } from "lucide-react";
 import { useI18n } from "@/lib/hooks/useI18n";
 
 export function BottomNav() {
@@ -15,7 +15,7 @@ export function BottomNav() {
     { href: "/pujidanjanji",  label: "Bacaan",     icon: BookOpenText },
     { href: "/janjihidup",    label: t("nav.janjihidup"), icon: ScrollText },
     { href: "/ayat",          label: "Ayat",       icon: Star },
-    { href: "/pengaturan",    label: "Pengaturan", icon: Settings },
+    { href: "/pustaka",       label: "Pustaka",    icon: Library },
   ];
 
   // Jangan tampilkan di halaman admin

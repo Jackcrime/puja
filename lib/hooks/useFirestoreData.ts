@@ -417,17 +417,34 @@ export function usePokokDoaHarian() {
 }
 
 // ─── 17. Ayat Nats ────────────────────────────────────────────────────────────
-export interface AyatNats {
+export interface AyatNatsItem {
+  id:        string;
   reference: string;
   text:      string;
 }
+export interface AyatNats { items: AyatNatsItem[]; }
+
+const DEFAULT_AYAT_NATS: AyatNats = {
+  items: Array.isArray((AYAT_NATS as any).items)
+    ? (AYAT_NATS as any).items
+    : [{ id: "1", reference: (AYAT_NATS as any).reference ?? "", text: (AYAT_NATS as any).text ?? "" }],
+};
 
 export function useAyatNats() {
-  const [data, setData]       = useState<AyatNats>(AYAT_NATS);
+  const [data, setData]       = useState<AyatNats>(DEFAULT_AYAT_NATS);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    readDoc<AyatNats>("ayat_nats", "current", AYAT_NATS)
-      .then(setData).finally(() => setLoading(false));
+    readDoc<AyatNats>("ayat_nats", "current", DEFAULT_AYAT_NATS)
+      .then((d) => {
+        // Backward-compat: old shape was { reference, text }
+        if (!d.items) {
+          const old = d as any;
+          setData({ items: [{ id: "1", reference: old.reference ?? "", text: old.text ?? "" }] });
+        } else {
+          setData(d);
+        }
+      })
+      .finally(() => setLoading(false));
   }, []);
   const save = useCallback(async (next: AyatNats) => {
     await writeDoc("ayat_nats", "current", next);
