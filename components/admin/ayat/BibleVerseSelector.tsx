@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { BIBLE_BOOKS, formatRef } from "@/lib/bible-books";
+import { getVerseCount } from "@/lib/bible-verse-counts";
 import { Loader2, Eye, BookOpen, AlertCircle } from "lucide-react";
 import type { BiblePassageResponse } from "@/app/api/bible/route";
 
@@ -47,7 +48,9 @@ export function BibleVerseSelector({
   const selectedBook = BIBLE_BOOKS.find((b) => b.slug === value.bookSlug);
   const chapterMax   = selectedBook?.chapters ?? 1;
 
-  const VERSE_MAX = 176; // ayat terpanjang di Alkitab (Mazmur 119)
+  const verseMax = value.bookSlug && value.chapter
+    ? getVerseCount(value.bookSlug, value.chapter)
+    : 50;
 
   const set = (key: keyof VerseSelection, val: any) =>
     onChange({ ...value, [key]: val });
@@ -67,13 +70,13 @@ export function BibleVerseSelector({
   };
 
   const handleVerseFromChange = (raw: number) => {
-    const verseFrom = Math.max(1, Math.min(VERSE_MAX, raw || 1));
-    const verseTo   = Math.max(verseFrom, value.verseTo);
+    const verseFrom = Math.max(1, Math.min(verseMax, raw || 1));
+    const verseTo   = Math.max(verseFrom, Math.min(verseMax, value.verseTo));
     onChange({ ...value, verseFrom, verseTo });
   };
 
   const handleVerseToChange = (raw: number) => {
-    const verseTo = Math.max(value.verseFrom, Math.min(VERSE_MAX, raw || value.verseFrom));
+    const verseTo = Math.max(value.verseFrom, Math.min(verseMax, raw || value.verseFrom));
     set("verseTo", verseTo);
   };
 
@@ -151,21 +154,21 @@ export function BibleVerseSelector({
             Ayat mulai
           </label>
           <input
-            type="number" min={1} max={VERSE_MAX}
+            type="number" min={1} max={verseMax}
             value={value.verseFrom}
             onChange={(e) => handleVerseFromChange(Number(e.target.value))}
             onBlur={(e) => handleVerseFromChange(Number(e.target.value))}
             disabled={!value.bookSlug}
             className="w-full px-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none disabled:opacity-50"
           />
-          {selectedBook && <p className="text-[10px] text-muted-foreground mt-1">1 – {VERSE_MAX}</p>}
+          {selectedBook && <p className="text-[10px] text-muted-foreground mt-1">1 – {verseMax}</p>}
         </div>
         <div>
           <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
             Ayat selesai
           </label>
           <input
-            type="number" min={value.verseFrom} max={VERSE_MAX}
+            type="number" min={value.verseFrom} max={verseMax}
             value={value.verseTo}
             onChange={(e) => handleVerseToChange(Number(e.target.value))}
             onBlur={(e) => handleVerseToChange(Number(e.target.value))}

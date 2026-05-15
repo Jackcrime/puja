@@ -249,21 +249,20 @@ export function useMinistries() {
   return { data, loading, add, update, remove, reload: load };
 }
 
-// ─── 11. Daily verse (dari Firestore ayat_khusus.harian, fallback getDailyVerse) ─
-export function useDailyVerse() {
+// ─── 11. Daily verse (dari Firestore ayat_khusus.harian date-linked, fallback getDailyVerse) ─
+export function useDailyVerse(dateKey?: string) {
   const [data, setData] = useState(() => getDailyVerse());
 
   useEffect(() => {
     readDoc<AyatKhusus>("ayat_khusus", "current", DEFAULT_AYAT_KHUSUS).then((ak) => {
-      const pool = ak.harian;
-      if (!pool || pool.length === 0) return;
-      // Pilih berdasarkan hari dalam tahun agar konsisten dalam satu hari
-      const dayOfYear = Math.floor(
-        (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86_400_000
-      );
-      setData(pool[dayOfYear % pool.length]);
+      const harian = ak.harian;
+      if (!harian) return;
+      // Pakai tanggal yang diberikan, atau hari ini
+      const today = dateKey ?? new Date().toISOString().split("T")[0];
+      const verse = harian[today];
+      if (verse) setData(verse);
     });
-  }, []);
+  }, [dateKey]);
 
   return { data };
 }
@@ -298,22 +297,23 @@ export function useBibleReadings() {
 export interface AyatKhususBulan { reference: string; text: string; }
 export interface AyatKhususHarian { reference: string; text: string; }
 export interface AyatKhusus {
-  tahun?:  { year: number; reference: string; text: string };
-  minggu?: { reference: string; text: string; date?: string };
-  bulan?:  Record<string, AyatKhususBulan>; // key: "1"–"12"
-  harian?: AyatKhususHarian[];              // pool ayat harian
+  tahun?:     { year: number; reference: string; text: string };
+  minggu?:    { reference: string; text: string; date?: string }; // single (legacy)
+  mingguan?:  Record<string, { reference: string; text: string }>; // key: "YYYY-MM-DD" (Minggu)
+  bulan?:     Record<string, AyatKhususBulan>;       // key: "1"–"12"
+  harian?:    Record<string, AyatKhususHarian>;       // key: "YYYY-MM-DD" — date-linked
 }
 
 const DEFAULT_AYAT_KHUSUS: AyatKhusus = {
   tahun:  { year: 2026, reference: "Wahyu 21:5", text: "Lihatlah, Aku menjadikan segala sesuatu baru!" },
   minggu: { reference: "2 Korintus 5:17", text: "Siapa yang ada di dalam Kristus, ia adalah ciptaan baru: yang lama sudah berlalu, sesungguhnya yang baru sudah datang.", date: "" },
-  harian: [
-    { reference: "Filipi 4:13",  text: "Segala perkara dapat kutanggung di dalam Dia yang memberi kekuatan kepadaku." },
-    { reference: "Yohanes 3:16", text: "Karena begitu besar kasih Allah akan dunia ini, sehingga Ia telah mengaruniakan Anak-Nya yang tunggal." },
-    { reference: "Mazmur 23:1",  text: "TUHAN adalah gembalaku, takkan kekurangan aku." },
-    { reference: "Yeremia 29:11",text: "Sebab Aku ini mengetahui rancangan-rancangan apa yang ada pada-Ku mengenai kamu, demikianlah firman TUHAN, yaitu rancangan damai sejahtera." },
-    { reference: "Yosua 1:9",    text: "Kuatkan dan teguhkanlah hatimu, janganlah kecut dan tawar hati, sebab TUHAN, Allahmu, menyertai engkau ke mana pun engkau pergi." },
-  ],
+  harian: {
+    "2026-05-12": { reference: "Filipi 4:13",   text: "Segala perkara dapat kutanggung di dalam Dia yang memberi kekuatan kepadaku." },
+    "2026-05-13": { reference: "Yohanes 3:16",  text: "Karena begitu besar kasih Allah akan dunia ini, sehingga Ia telah mengaruniakan Anak-Nya yang tunggal." },
+    "2026-05-14": { reference: "Mazmur 23:1",   text: "TUHAN adalah gembalaku, takkan kekurangan aku." },
+    "2026-05-15": { reference: "Yeremia 29:11", text: "Sebab Aku ini mengetahui rancangan-rancangan apa yang ada pada-Ku mengenai kamu, demikianlah firman TUHAN, yaitu rancangan damai sejahtera." },
+    "2026-05-16": { reference: "Yosua 1:9",     text: "Kuatkan dan teguhkanlah hatimu, janganlah kecut dan tawar hati, sebab TUHAN, Allahmu, menyertai engkau ke mana pun engkau pergi." },
+  },
   bulan: {
     "1":  { reference: "Ulangan 6:5",     text: "Kasihilah TUHAN, Allahmu, dengan segenap hatimu dan dengan segenap jiwamu dan dengan segenap kekuatanmu." },
     "2":  { reference: "Ulangan 26:11",   text: "Haruslah engkau bersukaria karena segala yang baik yang diberikan TUHAN, Allahmu, kepadamu dan kepada seisi rumahmu." },
@@ -345,5 +345,93 @@ export function useAyatKhusus() {
     setData(next);
   }, []);
 
+  return { data, loading, save };
+}
+// ─── 14. Mazmur Minggu ────────────────────────────────────────────────────────
+import { MAZMUR_MINGGU, BAHAN_KHOTBAH, POKOK_DOA_HARIAN, AYAT_NATS } from "@/lib/mockData";
+
+export interface MazmurMinggu {
+  reference: string;
+  title:     string;
+  verses:    { number: string; text: string }[];
+}
+
+export function useMazmurMinggu() {
+  const [data, setData]       = useState<MazmurMinggu>(MAZMUR_MINGGU);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    readDoc<MazmurMinggu>("mazmur_minggu", "current", MAZMUR_MINGGU)
+      .then(setData).finally(() => setLoading(false));
+  }, []);
+  const save = useCallback(async (next: MazmurMinggu) => {
+    await writeDoc("mazmur_minggu", "current", next);
+    setData(next);
+  }, []);
+  return { data, loading, save };
+}
+
+// ─── 15. Bahan Khotbah ────────────────────────────────────────────────────────
+export interface BahanKhotbah {
+  reference:    string;
+  title:        string;
+  thema:        string;
+  pendahuluan:  string;
+  poinUtama:    { judul: string; isi: string }[];
+  penutup:      string;
+}
+
+export function useBahanKhotbah() {
+  const [data, setData]       = useState<BahanKhotbah>(BAHAN_KHOTBAH);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    readDoc<BahanKhotbah>("bahan_khotbah", "current", BAHAN_KHOTBAH)
+      .then(setData).finally(() => setLoading(false));
+  }, []);
+  const save = useCallback(async (next: BahanKhotbah) => {
+    await writeDoc("bahan_khotbah", "current", next);
+    setData(next);
+  }, []);
+  return { data, loading, save };
+}
+
+// ─── 16. Pokok Doa Harian ─────────────────────────────────────────────────────
+export interface PokokDoa {
+  hari:   string;
+  topik:  string;
+  detail: string;
+}
+
+export function usePokokDoaHarian() {
+  const [data, setData]       = useState<PokokDoa[]>(POKOK_DOA_HARIAN);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    readDoc<{ items: PokokDoa[] }>("pokok_doa_harian", "current", { items: POKOK_DOA_HARIAN })
+      .then((d) => setData(d.items ?? POKOK_DOA_HARIAN))
+      .finally(() => setLoading(false));
+  }, []);
+  const save = useCallback(async (items: PokokDoa[]) => {
+    await writeDoc("pokok_doa_harian", "current", { items });
+    setData(items);
+  }, []);
+  return { data, loading, save };
+}
+
+// ─── 17. Ayat Nats ────────────────────────────────────────────────────────────
+export interface AyatNats {
+  reference: string;
+  text:      string;
+}
+
+export function useAyatNats() {
+  const [data, setData]       = useState<AyatNats>(AYAT_NATS);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    readDoc<AyatNats>("ayat_nats", "current", AYAT_NATS)
+      .then(setData).finally(() => setLoading(false));
+  }, []);
+  const save = useCallback(async (next: AyatNats) => {
+    await writeDoc("ayat_nats", "current", next);
+    setData(next);
+  }, []);
   return { data, loading, save };
 }

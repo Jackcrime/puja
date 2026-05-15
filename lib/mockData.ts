@@ -252,3 +252,45 @@ export const GKPB_INFO = {
   theme2026: "Menjadi Gereja Pembawa Keadilan",
   subtheme2026: "Diubahkan Kristus Untuk Bertindak Adil",
 };
+// ─── Mazmur Minggu ─────────────────────────────────────────────────────────────
+export const MAZMUR_MINGGU = {
+  reference: "Mazmur 98:1–9",
+  title: "Nyanyian Syukur atas Keselamatan",
+  verses: [
+    { number: "98:1", text: "Nyanyikanlah nyanyian baru bagi TUHAN, sebab Ia telah melakukan perbuatan-perbuatan yang ajaib; keselamatan telah dikerjakan oleh tangan kanan-Nya, oleh lengan-Nya yang kudus." },
+    { number: "98:2", text: "TUHAN telah memperkenalkan keselamatan yang dari pada-Nya, keadilan-Nya telah dinyatakan-Nya di depan mata bangsa-bangsa." },
+    { number: "98:3", text: "Ia mengingat kasih setia-Nya dan kesetiaan-Nya kepada kaum Israel; segala ujung bumi telah melihat keselamatan yang dari Allah kita." },
+    { number: "98:4", text: "Bersorak-sorailah bagi TUHAN, hai seluruh bumi, bergembiralah, bersorak-sorailah dan bermazmurlah!" },
+  ],
+};
+
+// ─── Bahan Khotbah ─────────────────────────────────────────────────────────────
+export const BAHAN_KHOTBAH = {
+  reference: "Lukas 24:36–49",
+  title: "Kristus Bangkit Hadir di Tengah Kita",
+  thema: "Kehadiran Kristus yang Bangkit",
+  pendahuluan: "Setelah kebangkitan-Nya, Yesus tidak meninggalkan para murid begitu saja. Ia hadir di tengah-tengah mereka dengan damai sejahtera.",
+  poinUtama: [
+    { judul: "Damai yang melampaui ketakutan", isi: "Yesus mengucapkan 'Damai sejahtera bagi kamu' saat para murid ketakutan dan ragu." },
+    { judul: "Bukti nyata kebangkitan", isi: "Yesus menunjukkan tangan dan kaki-Nya — kehadiran yang konkret, bukan hantu." },
+    { judul: "Mandat kesaksian", isi: "Mereka diutus untuk memberitakan pertobatan dan pengampunan dosa kepada segala bangsa." },
+  ],
+  penutup: "Seperti para murid, kita pun dipanggil untuk menjadi saksi kebangkitan Kristus dalam keseharian hidup kita.",
+};
+
+// ─── Pokok Doa Harian ─────────────────────────────────────────────────────────
+export const POKOK_DOA_HARIAN: { hari: string; topik: string; detail: string }[] = [
+  { hari: "Minggu",  topik: "Jemaat-jemaat GKPB",       detail: "Doakan persekutuan dan pertumbuhan rohani seluruh jemaat GKPB di Bali dan sekitarnya." },
+  { hari: "Senin",   topik: "Para pelayan gereja",        detail: "Doakan para pendeta, vikaris, dan majelis yang setia melayani di tengah tantangan." },
+  { hari: "Selasa",  topik: "Keluarga-keluarga Kristen",  detail: "Doakan keluarga-keluarga yang membangun rumah tangga di atas dasar iman." },
+  { hari: "Rabu",    topik: "Pendidikan dan generasi muda", detail: "Doakan sekolah-sekolah Kristen, mahasiswa teologi, dan pemuda GKPB." },
+  { hari: "Kamis",   topik: "Misi dan penginjilan",       detail: "Doakan pelayanan misi di daerah-daerah yang belum terjangkau Injil." },
+  { hari: "Jumat",   topik: "Mereka yang menderita",      detail: "Doakan yang sakit, berduka, dan tertindas — agar merasakan kasih dan penghiburan Tuhan." },
+  { hari: "Sabtu",   topik: "Lingkungan dan ciptaan",     detail: "Doakan tanggung jawab gereja dalam menjaga kelestarian alam ciptaan Tuhan." },
+];
+
+// ─── Ayat Nats ────────────────────────────────────────────────────────────────
+export const AYAT_NATS = {
+  reference: "Lukas 24:48",
+  text: "Dan kamu adalah saksi dari semuanya ini.",
+};

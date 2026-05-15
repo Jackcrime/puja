@@ -27,7 +27,11 @@ export type CollectionName =
   | "verse_highlights"
   | "prayer_topic"
   | "bible_readings"
-  | "ministries";
+  | "ministries"
+  | "mazmur_minggu"
+  | "bahan_khotbah"
+  | "pokok_doa_harian"
+  | "ayat_nats";
 
 // ─── Read single document ──────────────────────────────────────────────────────
 export async function readDoc<T>(
