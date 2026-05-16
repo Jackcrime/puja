@@ -1,12 +1,207 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { useDevotional, useAuthors } from "@/lib/hooks/useFirestoreData";
-import { deleteUploadThingFile } from "@/lib/uploadthing-client";
+import { deleteUploadThingFile, useUploadThing } from "@/lib/uploadthing-client";
+import { auth } from "@/lib/firebase";
 import { showToast } from "@/lib/utils/toast";
-import { FileUploader } from "@/components/admin/FileUploader";
-import { Eye, EyeOff, Loader2, Music2, X, BookOpen } from "lucide-react";
+import { convertToWebM, browserSupportsWebM } from "@/lib/utils/audioConverter";
+import { Eye, EyeOff, Loader2, Music2, X, BookOpen, Upload, CheckCircle2, RefreshCw } from "lucide-react";
 import { INPUT_CLS, FieldLabel, SaveButton } from "./shared";
+
+// ─── AudioUploadZone ──────────────────────────────────────────────────────────
+
+interface AudioUploadZoneProps {
+  currentUrl: string;
+  onUploaded: (url: string) => void;
+  onRemove:   () => Promise<void>;
+}
+
+function AudioUploadZone({ currentUrl, onUploaded, onRemove }: AudioUploadZoneProps) {
+  const [converting,    setConverting]    = useState(false);
+  const [convertPct,    setConvertPct]    = useState(0);
+  const [uploadPct,     setUploadPct]     = useState(0);
+  const [isUploading,   setIsUploading]   = useState(false);
+  const [convertedInfo, setConvertedInfo] = useState<string | null>(null);
+  const [error,         setError]         = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const { startUpload } = useUploadThing("audioUploader", {
+    headers: async (): Promise<Record<string, string>> => {
+      const token = (await auth.currentUser?.getIdToken()) ?? "";
+      return { authorization: `Bearer ${token}` };
+    },
+    onUploadProgress: (p: number) => setUploadPct(p),
+    onClientUploadComplete: (res) => {
+      if (!res?.[0]) return;
+      const file = res[0];
+      const url  = (file as any).ufsUrl ?? (file as any).serverData?.url ?? file.url;
+      onUploaded(url);
+      setIsUploading(false);
+      setUploadPct(0);
+      setError("");
+    },
+    onUploadError: (err) => {
+      setError(err.message ?? "Upload gagal. Coba lagi.");
+      setIsUploading(false);
+      setUploadPct(0);
+    },
+  });
+
+  const handleFile = async (file: File) => {
+    if (!file) return;
+    setError("");
+    setConvertedInfo(null);
+
+    if (!file.type.startsWith("audio/")) {
+      setError("Format tidak didukung. Gunakan MP3, WAV, OGG, atau WebM.");
+      return;
+    }
+    if (file.size > 64 * 1024 * 1024) {
+      setError("Ukuran maks 64 MB.");
+      return;
+    }
+
+    // ── Konversi ke WebM di browser ──────────────────────────────────────────
+    let fileToUpload = file;
+    if (file.type !== "audio/webm" && browserSupportsWebM()) {
+      setConverting(true);
+      setConvertPct(0);
+
+      const result = await convertToWebM(file, (pct) => setConvertPct(pct));
+      setConverting(false);
+
+      if (result.converted) {
+        const before = (result.sizeBefore / (1024 * 1024)).toFixed(1);
+        const after  = (result.sizeAfter  / (1024 * 1024)).toFixed(1);
+        setConvertedInfo(`Dikonversi ke WebM — ${before} MB → ${after} MB`);
+        fileToUpload = result.file;
+      }
+    }
+
+    // ── Upload ────────────────────────────────────────────────────────────────
+    setIsUploading(true);
+    setUploadPct(0);
+    await startUpload([fileToUpload]);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFile(file);
+  };
+
+  // ── Sudah ada audio ──────────────────────────────────────────────────────────
+  if (currentUrl) {
+    return (
+      <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-muted/30">
+        <Music2 className="h-5 w-5 shrink-0" style={{ color: "var(--brand)" }} />
+        <div className="flex-1 min-w-0">
+          <audio controls src={currentUrl} className="w-full h-8" />
+          <p className="text-xs text-muted-foreground mt-1 truncate">{currentUrl}</p>
+        </div>
+        <div className="flex flex-col gap-1 shrink-0">
+          <button
+            onClick={() => inputRef.current?.click()}
+            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
+            title="Ganti audio"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+          <button
+            onClick={onRemove}
+            className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500 transition-colors"
+            title="Hapus audio"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="audio/*"
+          className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+        />
+      </div>
+    );
+  }
+
+  // ── Belum ada audio ───────────────────────────────────────────────────────────
+  const busy = converting || isUploading;
+
+  return (
+    <div>
+      <div
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+        onClick={() => !busy && inputRef.current?.click()}
+        className={[
+          "flex flex-col items-center justify-center gap-2 px-4 py-5 rounded-xl border-2 border-dashed transition-colors",
+          busy ? "opacity-70 cursor-wait" : "cursor-pointer hover:bg-muted",
+        ].join(" ")}
+        style={{ borderColor: "var(--brand-border)" }}
+      >
+        {converting ? (
+          <>
+            <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--brand)" }} />
+            <p className="text-sm font-medium" style={{ color: "var(--brand)" }}>
+              Mengkonversi ke WebM... {convertPct}%
+            </p>
+            <div className="w-full max-w-[200px] h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-200"
+                style={{ backgroundColor: "var(--brand)", width: `${convertPct}%` }} />
+            </div>
+          </>
+        ) : isUploading ? (
+          <>
+            <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--brand)" }} />
+            <p className="text-sm font-medium" style={{ color: "var(--brand)" }}>
+              Mengupload... {uploadPct}%
+            </p>
+            <div className="w-full max-w-[200px] h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-200"
+                style={{ backgroundColor: "var(--brand)", width: `${uploadPct}%` }} />
+            </div>
+          </>
+        ) : (
+          <>
+            <Upload className="h-6 w-6" style={{ color: "var(--brand)" }} />
+            <p className="text-sm text-muted-foreground text-center">
+              <span className="font-semibold" style={{ color: "var(--brand)" }}>Klik atau seret</span>{" "}
+              file audio ke sini
+            </p>
+            <p className="text-xs text-muted-foreground">
+              MP3 / WAV / OGG — otomatis dikonversi ke <strong>WebM</strong>
+            </p>
+          </>
+        )}
+      </div>
+
+      {convertedInfo && (
+        <div className="flex items-center gap-1.5 mt-1.5 text-xs text-green-600 dark:text-green-400">
+          <CheckCircle2 className="h-3.5 w-3.5" /> {convertedInfo}
+        </div>
+      )}
+      {!browserSupportsWebM() && !converting && !isUploading && (
+        <p className="text-xs text-amber-500 mt-1">
+          Browser tidak mendukung konversi WebM — file diupload dalam format aslinya.
+        </p>
+      )}
+      {error && <p className="text-xs text-red-500 mt-1.5">{error}</p>}
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="audio/*"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+      />
+    </div>
+  );
+}
+
+// ─── RenunganSection ──────────────────────────────────────────────────────────
 
 export function RenunganSection() {
   const { data, loading, update }                   = useDevotional();
@@ -106,49 +301,28 @@ export function RenunganSection() {
             </p>
           </div>
 
-          {/* Audio */}
+          {/* Audio — auto-convert ke WebM */}
           <div>
             <FieldLabel>Audio Renungan</FieldLabel>
-            {(current as any).audioUrl ? (
-              <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-muted/30">
-                <Music2 className="h-5 w-5 shrink-0" style={{ color: "var(--brand)" }} />
-                <div className="flex-1 min-w-0">
-                  <audio controls src={(current as any).audioUrl} className="w-full h-8" />
-                  <p className="text-xs text-muted-foreground mt-1 truncate">{(current as any).audioUrl}</p>
-                </div>
-                <button
-                  onClick={async () => {
-                    const url = (current as any).audioUrl;
-                    // Update state lokal dulu
-                    set("audioUrl", "");
-                    try {
-                      // Langsung simpan ke Firestore — jangan tunggu tombol Simpan
-                      // supaya URL lama tidak tersisa di DB kalau admin tutup halaman
-                      await update({ ...(form ?? data), audioUrl: "" });
-                      // Baru hapus file dari UploadThing setelah Firestore sukses
-                      if (url) await deleteUploadThingFile(url).catch(() => {});
-                      showToast.success("Audio berhasil dihapus.");
-                    } catch {
-                      // Rollback state lokal kalau Firestore gagal
-                      set("audioUrl", url);
-                      showToast.error("Gagal menghapus audio. Coba lagi.");
-                    }
-                  }}
-                  className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500 transition-colors shrink-0"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <FileUploader
-                endpoint="audioUploader"
-                label=""
-                accept="audio/mpeg,audio/wav,audio/ogg"
-                currentUrl=""
-                onUploadComplete={(res) => set("audioUrl", res.url)}
-              />
-            )}
-            <p className="text-xs text-muted-foreground mt-1">MP3/WAV, maks 64 MB.</p>
+            <AudioUploadZone
+              currentUrl={String((current as any).audioUrl ?? "")}
+              onUploaded={(url) => set("audioUrl", url)}
+              onRemove={async () => {
+                const url = (current as any).audioUrl;
+                set("audioUrl", "");
+                try {
+                  await update({ ...(form ?? data), audioUrl: "" });
+                  if (url) await deleteUploadThingFile(url).catch(() => {});
+                  showToast.success("Audio berhasil dihapus.");
+                } catch {
+                  set("audioUrl", url);
+                  showToast.error("Gagal menghapus audio. Coba lagi.");
+                }
+              }}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              MP3 / WAV / OGG — maks 64 MB. Otomatis dikonversi ke WebM sebelum upload.
+            </p>
           </div>
 
           {/* Isi */}
@@ -179,7 +353,9 @@ export function RenunganSection() {
               onClick={() => setPreview(!preview)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-border hover:bg-muted transition-colors"
             >
-              {preview ? <><EyeOff className="h-4 w-4" /> Tutup Pratinjau</> : <><Eye className="h-4 w-4" /> Pratinjau</>}
+              {preview
+                ? <><EyeOff className="h-4 w-4" /> Tutup Pratinjau</>
+                : <><Eye className="h-4 w-4" /> Pratinjau</>}
             </button>
           </div>
         </div>
@@ -196,6 +372,11 @@ export function RenunganSection() {
             <h2 className="font-serif font-bold text-2xl mb-5" style={{ color: "var(--brand)" }}>
               {(current as any).title}
             </h2>
+            {(current as any).audioUrl && (
+              <div className="mb-5">
+                <audio controls src={(current as any).audioUrl} className="w-full" />
+              </div>
+            )}
             <div className="space-y-4">
               {String((current as any).body ?? "")
                 .split("\n\n")

@@ -64,7 +64,7 @@ export async function deleteUploadThingFile(url: string | string[]): Promise<voi
 // ─── Validasi sebelum upload ──────────────────────────────────────────────────
 const LIMITS: Record<UploadEndpoint, { maxBytes: number; types: string[]; label: string }> = {
   pustakaUploader: { maxBytes: 32 * 1024 * 1024, types: ["application/pdf"],       label: "PDF, maks 32 MB"  },
-  audioUploader:   { maxBytes: 64 * 1024 * 1024, types: ["audio/mpeg","audio/wav"], label: "MP3/WAV, maks 64 MB" },
+  audioUploader:   { maxBytes: 64 * 1024 * 1024, types: ["audio/mpeg","audio/wav","audio/webm","audio/ogg","audio/mp4","audio/aac"], label: "MP3/WAV/WebM, maks 64 MB" },
   imageUploader:   { maxBytes: 4  * 1024 * 1024, types: ["image/jpeg","image/png","image/webp"], label: "JPG/PNG/WebP, maks 4 MB" },
 };
 

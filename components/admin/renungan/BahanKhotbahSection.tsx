@@ -4,7 +4,7 @@ import React, { useState, useRef } from "react";
 import { useBahanKhotbah, type BahanKhotbah } from "@/lib/hooks/useFirestoreData";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { showToast } from "@/lib/utils/toast";
-import { BookOpen, Download, FlameKindling, GripVertical, Info, Loader2, Plus, Trash2, Upload } from "lucide-react";
+import { BookOpen, Download, Eye, EyeOff, FlameKindling, GripVertical, Info, Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { INPUT_CLS, FieldLabel, SectionCard, SaveButton } from "./shared";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -125,6 +125,7 @@ export function BahanKhotbahSection() {
   const [saved,        setSaved]        = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const [showImport,   setShowImport]   = useState(false);
+  const [showPreview,  setShowPreview]  = useState(false);
 
   const current: BahanKhotbah = form ?? data;
   const set = <K extends keyof BahanKhotbah>(key: K, val: BahanKhotbah[K]) =>
@@ -164,6 +165,13 @@ export function BahanKhotbahSection() {
     <div className="max-w-2xl space-y-4">
       {/* Toolbar */}
       <div className="flex items-center justify-end gap-2">
+        <button
+          onClick={() => setShowPreview(!showPreview)}
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-muted transition-colors"
+          style={{ color: "var(--brand)" }}
+        >
+          {showPreview ? <><EyeOff className="h-3.5 w-3.5" /> Tutup Preview</> : <><Eye className="h-3.5 w-3.5" /> Live Preview</>}
+        </button>
         <button
           onClick={() => exportBahanKhotbah(current)}
           className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-muted transition-colors"
@@ -282,6 +290,8 @@ export function BahanKhotbahSection() {
         <SaveButton saving={saving} saved={saved} onClick={handleSave} label="Simpan Bahan Khotbah" />
       </div>
 
+      {showPreview && <BahanKhotbahPreview data={current} />}
+
       <ConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}
@@ -293,6 +303,57 @@ export function BahanKhotbahSection() {
       {showImport && (
         <ImportModal onClose={() => setShowImport(false)} onImport={handleImport} />
       )}
+    </div>
+  );
+}
+// ─── BahanKhotbahPreview (live preview panel) ─────────────────────────────────
+// NOTE: Diekspor agar bisa dipakai di page kalau diperlukan.
+export function BahanKhotbahPreview({ data }: { data: import("@/lib/hooks/useFirestoreData").BahanKhotbah }) {
+  if (!data.title && !data.reference) return null;
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden text-sm">
+      <div className="h-1 w-full" style={{ backgroundColor: "var(--brand)" }} />
+      <div className="p-5 space-y-4">
+        <p className="text-[10px] font-bold tracking-widest uppercase" style={{ color: "var(--gold)" }}>
+          Pratinjau Bahan Khotbah
+        </p>
+        {data.reference && (
+          <p className="text-xs font-semibold text-muted-foreground">{data.reference}</p>
+        )}
+        {data.title && (
+          <h3 className="font-serif font-bold text-xl" style={{ color: "var(--brand)" }}>{data.title}</h3>
+        )}
+        {data.thema && (
+          <p className="italic text-muted-foreground border-l-2 pl-3" style={{ borderColor: "var(--gold)" }}>
+            {data.thema}
+          </p>
+        )}
+        {data.pendahuluan && (
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-1 text-muted-foreground">Pendahuluan</p>
+            <p className="leading-relaxed">{data.pendahuluan}</p>
+          </div>
+        )}
+        {data.poinUtama.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Poin Utama</p>
+            {data.poinUtama.map((poin, i) => (
+              <div key={i} className="border border-border rounded-lg p-3">
+                <p className="font-semibold text-sm" style={{ color: "var(--brand)" }}>
+                  {i + 1}. {poin.judul}
+                </p>
+                {poin.isi && <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{poin.isi}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+        {data.penutup && (
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-1 text-muted-foreground">Penutup</p>
+            <p className="leading-relaxed">{data.penutup}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

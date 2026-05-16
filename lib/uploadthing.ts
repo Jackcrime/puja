@@ -38,7 +38,7 @@ export const uploadRouter = {
       return { url: file.ufsUrl, name: file.name, size: file.size };
     }),
 
-  audioUploader: f({ audio: { maxFileSize: "64MB", maxFileCount: 1 } })
+  audioUploader: f({ "audio/webm": { maxFileSize: "64MB", maxFileCount: 1 }, audio: { maxFileSize: "64MB", maxFileCount: 1 } })
     .middleware(async ({ req }) => verifyAdmin(req))
     .onUploadComplete(async ({ metadata, file }) => {
       console.log("[uploadthing] audio uploaded:", file.name, "uid:", metadata.uid);

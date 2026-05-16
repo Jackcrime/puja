@@ -1,42 +1,66 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { AppLayout }        from "@/components/layout/AppLayout";
-import { VerseCard }        from "@/components/ui/VerseCard";
-import { AuthorModal }      from "@/components/ui/AuthorModal";
-import { FocusMode }        from "@/components/ui/FocusMode";
-import { AyatNatsCard }     from "@/components/pujidanjanji/AyatNatsCard";
-import { SectionDivider }   from "@/components/shared/SectionDivider";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Play, Pause, Headphones, BookOpen, Printer, Share2, Check, Maximize2, Loader2 } from "lucide-react";
-import { useI18n } from "@/lib/hooks/useI18n";
-import { format } from "date-fns";
-import { id as localeId } from "date-fns/locale";
+import { AppLayout }       from "@/components/layout/AppLayout";
+import { VerseCard }       from "@/components/ui/VerseCard";
+import { AuthorModal }     from "@/components/ui/AuthorModal";
+import { FocusMode }       from "@/components/ui/FocusMode";
+import { AyatNatsCard }    from "@/components/pujidanjanji/AyatNatsCard";
+import { SectionDivider }  from "@/components/shared/SectionDivider";
 import {
-  useDevotional, useVerseHighlights, useBibleReadings,
-  usePrayerTopic, useAuthors,
+  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Play, Pause, Headphones, BookOpen, Printer, Share2, Check,
+  Maximize2, Loader2, HandHeart,
+} from "lucide-react";
+import { useI18n } from "@/lib/hooks/useI18n";
+import { format, getDay } from "date-fns";
+import { id as localeId }  from "date-fns/locale";
+import {
+  useDevotional,
+  useVerseHighlights,
+  useBibleReadings,
+  usePokokDoaHarian,
+  useAuthors,
 } from "@/lib/hooks/useFirestoreData";
+
+// ─── Helper: hari ini dalam seminggu (0=Minggu…6=Sabtu) → nama hari ─────────
+const NAMA_HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"] as const;
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function JanjiHidup() {
   const { t } = useI18n();
+
+  // ── Data hooks — semua sinkron dengan admin ───────────────────────────────
   const { data: devotional, loading: devLoading } = useDevotional();
   const { data: highlights, loading: hlLoading }  = useVerseHighlights();
   const { data: readings }                         = useBibleReadings();
-  const { data: prayerTopic }                      = usePrayerTopic();
+  const { data: pokokDoaList }                     = usePokokDoaHarian();   // ← sama seperti admin
   const { data: authors }                          = useAuthors();
 
-  const [isPlaying, setIsPlaying]   = useState(false);
-  const [progress, setProgress]     = useState(0);
-  const [duration, setDuration]     = useState(0);
-  const [shared,   setShared]       = useState(false);
-  const [authorOpen, setAuthorOpen] = useState(false);
-  const [focusMode,  setFocusMode]  = useState(false);
+  // ── Audio state ───────────────────────────────────────────────────────────
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress]   = useState(0);
+  const [duration, setDuration]   = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // ── UI state ──────────────────────────────────────────────────────────────
+  const [shared,      setShared]      = useState(false);
+  const [authorOpen,  setAuthorOpen]  = useState(false);
+  const [focusMode,   setFocusMode]   = useState(false);
+
+  // ── Derived ───────────────────────────────────────────────────────────────
   const todayStr = format(new Date(), "EEEE, d MMMM yyyy", { locale: localeId });
   const author   = authors[devotional.authorCode as keyof typeof authors];
   const audioUrl = (devotional as any).audioUrl as string | undefined;
 
+  // Pokok doa hari ini — cocokkan berdasarkan nama hari
+  const hariIni      = NAMA_HARI[getDay(new Date())];
+  const pokokDoaHari = pokokDoaList.find((p) => p.hari === hariIni);
+
+  // ── Audio listeners ───────────────────────────────────────────────────────
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !audioUrl) return;
@@ -62,7 +86,9 @@ export default function JanjiHidup() {
   };
 
   const fmt = (s: number) =>
-    isFinite(s) ? `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}` : "0:00";
+    isFinite(s)
+      ? `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`
+      : "0:00";
 
   const share = async () => {
     try {
@@ -70,11 +96,13 @@ export default function JanjiHidup() {
         await navigator.share({ title: devotional.title, url: window.location.href });
       } else {
         await navigator.clipboard.writeText(window.location.href);
-        setShared(true); setTimeout(() => setShared(false), 2000);
+        setShared(true);
+        setTimeout(() => setShared(false), 2000);
       }
     } catch {}
   };
 
+  // ── Focus mode ────────────────────────────────────────────────────────────
   if (focusMode) {
     return (
       <FocusMode
@@ -87,12 +115,13 @@ export default function JanjiHidup() {
     );
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <AppLayout>
       <AuthorModal code={devotional.authorCode} open={authorOpen} onOpenChange={setAuthorOpen} />
       <div className="max-w-2xl mx-auto px-4 pt-8 pb-6">
 
-        {/* Header */}
+        {/* ── Header ───────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between mb-8 pb-5 border-b border-border">
           <div>
             <p className="text-xs font-bold tracking-widest uppercase mb-1" style={{ color: "var(--gold)" }}>
@@ -109,24 +138,33 @@ export default function JanjiHidup() {
                 setFocusMode(true);
               }}
               className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
+              title="Mode Fokus"
             >
               <Maximize2 className="h-4 w-4" />
             </button>
-            <button onClick={share} className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors">
+            <button
+              onClick={share}
+              className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
+              title={t("common.share")}
+            >
               {shared ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
             </button>
-            <button onClick={() => window.print()} className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors no-print">
+            <button
+              onClick={() => window.print()}
+              className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors no-print"
+              title={t("common.print")}
+            >
               <Printer className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        {/* ── Ayat Nats ─────────────────────────────────────────────────────── */}
+        {/* ── Ayat Nats ────────────────────────────────────────────────────── */}
         <section className="mb-8">
           <AyatNatsCard />
         </section>
 
-        {/* Audio */}
+        {/* ── Audio ────────────────────────────────────────────────────────── */}
         <audio ref={audioRef} src={audioUrl ?? ""} preload="metadata" />
         {audioUrl && (
           <section className="mb-8 no-print">
@@ -137,7 +175,9 @@ export default function JanjiHidup() {
                   className="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0"
                   style={{ backgroundColor: "var(--brand)" }}
                 >
-                  {isPlaying ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current ml-0.5" />}
+                  {isPlaying
+                    ? <Pause className="h-4 w-4 fill-current" />
+                    : <Play  className="h-4 w-4 fill-current ml-0.5" />}
                 </button>
                 <div className="flex-1 min-w-0">
                   <p className="font-serif font-semibold text-sm leading-snug truncate mb-1" style={{ color: "var(--brand)" }}>
@@ -171,7 +211,7 @@ export default function JanjiHidup() {
           </section>
         )}
 
-        {/* ── Renungan ──────────────────────────────────────────────────────── */}
+        {/* ── Renungan ─────────────────────────────────────────────────────── */}
         <section className="mb-8">
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="h-1 w-full" style={{ backgroundColor: "var(--brand)" }} />
@@ -193,6 +233,7 @@ export default function JanjiHidup() {
                       <p key={i} className="text-foreground leading-relaxed">{para}</p>
                     ))}
                   </div>
+                  {/* Author chip */}
                   <button
                     onClick={() => setAuthorOpen(true)}
                     className="mt-6 flex items-center gap-2.5 px-3 py-2 rounded-lg border border-border hover:bg-muted transition-colors"
@@ -220,7 +261,7 @@ export default function JanjiHidup() {
           </div>
         </section>
 
-        {/* ── Doa ───────────────────────────────────────────────────────────── */}
+        {/* ── Doa ──────────────────────────────────────────────────────────── */}
         <section className="mb-8">
           <div className="rounded-xl border border-border bg-card overflow-hidden">
             <div className="h-0.5 w-full" style={{ backgroundColor: "var(--gold)" }} />
@@ -235,17 +276,33 @@ export default function JanjiHidup() {
           </div>
         </section>
 
-        {/* ── Pokok Doa ─────────────────────────────────────────────────────── */}
-        <section className="mb-8">
-          <div className="bg-card border border-border rounded-xl p-5">
-            <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: "var(--gold)" }}>
-              {t("janjihidup.prayerTopic")}: {prayerTopic.title}
-            </p>
-            <p className="text-sm text-muted-foreground leading-relaxed italic">{prayerTopic.text}</p>
-          </div>
-        </section>
+        {/* ── Pokok Doa Hari Ini ───────────────────────────────────────────── */}
+        {/* Data dari usePokokDoaHarian() — sama persis dengan yang di-manage admin */}
+        {pokokDoaHari && (
+          <section className="mb-8">
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <div className="h-0.5 w-full" style={{ backgroundColor: "var(--brand)" }} />
+              <div className="p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <HandHeart className="h-4 w-4 shrink-0" style={{ color: "var(--brand)" }} />
+                  <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--gold)" }}>
+                    {t("janjihidup.prayerTopic")} — {pokokDoaHari.hari}
+                  </p>
+                </div>
+                <p className="font-semibold text-sm mb-1.5" style={{ color: "var(--brand)" }}>
+                  {pokokDoaHari.topik}
+                </p>
+                {pokokDoaHari.detail && (
+                  <p className="text-sm text-muted-foreground leading-relaxed italic">
+                    {pokokDoaHari.detail}
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
 
-        {/* ── Bacaan Alkitab ────────────────────────────────────────────────── */}
+        {/* ── Bacaan Alkitab ───────────────────────────────────────────────── */}
         <section className="mb-8">
           <SectionDivider label={t("pujidanjanji.readings")} />
           <div className="bg-card border border-border rounded-xl overflow-hidden">
@@ -283,7 +340,7 @@ export default function JanjiHidup() {
           </div>
         </section>
 
-        {/* ── Ayat Highlights (tetap ada, tapi dari firestore, bukan local) ── */}
+        {/* ── Ayat Highlights ──────────────────────────────────────────────── */}
         {!hlLoading && highlights.length > 0 && (
           <section className="mb-8">
             <SectionDivider label={t("pujidanjanji.highlights")} />

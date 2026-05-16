@@ -4,7 +4,7 @@ import React, { useState, useRef } from "react";
 import { usePokokDoaHarian, type PokokDoa } from "@/lib/hooks/useFirestoreData";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { showToast } from "@/lib/utils/toast";
-import { Download, HandHeart, Info, Loader2, Plus, Trash2, Upload } from "lucide-react";
+import { Download, Eye, EyeOff, HandHeart, Info, Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { INPUT_CLS, FieldLabel, SectionCard, SaveButton } from "./shared";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -128,6 +128,7 @@ export function PokokDoaSection() {
   const [saved,        setSaved]        = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const [showImport,   setShowImport]   = useState(false);
+  const [showPreview,  setShowPreview]  = useState(false);
 
   const current: PokokDoa[] = items ?? data;
 
@@ -169,6 +170,13 @@ export function PokokDoaSection() {
     <div className="max-w-2xl space-y-4">
       {/* Toolbar */}
       <div className="flex items-center justify-end gap-2">
+        <button
+          onClick={() => setShowPreview(!showPreview)}
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-muted transition-colors"
+          style={{ color: "var(--brand)" }}
+        >
+          {showPreview ? <><EyeOff className="h-3.5 w-3.5" /> Tutup Preview</> : <><Eye className="h-3.5 w-3.5" /> Live Preview</>}
+        </button>
         <button
           onClick={() => exportPokokDoa(current)}
           className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-muted transition-colors"
@@ -254,6 +262,34 @@ export function PokokDoaSection() {
       <div className="flex justify-end">
         <SaveButton saving={saving} saved={saved} onClick={handleSave} label="Simpan Pokok Doa" />
       </div>
+
+      {/* Live Preview Pokok Doa */}
+      {showPreview && current.length > 0 && (
+        <div className="bg-card border border-border rounded-xl overflow-hidden text-sm">
+          <div className="h-1 w-full" style={{ backgroundColor: "var(--brand)" }} />
+          <div className="p-5 space-y-3">
+            <p className="text-[10px] font-bold tracking-widest uppercase" style={{ color: "var(--gold)" }}>
+              Pratinjau Pokok Doa
+            </p>
+            <div className="grid gap-2">
+              {current.map((item, i) => (
+                <div key={i} className="flex gap-3 p-3 border border-border rounded-lg">
+                  <span
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-lg text-white shrink-0 h-fit mt-0.5"
+                    style={{ backgroundColor: "var(--brand)" }}
+                  >
+                    {item.hari}
+                  </span>
+                  <div>
+                    <p className="font-semibold text-sm" style={{ color: "var(--brand)" }}>{item.topik}</p>
+                    {item.detail && <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{item.detail}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog
         open={deleteTarget !== null}
