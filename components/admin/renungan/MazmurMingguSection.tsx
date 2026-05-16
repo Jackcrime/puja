@@ -83,7 +83,7 @@ export function MazmurMingguSection() {
     );
 
   return (
-    <div className="max-w-2xl bg-card border border-border rounded-xl overflow-hidden">
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
       {/* Header */}
       <div
         className="flex items-center justify-between px-5 py-3 border-b border-border"

@@ -95,10 +95,7 @@ export default function PujiDanJanji() {
         </div>
 
         {/* ── Mazmur Minggu ─────────────────────────────────────────────────── */}
-        <section className="mb-8">
-          <SectionDivider label="Mazmur Minggu" />
-          <MazmurSection />
-        </section>
+        <MazmurSection />
 
         {/* ── Ayat Minggu ───────────────────────────────────────────────────── */}
         {khusus.minggu && (
@@ -133,10 +130,7 @@ export default function PujiDanJanji() {
         </section>
 
         {/* ── Bahan Khotbah ─────────────────────────────────────────────────── */}
-        <section className="mb-8">
-          <SectionDivider label="Bahan Khotbah" />
-          <BahanKhotbahSection />
-        </section>
+        <BahanKhotbahSection />
 
         {/* ── Bacaan Alkitab ────────────────────────────────────────────────── */}
         <section className="mb-8">
@@ -188,10 +182,7 @@ export default function PujiDanJanji() {
         </section>
 
         {/* ── Pokok Doa Harian ──────────────────────────────────────────────── */}
-        <section className="mb-8">
-          <SectionDivider label="Pokok Doa Harian" />
-          <PokokDoaSection selectedDate={date} />
-        </section>
+        <PokokDoaSection selectedDate={date} />
 
         {/* CTA ke Janji Hidup */}
         <Link href="/janjihidup">

@@ -5,8 +5,8 @@
 // Format ayat: "2:1 Lalu berdoalah Hana..." dengan nomor chapter:verse
 
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { BookOpen, X, Loader2, AlertCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { BookOpen, Loader2, AlertCircle } from "lucide-react";
 import { formatRef } from "@/lib/bible-books";
 import type { BiblePassageResponse } from "@/app/api/bible/route";
 
@@ -69,8 +69,11 @@ export function PerikopModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0">
+        {/* Hidden title for screen readers */}
+        <DialogTitle className="sr-only">{ref}</DialogTitle>
+
         {/* ── Header ── */}
-        <div className="flex items-start justify-between px-5 py-4 border-b border-border shrink-0">
+        <div className="flex items-start justify-between px-5 py-4 border-b border-border shrink-0 pr-12">
           <div className="flex items-center gap-2.5">
             <BookOpen className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "var(--brand)" }} />
             <div>
@@ -82,12 +85,6 @@ export function PerikopModal({
               )}
             </div>
           </div>
-          <button
-            onClick={() => onOpenChange(false)}
-            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0 ml-3"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
 
         {/* ── Content ── */}

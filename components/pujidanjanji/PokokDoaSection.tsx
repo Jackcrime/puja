@@ -3,6 +3,7 @@
 import React from "react";
 import { Heart } from "lucide-react";
 import { usePokokDoaHarian } from "@/lib/hooks/useFirestoreData";
+import { SectionDivider } from "@/components/shared/SectionDivider";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 
@@ -14,6 +15,7 @@ export function PokokDoaSection({ selectedDate }: Props) {
   const { data, loading } = usePokokDoaHarian();
 
   if (loading) return null;
+  if (!data || data.length === 0) return null;
 
   // Hari ini dalam bahasa Indonesia
   const hariIni = selectedDate
@@ -25,6 +27,8 @@ export function PokokDoaSection({ selectedDate }: Props) {
   const todayEntry = data.find((d) => d.hari === hariIniCapital);
 
   return (
+    <section className="mb-8">
+      <SectionDivider label="Pokok Doa Harian" />
     <div className="bg-card border border-border rounded-xl overflow-hidden">
       <div className="h-0.5 w-full" style={{ backgroundColor: "var(--brand)" }} />
       <div className="p-5">
@@ -57,5 +61,6 @@ export function PokokDoaSection({ selectedDate }: Props) {
         )}
       </div>
     </div>
+    </section>
   );
 }

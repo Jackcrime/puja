@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Music, ChevronDown, ChevronUp, Copy, Check } from "lucide-react";
 import { useMazmurMinggu } from "@/lib/hooks/useFirestoreData";
+import { SectionDivider } from "@/components/shared/SectionDivider";
 
 export function MazmurSection() {
   const { data, loading } = useMazmurMinggu();
@@ -10,6 +11,7 @@ export function MazmurSection() {
   const [copied, setCopied]     = useState(false);
 
   if (loading) return null;
+  if (!data.reference || !data.verses || data.verses.length === 0) return null;
 
   const copy = () => {
     const all = data.verses.map((v) => `${v.number} ${v.text}`).join("\n");
@@ -22,6 +24,8 @@ export function MazmurSection() {
   const rest    = data.verses.slice(2);
 
   return (
+    <section className="mb-8">
+      <SectionDivider label="Mazmur Minggu" />
     <div className="bg-card border border-border rounded-xl overflow-hidden">
       {/* Header stripe */}
       <div className="h-0.5 w-full" style={{ backgroundColor: "var(--gold)" }} />
@@ -83,5 +87,6 @@ export function MazmurSection() {
         </div>
       </div>
     </div>
+    </section>
   );
 }

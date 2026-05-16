@@ -8,6 +8,7 @@ import {
   MazmurMingguSection,
   BahanKhotbahSection,
   PokokDoaSection,
+  RenunganStatsPanel,
 } from "@/components/admin/renungan";
 import { BookOpen, BookMarked, FlameKindling, HandHeart } from "lucide-react";
 
@@ -84,11 +85,21 @@ export default function AdminRenungan() {
           </p>
         </div>
 
-        {/* Tab panels */}
-        {activeTab === "renungan" && <RenunganSection />}
-        {activeTab === "mazmur"   && <MazmurMingguSection />}
-        {activeTab === "khotbah"  && <BahanKhotbahSection />}
-        {activeTab === "pokdoa"   && <PokokDoaSection />}
+        {/* Main 2-column layout */}
+        <div className="flex gap-6 items-start">
+          {/* ── Left: Tab content ─────────────────────────────────────────── */}
+          <div className="flex-1 min-w-0">
+            {activeTab === "renungan" && <RenunganSection />}
+            {activeTab === "mazmur"   && <MazmurMingguSection />}
+            {activeTab === "khotbah"  && <BahanKhotbahSection />}
+            {activeTab === "pokdoa"   && <PokokDoaSection />}
+          </div>
+
+          {/* ── Right: Stats panel ────────────────────────────────────────── */}
+          <div className="w-64 shrink-0 hidden lg:block sticky top-6">
+            <RenunganStatsPanel />
+          </div>
+        </div>
 
       </AdminLayout>
     </AdminGuard>

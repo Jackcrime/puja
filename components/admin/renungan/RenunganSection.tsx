@@ -246,7 +246,7 @@ export function RenunganSection() {
     );
 
   return (
-    <div className="max-w-2xl space-y-4">
+    <div className="space-y-4">
       {/* Editor card */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="h-0.5 w-full" style={{ backgroundColor: "var(--brand)" }} />

@@ -3,14 +3,18 @@
 import React, { useState } from "react";
 import { BookMarked, ChevronDown, ChevronUp } from "lucide-react";
 import { useBahanKhotbah } from "@/lib/hooks/useFirestoreData";
+import { SectionDivider } from "@/components/shared/SectionDivider";
 
 export function BahanKhotbahSection() {
   const { data, loading } = useBahanKhotbah();
   const [open, setOpen] = useState(false);
 
   if (loading) return null;
+  if (!data.reference || !data.title) return null;
 
   return (
+    <section className="mb-8">
+      <SectionDivider label="Bahan Khotbah" />
     <div className="bg-card border border-border rounded-xl overflow-hidden">
       {/* Accent */}
       <div className="h-0.5 w-full" style={{ backgroundColor: "var(--brand)" }} />
@@ -87,5 +91,6 @@ export function BahanKhotbahSection() {
         </div>
       )}
     </div>
+    </section>
   );
 }

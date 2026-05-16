@@ -162,7 +162,7 @@ export function BahanKhotbahSection() {
     );
 
   return (
-    <div className="max-w-2xl space-y-4">
+    <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex items-center justify-end gap-2">
         <button
