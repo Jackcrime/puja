@@ -8,18 +8,34 @@ import {
   emptySelection,
 } from "@/components/admin/ayat/BibleVerseSelector";
 import { showToast } from "@/lib/utils/toast";
-import { BookMarked, Check, Eye, EyeOff, Loader2, Save } from "lucide-react";
+import { BookMarked, Check, Eye, EyeOff, Loader2, Save, CalendarDays } from "lucide-react";
 import { FieldLabel } from "./shared";
 import { selToRef } from "@/lib/utils/adminAyat";
+import { Calendar } from "@/components/ui/calendar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { format } from "date-fns";
+import { id as localeId } from "date-fns/locale";
+
+// Dapatkan Minggu dari tanggal
+function getSunday(d: Date): Date {
+  const r = new Date(d);
+  r.setDate(r.getDate() - r.getDay());
+  return r;
+}
 
 export function MazmurMingguSection() {
-  const { data, loading, save } = useMazmurMinggu();
+  const [targetDate, setTargetDate]   = useState<Date>(new Date());
+  const { data, loading, save }       = useMazmurMinggu(targetDate);
   const [sel,         setSel]         = useState<VerseSelection>(emptySelection());
   const [saving,      setSaving]      = useState(false);
   const [saved,       setSaved]       = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewVerses, setPreviewVerses] = useState<{ number: string; text: string }[]>([]);
   const [loadingVerses, setLoadingVerses] = useState(false);
+  const [calOpen,     setCalOpen]     = useState(false);
+
+  const sundayLabel = format(getSunday(targetDate), "d MMMM yyyy", { locale: localeId });
+
 
   // Ambil ayat preview ketika selector berubah
   const handleSelChange = async (newSel: VerseSelection) => {
@@ -65,7 +81,7 @@ export function MazmurMingguSection() {
             }))
           : [];
 
-      await save({ reference: selToRef(sel), title: data.title ?? "", verses });
+      await save({ reference: selToRef(sel), title: data.title ?? "", verses }, targetDate);
       showToast.success("Mazmur Minggu berhasil disimpan.");
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
@@ -112,6 +128,37 @@ export function MazmurMingguSection() {
       </div>
 
       <div className="p-5 space-y-4">
+        {/* Pilih Minggu */}
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: "var(--gold)" }}>
+            Minggu / Tanggal
+          </p>
+          <Dialog open={calOpen} onOpenChange={setCalOpen}>
+            <DialogTrigger asChild>
+              <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <CalendarDays className="h-4 w-4" />
+                Minggu {sundayLabel}
+              </button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="font-serif" style={{ color: "var(--brand)" }}>
+                  Pilih Minggu
+                </DialogTitle>
+              </DialogHeader>
+              <p className="text-xs text-muted-foreground px-1">Data akan disimpan untuk Minggu di minggu yang dipilih.</p>
+              <div className="flex justify-center p-4">
+                <Calendar
+                  mode="single"
+                  selected={targetDate}
+                  onSelect={(d) => { if (d) { setTargetDate(d); } setCalOpen(false); }}
+                  className="rounded-lg border"
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
         {/* Aktif saat ini */}
         {data.reference && (
           <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border bg-muted/30">

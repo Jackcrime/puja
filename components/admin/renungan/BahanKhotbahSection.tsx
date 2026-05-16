@@ -4,8 +4,12 @@ import React, { useState, useRef } from "react";
 import { useBahanKhotbah, type BahanKhotbah } from "@/lib/hooks/useFirestoreData";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { showToast } from "@/lib/utils/toast";
-import { BookOpen, Download, Eye, EyeOff, FlameKindling, GripVertical, Info, Loader2, Plus, Trash2, Upload } from "lucide-react";
+import { BookOpen, CalendarDays, Download, Eye, EyeOff, FlameKindling, GripVertical, Info, Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { INPUT_CLS, FieldLabel, SectionCard, SaveButton } from "./shared";
+import { Calendar } from "@/components/ui/calendar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { format } from "date-fns";
+import { id as localeId } from "date-fns/locale";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -118,7 +122,9 @@ function ImportModal({ onClose, onImport }: ImportModalProps) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function BahanKhotbahSection() {
-  const { data, loading, save } = useBahanKhotbah();
+  const [targetDate,   setTargetDate]   = useState<Date>(new Date());
+  const [calOpen,      setCalOpen]      = useState(false);
+  const { data, loading, save } = useBahanKhotbah(targetDate);
 
   const [form,         setForm]         = useState<BahanKhotbah | null>(null);
   const [saving,       setSaving]       = useState(false);
@@ -131,10 +137,14 @@ export function BahanKhotbahSection() {
   const set = <K extends keyof BahanKhotbah>(key: K, val: BahanKhotbah[K]) =>
     setForm((f) => ({ ...(f ?? data), [key]: val }));
 
+  // Dapatkan Minggu
+  const getSunday = (d: Date) => { const r = new Date(d); r.setDate(r.getDate() - r.getDay()); return r; };
+  const sundayLabel = format(getSunday(targetDate), "d MMMM yyyy", { locale: localeId });
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      await save(current);
+      await save(current, targetDate);
       showToast.success("Bahan Khotbah berhasil disimpan.");
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
@@ -164,7 +174,35 @@ export function BahanKhotbahSection() {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex items-center justify-end gap-2 flex-wrap">
+        {/* Date picker */}
+        <Dialog open={calOpen} onOpenChange={setCalOpen}>
+          <DialogTrigger asChild>
+            <button
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-muted transition-colors"
+              style={{ color: "var(--brand)" }}
+            >
+              <CalendarDays className="h-3.5 w-3.5" />
+              Minggu {sundayLabel}
+            </button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-serif" style={{ color: "var(--brand)" }}>
+                Pilih Minggu
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-xs text-muted-foreground px-1">Data akan disimpan untuk Minggu di minggu yang dipilih.</p>
+            <div className="flex justify-center p-4">
+              <Calendar
+                mode="single"
+                selected={targetDate}
+                onSelect={(d) => { if (d) { setTargetDate(d); setForm(null); } setCalOpen(false); }}
+                className="rounded-lg border"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
         <button
           onClick={() => setShowPreview(!showPreview)}
           className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-muted transition-colors"

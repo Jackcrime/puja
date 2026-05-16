@@ -15,6 +15,7 @@ import {
   Maximize2, Loader2, HandHeart,
 } from "lucide-react";
 import { useI18n } from "@/lib/hooks/useI18n";
+import { useDate } from "@/lib/context/DateContext";
 import { format, getDay } from "date-fns";
 import { id as localeId }  from "date-fns/locale";
 import {
@@ -32,6 +33,7 @@ const NAMA_HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu
 
 export default function JanjiHidup() {
   const { t } = useI18n();
+  const { date } = useDate();
 
   // ── Data hooks — semua sinkron dengan admin ───────────────────────────────
   const { data: devotional, loading: devLoading } = useDevotional();
@@ -52,12 +54,12 @@ export default function JanjiHidup() {
   const [focusMode,   setFocusMode]   = useState(false);
 
   // ── Derived ───────────────────────────────────────────────────────────────
-  const todayStr = format(new Date(), "EEEE, d MMMM yyyy", { locale: localeId });
+  const todayStr = format(date, "EEEE, d MMMM yyyy", { locale: localeId });
   const author   = authors[devotional.authorCode as keyof typeof authors];
   const audioUrl = (devotional as any).audioUrl as string | undefined;
 
-  // Pokok doa hari ini — cocokkan berdasarkan nama hari
-  const hariIni      = NAMA_HARI[getDay(new Date())];
+  // Pokok doa hari yang dipilih — cocokkan berdasarkan nama hari
+  const hariIni      = NAMA_HARI[getDay(date)];
   const pokokDoaHari = pokokDoaList.find((p) => p.hari === hariIni);
 
   // ── Audio listeners ───────────────────────────────────────────────────────

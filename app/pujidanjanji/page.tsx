@@ -16,6 +16,7 @@ import {
   useBibleReadings, useAyatKhusus,
 } from "@/lib/hooks/useFirestoreData";
 import { useI18n } from "@/lib/hooks/useI18n";
+import { useDate } from "@/lib/context/DateContext";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 
@@ -40,16 +41,14 @@ export default function PujiDanJanji() {
   const { data: BIBLE_READINGS } = useBibleReadings();
   const { data: khusus }         = useAyatKhusus();
 
-  const [date,        setDate]        = useState<Date | undefined>(new Date());
+  const { date, setDate } = useDate();
   const [calOpen,     setCalOpen]     = useState(false);
   const [readVerse,   setReadVerse]   = useState<string[]>([]);
 
-  const displayDate = date
-    ? format(date, "EEEE, d MMMM yyyy", { locale: localeId })
-    : format(new Date(), "EEEE, d MMMM yyyy", { locale: localeId });
+  const displayDate = format(date, "EEEE, d MMMM yyyy", { locale: localeId });
 
   // Ayat Harian dari date-linked record
-  const dateKey     = date ? format(date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd");
+  const dateKey     = format(date, "yyyy-MM-dd");
   const ayatHarian  = khusus.harian?.[dateKey];
 
   return (
@@ -85,7 +84,7 @@ export default function PujiDanJanji() {
                   <Calendar
                     mode="single"
                     selected={date}
-                    onSelect={(d) => { setDate(d); setCalOpen(false); }}
+                    onSelect={(d) => { if (d) { setDate(d); } setCalOpen(false); }}
                     className="rounded-lg border"
                   />
                 </div>
@@ -95,7 +94,7 @@ export default function PujiDanJanji() {
         </div>
 
         {/* ── Mazmur Minggu ─────────────────────────────────────────────────── */}
-        <MazmurSection />
+        <MazmurSection date={date} />
 
         {/* ── Ayat Minggu ───────────────────────────────────────────────────── */}
         {khusus.minggu && (
@@ -130,7 +129,7 @@ export default function PujiDanJanji() {
         </section>
 
         {/* ── Bahan Khotbah ─────────────────────────────────────────────────── */}
-        <BahanKhotbahSection />
+        <BahanKhotbahSection date={date} />
 
         {/* ── Bacaan Alkitab ────────────────────────────────────────────────── */}
         <section className="mb-8">

@@ -78,6 +78,11 @@ export function usePerikop() {
 }
 
 // ─── 3. Verse Highlights ──────────────────────────────────────────────────────
+export interface VerseHighlightItem {
+  reference: string;
+  text:      string;
+}
+
 export function useVerseHighlights() {
   const [data, setData]       = useState(VERSE_HIGHLIGHTS);
   const [loading, setLoading] = useState(true);
@@ -356,18 +361,40 @@ export interface MazmurMinggu {
   verses:    { number: string; text: string }[];
 }
 
-export function useMazmurMinggu() {
+// Dapatkan key Minggu dari tanggal (format: yyyy-MM-dd hari Minggu di minggu itu)
+function getSundayKey(date: Date): string {
+  const d = new Date(date);
+  const day = d.getDay(); // 0=Min
+  d.setDate(d.getDate() - day); // mundur ke Minggu
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export function useMazmurMinggu(date?: Date) {
   const [data, setData]       = useState<MazmurMinggu>(MAZMUR_MINGGU);
   const [loading, setLoading] = useState(true);
+  const dateKey = getSundayKey(date ?? new Date());
+
   useEffect(() => {
-    readDoc<MazmurMinggu>("mazmur_minggu", "current", MAZMUR_MINGGU)
-      .then(setData).finally(() => setLoading(false));
-  }, []);
-  const save = useCallback(async (next: MazmurMinggu) => {
+    setLoading(true);
+    // Coba ambil data untuk minggu ini, fallback ke "current" lalu ke default
+    readDoc<MazmurMinggu>("mazmur_minggu", dateKey, null as any)
+      .then((d) => {
+        if (d && d.reference) return d;
+        return readDoc<MazmurMinggu>("mazmur_minggu", "current", MAZMUR_MINGGU);
+      })
+      .then(setData)
+      .finally(() => setLoading(false));
+  }, [dateKey]);
+
+  const save = useCallback(async (next: MazmurMinggu, targetDate?: Date) => {
+    const key = getSundayKey(targetDate ?? date ?? new Date());
+    await writeDoc("mazmur_minggu", key, next);
+    // Juga simpan ke "current" untuk backward compat
     await writeDoc("mazmur_minggu", "current", next);
     setData(next);
-  }, []);
-  return { data, loading, save };
+  }, [date]);
+
+  return { data, loading, save, dateKey };
 }
 
 // ─── 15. Bahan Khotbah ────────────────────────────────────────────────────────
@@ -380,18 +407,30 @@ export interface BahanKhotbah {
   penutup:      string;
 }
 
-export function useBahanKhotbah() {
+export function useBahanKhotbah(date?: Date) {
   const [data, setData]       = useState<BahanKhotbah>(BAHAN_KHOTBAH);
   const [loading, setLoading] = useState(true);
+  const dateKey = getSundayKey(date ?? new Date());
+
   useEffect(() => {
-    readDoc<BahanKhotbah>("bahan_khotbah", "current", BAHAN_KHOTBAH)
-      .then(setData).finally(() => setLoading(false));
-  }, []);
-  const save = useCallback(async (next: BahanKhotbah) => {
+    setLoading(true);
+    readDoc<BahanKhotbah>("bahan_khotbah", dateKey, null as any)
+      .then((d) => {
+        if (d && d.reference) return d;
+        return readDoc<BahanKhotbah>("bahan_khotbah", "current", BAHAN_KHOTBAH);
+      })
+      .then(setData)
+      .finally(() => setLoading(false));
+  }, [dateKey]);
+
+  const save = useCallback(async (next: BahanKhotbah, targetDate?: Date) => {
+    const key = getSundayKey(targetDate ?? date ?? new Date());
+    await writeDoc("bahan_khotbah", key, next);
     await writeDoc("bahan_khotbah", "current", next);
     setData(next);
-  }, []);
-  return { data, loading, save };
+  }, [date]);
+
+  return { data, loading, save, dateKey };
 }
 
 // ─── 16. Pokok Doa Harian ─────────────────────────────────────────────────────

@@ -28,9 +28,9 @@ export function BottomNav() {
   ];
   
   const moreItems = [
-    { href: "/pustaka-digital",       label: "Pustaka",    icon: Library },
-    { href: "/tentang",       label: "Tentang",    icon: Info },
-    { href: "/pengaturan",    label: "Pengaturan", icon: Settings },
+    { href: "/pustaka-digital",   label: "Pustaka",    icon: Library },
+    { href: "/tentang",           label: "Tentang",    icon: Info },
+    { href: "/pengaturan",        label: "Pengaturan", icon: Settings },
   ];
 
   const isMainActive = (href: string) => pathname === href;

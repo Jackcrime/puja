@@ -5,8 +5,8 @@ import { BookMarked, ChevronDown, ChevronUp } from "lucide-react";
 import { useBahanKhotbah } from "@/lib/hooks/useFirestoreData";
 import { SectionDivider } from "@/components/shared/SectionDivider";
 
-export function BahanKhotbahSection() {
-  const { data, loading } = useBahanKhotbah();
+export function BahanKhotbahSection({ date }: { date?: Date }) {
+  const { data, loading } = useBahanKhotbah(date);
   const [open, setOpen] = useState(false);
 
   if (loading) return null;

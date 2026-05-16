@@ -4,10 +4,10 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { DataTable }      from "@/components/admin/DataTable";
 import { FormModal }      from "@/components/admin/FormModal";
 import { ConfirmDialog }  from "@/components/admin/ConfirmDialog";
-import { useAyatCategories, useAyatNats, type AyatNatsItem } from "@/lib/hooks/useFirestoreData";
+import { useAyatCategories, useAyatNats, useVerseHighlights, type AyatNatsItem, type VerseHighlightItem } from "@/lib/hooks/useFirestoreData";
 import {
   Loader2, Flame, Plus, Trash2, Save, Check,
-  Upload, Download, FileJson, AlertCircle, X, GripVertical,
+  Upload, Download, FileJson, AlertCircle, X, GripVertical, Star,
 } from "lucide-react";
 import { showToast } from "@/lib/utils/toast";
 
@@ -296,6 +296,118 @@ function AyatNatsSection() {
   );
 }
 
+// ─── Ayat Highlights Section ──────────────────────────────────────────────────
+function AyatHighlightsSection() {
+  const { data, loading, save } = useVerseHighlights();
+  const [items,   setItems]   = useState<VerseHighlightItem[]>([]);
+  const [saving,  setSaving]  = useState(false);
+  const [saved,   setSaved]   = useState(false);
+
+  useEffect(() => {
+    if (!loading) setItems(data);
+  }, [loading, data]);
+
+  const addItem = () =>
+    setItems((prev) => [...prev, { reference: "", text: "" }]);
+
+  const removeItem = (i: number) =>
+    setItems((prev) => prev.filter((_, idx) => idx !== i));
+
+  const updateItem = (i: number, key: keyof VerseHighlightItem, val: string) =>
+    setItems((prev) => prev.map((it, idx) => idx === i ? { ...it, [key]: val } : it));
+
+  const handleSave = async () => {
+    const valid = items.filter((it) => it.reference.trim() && it.text.trim());
+    setSaving(true);
+    try {
+      await save(valid);
+      setItems(valid);
+      showToast.success(`${valid.length} Ayat Highlight berhasil disimpan.`);
+      setSaved(true); setTimeout(() => setSaved(false), 2500);
+    } catch { showToast.error("Gagal menyimpan."); }
+    setSaving(false);
+  };
+
+  if (loading) return (
+    <div className="flex items-center gap-2 text-muted-foreground py-4 text-sm">
+      <Loader2 className="h-4 w-4 animate-spin" /> Memuat Ayat Highlight...
+    </div>
+  );
+
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden mb-6">
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-5 py-3 border-b border-border"
+        style={{ backgroundColor: "var(--brand-muted)" }}
+      >
+        <div className="flex items-center gap-2">
+          <Star className="h-4 w-4" style={{ color: "var(--gold)" }} />
+          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--brand)" }}>
+            Ayat Highlight
+          </p>
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-semibold">
+            {items.length} ayat — tampil di bawah Janji Hidup
+          </span>
+        </div>
+        <button
+          onClick={handleSave} disabled={saving}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60 transition-all"
+          style={{ backgroundColor: saved ? "#16a34a" : "var(--brand)" }}
+        >
+          {saving ? <><Loader2 className="h-3 w-3 animate-spin" /> Menyimpan...</>
+           : saved ? <><Check className="h-3 w-3" /> Tersimpan ✓</>
+           :          <><Save className="h-3 w-3" /> Simpan</>}
+        </button>
+      </div>
+
+      <div className="p-5 space-y-3">
+        {items.map((it, i) => (
+          <div key={i} className="flex gap-2 items-start group">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 mt-2"
+              style={{ backgroundColor: "var(--gold)" }}>
+              {i + 1}
+            </div>
+            <input
+              value={it.reference}
+              onChange={(e) => updateItem(i, "reference", e.target.value)}
+              placeholder="mis. Mazmur 23:1"
+              className="w-36 shrink-0 px-3 py-2 text-xs border border-border rounded-xl bg-background focus:outline-none font-semibold"
+              style={{ color: "var(--brand)" }}
+            />
+            <input
+              value={it.text}
+              onChange={(e) => updateItem(i, "text", e.target.value)}
+              placeholder="Teks ayat highlight..."
+              className="flex-1 px-3 py-2 text-xs border border-border rounded-xl bg-background focus:outline-none"
+            />
+            <button
+              onClick={() => removeItem(i)}
+              className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 text-red-400 hover:text-red-600 transition-colors shrink-0 mt-0.5"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ))}
+
+        {items.length === 0 && (
+          <div className="text-center py-4 text-xs text-muted-foreground border border-dashed border-border rounded-xl">
+            Belum ada Ayat Highlight. Klik tombol di bawah untuk menambah.
+          </div>
+        )}
+
+        <button
+          onClick={addItem}
+          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border hover:bg-muted transition-colors"
+          style={{ color: "var(--gold)", borderColor: "var(--gold)" }}
+        >
+          <Plus className="h-3.5 w-3.5" /> Tambah Highlight
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main AyatKategoriTab ─────────────────────────────────────────────────────
 export function AyatKategoriTab() {
   const { data: categoryData, loading, save: saveCategories } = useAyatCategories();
@@ -361,6 +473,9 @@ export function AyatKategoriTab() {
     <>
       {/* ── Ayat Nats Section ───────────────────────────────────────────── */}
       <AyatNatsSection />
+
+      {/* ── Ayat Highlights Section ─────────────────────────────────────── */}
+      <AyatHighlightsSection />
 
       {/* ── Status bar ──────────────────────────────────────────────────── */}
       <div className="mb-4 flex items-center gap-3">

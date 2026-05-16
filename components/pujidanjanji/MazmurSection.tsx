@@ -5,8 +5,8 @@ import { Music, ChevronDown, ChevronUp, Copy, Check } from "lucide-react";
 import { useMazmurMinggu } from "@/lib/hooks/useFirestoreData";
 import { SectionDivider } from "@/components/shared/SectionDivider";
 
-export function MazmurSection() {
-  const { data, loading } = useMazmurMinggu();
+export function MazmurSection({ date }: { date?: Date }) {
+  const { data, loading } = useMazmurMinggu(date);
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied]     = useState(false);
 
