@@ -39,6 +39,9 @@ function MazmurSubSection({ date }: { date: Date }) {
   const [previewVerses, setPreviewVerses] = useState<{ number: string; text: string }[]>([]);
   const [loadingVerses, setLoadingVerses] = useState(false);
 
+  // Visible state (default true jika belum ada data)
+  const isVisible = data.visible !== false;
+
   const handleSelChange = async (newSel: VerseSelection) => {
     setSel(newSel);
     setPreviewVerses([]);
@@ -66,10 +69,20 @@ function MazmurSubSection({ date }: { date: Date }) {
       const verses: MazmurMinggu["verses"] = res.ok && !json.error
         ? (json.verses as { verse: number; text: string }[]).map((v) => ({ number: `${sel.chapter}:${v.verse}`, text: v.text }))
         : [];
-      await save({ reference: selToRef(sel), title: "", verses }, date);
+      await save({ reference: selToRef(sel), title: "", verses, visible: isVisible }, date);
       showToast.success("Mazmur Minggu disimpan.");
       setSaved(true); setTimeout(() => setSaved(false), 2500);
     } catch { showToast.error("Gagal menyimpan. Coba lagi."); }
+    setSaving(false);
+  };
+
+  const handleToggleVisible = async () => {
+    const next = !isVisible;
+    setSaving(true);
+    try {
+      await save({ ...data, visible: next }, date);
+      showToast.success(next ? "Mazmur Minggu ditampilkan." : "Mazmur Minggu disembunyikan.");
+    } catch { showToast.error("Gagal menyimpan."); }
     setSaving(false);
   };
 
@@ -82,17 +95,42 @@ function MazmurSubSection({ date }: { date: Date }) {
           <BookMarked className="h-4 w-4" style={{ color: "var(--brand)" }} />
           <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--brand)" }}>Mazmur Minggu</p>
         </div>
-        <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60 transition-all"
-          style={{ backgroundColor: saved ? "#16a34a" : "var(--brand)" }}
-        >
-          {saving ? <><Loader2 className="h-3 w-3 animate-spin" /> Menyimpan...</>
-            : saved ? <><Check className="h-3 w-3" /> Tersimpan ✓</>
-            : <><Save className="h-3 w-3" /> Simpan</>}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Visible toggle */}
+          <button
+            onClick={handleToggleVisible}
+            disabled={saving}
+            title={isVisible ? "Sembunyikan dari halaman Puji & Janji" : "Tampilkan di halaman Puji & Janji"}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all disabled:opacity-60 ${
+              isVisible
+                ? "border-green-300 text-green-700 bg-green-50 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+                : "border-border text-muted-foreground hover:bg-muted"
+            }`}
+          >
+            {isVisible ? <><Eye className="h-3 w-3" /> Tampil</> : <><EyeOff className="h-3 w-3" /> Disembunyikan</>}
+          </button>
+          <button onClick={handleSave} disabled={saving}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60 transition-all"
+            style={{ backgroundColor: saved ? "#16a34a" : "var(--brand)" }}
+          >
+            {saving ? <><Loader2 className="h-3 w-3 animate-spin" /> Menyimpan...</>
+              : saved ? <><Check className="h-3 w-3" /> Tersimpan ✓</>
+              : <><Save className="h-3 w-3" /> Simpan</>}
+          </button>
+        </div>
       </div>
 
       <div className="p-5 space-y-4">
+        {/* Status visible */}
+        {!isVisible && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+            <EyeOff className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              Section ini <strong>disembunyikan</strong> di halaman Puji &amp; Janji. Klik tombol &ldquo;Disembunyikan&rdquo; untuk menampilkan kembali.
+            </p>
+          </div>
+        )}
+
         {/* Aktif saat ini */}
         {data.reference && (
           <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border bg-muted/30">
@@ -104,20 +142,11 @@ function MazmurSubSection({ date }: { date: Date }) {
           </div>
         )}
 
-        {/* Selector */}
+        {/* Selector — locked ke Mazmur */}
         <div>
           <FieldLabel>Pilih Mazmur Minggu</FieldLabel>
-          <BibleVerseSelector value={sel} onChange={handleSelChange} showPreview />
+          <BibleVerseSelector value={sel} onChange={handleSelChange} showPreview lockedBook="mazmur" />
           <p className="text-[10px] text-muted-foreground mt-2">Teks otomatis diambil dari API Alkitab saat disimpan.</p>
-
-          {sel.bookSlug && (
-            <button onClick={() => setShowPreview(!showPreview)}
-              className="mt-2 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border hover:bg-muted transition-colors"
-              style={{ color: "var(--brand)", borderColor: "var(--brand-border)" }}
-            >
-              {showPreview ? <><EyeOff className="h-3.5 w-3.5" /> Tutup Preview</> : <><Eye className="h-3.5 w-3.5" /> Preview Ayat</>}
-            </button>
-          )}
 
           {showPreview && (
             <div className="mt-3 rounded-xl border border-border bg-muted/20 p-4">
@@ -151,6 +180,8 @@ function BahanKhotbahSubSection({ date }: { date: Date }) {
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
 
+  const isVisible = data.visible !== false;
+
   const current: VerseSelection = sel ?? (data.reference
     ? { bookSlug: "", bookName: "", chapter: 0, verseFrom: 0, verseTo: 0 }
     : emptySelection()
@@ -163,11 +194,22 @@ function BahanKhotbahSubSection({ date }: { date: Date }) {
       const next: BahanKhotbah = {
         ...data,
         reference: refLabel(sel),
+        visible: isVisible,
       };
       await save(next, date);
       setSaved(true); showToast.success("Bahan Khotbah disimpan.");
       setTimeout(() => setSaved(false), 2500);
     } catch { showToast.error("Gagal menyimpan. Coba lagi."); }
+    setSaving(false);
+  };
+
+  const handleToggleVisible = async () => {
+    const next = !isVisible;
+    setSaving(true);
+    try {
+      await save({ ...data, visible: next }, date);
+      showToast.success(next ? "Bahan Khotbah ditampilkan." : "Bahan Khotbah disembunyikan.");
+    } catch { showToast.error("Gagal menyimpan."); }
     setSaving(false);
   };
 
@@ -180,17 +222,42 @@ function BahanKhotbahSubSection({ date }: { date: Date }) {
           <BookOpen className="h-4 w-4" style={{ color: "var(--brand)" }} />
           <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--brand)" }}>Bahan Khotbah</p>
         </div>
-        <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60 transition-all"
-          style={{ backgroundColor: saved ? "#16a34a" : "var(--brand)" }}
-        >
-          {saving ? <><Loader2 className="h-3 w-3 animate-spin" /> Menyimpan...</>
-            : saved ? <><Check className="h-3 w-3" /> Tersimpan ✓</>
-            : <><Save className="h-3 w-3" /> Simpan</>}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Visible toggle */}
+          <button
+            onClick={handleToggleVisible}
+            disabled={saving}
+            title={isVisible ? "Sembunyikan dari halaman Puji & Janji" : "Tampilkan di halaman Puji & Janji"}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all disabled:opacity-60 ${
+              isVisible
+                ? "border-green-300 text-green-700 bg-green-50 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+                : "border-border text-muted-foreground hover:bg-muted"
+            }`}
+          >
+            {isVisible ? <><Eye className="h-3 w-3" /> Tampil</> : <><EyeOff className="h-3 w-3" /> Disembunyikan</>}
+          </button>
+          <button onClick={handleSave} disabled={saving}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60 transition-all"
+            style={{ backgroundColor: saved ? "#16a34a" : "var(--brand)" }}
+          >
+            {saving ? <><Loader2 className="h-3 w-3 animate-spin" /> Menyimpan...</>
+              : saved ? <><Check className="h-3 w-3" /> Tersimpan ✓</>
+              : <><Save className="h-3 w-3" /> Simpan</>}
+          </button>
+        </div>
       </div>
 
       <div className="p-5 space-y-4">
+        {/* Status visible */}
+        {!isVisible && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+            <EyeOff className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              Section ini <strong>disembunyikan</strong> di halaman Puji &amp; Janji. Klik tombol &ldquo;Disembunyikan&rdquo; untuk menampilkan kembali.
+            </p>
+          </div>
+        )}
+
         {/* Aktif saat ini */}
         {data.reference && (
           <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border bg-muted/30">

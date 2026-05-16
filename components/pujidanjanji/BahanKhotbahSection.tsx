@@ -19,6 +19,7 @@ export function BahanKhotbahSection({ date }: { date?: Date }) {
   if (!isSunday && !isHoliday) return null;
 
   if (loading) return null;
+  if (data.visible === false) return null;
   if (!data.bookSlug) return null;
 
   // Fetch verses when opened

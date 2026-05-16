@@ -18,6 +18,7 @@ export function MazmurSection({ date }: { date?: Date }) {
   if (!isSunday && !isHoliday) return null;
 
   if (loading) return null;
+  if (data.visible === false) return null;
   if (!data.reference || !data.verses || data.verses.length === 0) return null;
 
   const copy = () => {

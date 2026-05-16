@@ -370,6 +370,8 @@ export interface MazmurMinggu {
   reference: string;
   title:     string;
   verses:    { number: string; text: string }[];
+  /** Jika false, section ini disembunyikan di halaman Puji & Janji. Default: true */
+  visible?:  boolean;
 }
 
 // Dapatkan key Minggu dari tanggal (format: yyyy-MM-dd hari Minggu di minggu itu)
@@ -417,6 +419,8 @@ export interface BahanKhotbah {
   verseTo:   number;
   /** Human-readable reference label, e.g. "Lukas 24:36-49" */
   reference: string;
+  /** Jika false, section ini disembunyikan di halaman Puji & Janji. Default: true */
+  visible?:  boolean;
 }
 
 const EMPTY_BAHAN_KHOTBAH: BahanKhotbah = {

@@ -15,11 +15,13 @@ export interface VerseSelection {
 }
 
 interface BibleVerseSelectorProps {
-  value:      VerseSelection;
-  onChange:   (val: VerseSelection) => void;
-  onPreview?: (data: BiblePassageResponse | null) => void;
+  value:       VerseSelection;
+  onChange:    (val: VerseSelection) => void;
+  onPreview?:  (data: BiblePassageResponse | null) => void;
   showPreview?: boolean;
-  compact?: boolean;
+  compact?:    boolean;
+  /** Jika diisi, selector kitab akan di-lock ke slug ini (misal: "mazmur") */
+  lockedBook?: string;
 }
 
 const EMPTY_SEL: VerseSelection = {
@@ -36,12 +38,21 @@ export function refLabel(sel: VerseSelection): string {
 }
 
 export function BibleVerseSelector({
-  value, onChange, onPreview, showPreview = true, compact = false,
+  value, onChange, onPreview, showPreview = true, compact = false, lockedBook,
 }: BibleVerseSelectorProps) {
   const [preview, setPreview]   = useState<BiblePassageResponse | null>(null);
   const [loading, setLoading]   = useState(false);
   const [preErr,  setPreErr]    = useState("");
   const [noKey,   setNoKey]     = useState(false);
+
+  // Jika lockedBook diisi, otomatis set book saat mount jika belum terpilih
+  React.useEffect(() => {
+    if (lockedBook && value.bookSlug !== lockedBook) {
+      const book = BIBLE_BOOKS.find((b) => b.slug === lockedBook);
+      if (book) onChange({ bookSlug: book.slug, bookName: book.name, chapter: value.chapter || 1, verseFrom: value.verseFrom || 1, verseTo: value.verseTo || 1 });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lockedBook]);
 
   const PLbooks = BIBLE_BOOKS.filter((b) => b.testament === "PL");
   const PBbooks = BIBLE_BOOKS.filter((b) => b.testament === "PB");
@@ -118,6 +129,17 @@ export function BibleVerseSelector({
         <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
           Kitab
         </label>
+        {lockedBook ? (
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border bg-muted/30">
+            <BookOpen className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--brand)" }} />
+            <span className="text-sm font-semibold" style={{ color: "var(--brand)" }}>
+              {BIBLE_BOOKS.find((b) => b.slug === lockedBook)?.name ?? lockedBook}
+            </span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand/10 text-muted-foreground font-bold uppercase tracking-wider ml-auto">
+              Fixed
+            </span>
+          </div>
+        ) : (
         <select
           value={value.bookSlug}
           onChange={(e) => handleBookChange(e.target.value)}
@@ -131,6 +153,7 @@ export function BibleVerseSelector({
             {PBbooks.map((b) => <option key={b.slug} value={b.slug}>{b.name}</option>)}
           </optgroup>
         </select>
+        )}
       </div>
 
       {/* Pasal + Ayat */}
