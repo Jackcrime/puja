@@ -7,15 +7,10 @@ import {
   type VerseSelection,
   emptySelection,
 } from "@/components/admin/ayat/BibleVerseSelector";
-import { formatRef } from "@/lib/bible-books";
 import { showToast } from "@/lib/utils/toast";
 import { BookMarked, Check, Loader2, Save } from "lucide-react";
 import { FieldLabel } from "./shared";
-
-function selToRef(sel: VerseSelection) {
-  if (!sel.bookSlug) return "";
-  return formatRef(sel.bookName, sel.chapter, sel.verseFrom, sel.verseTo);
-}
+import { selToRef } from "@/lib/utils/adminAyat";
 
 export function MazmurMingguSection() {
   const { data, loading, save } = useMazmurMinggu();

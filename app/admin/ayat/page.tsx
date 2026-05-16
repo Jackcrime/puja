@@ -1,21 +1,19 @@
 "use client";
 
 import React, { useState } from "react";
-import { AdminLayout }        from "@/components/admin/AdminLayout";
-import { AdminGuard }         from "@/components/admin/AdminGuard";
-import { AyatKategoriTab }    from "@/components/admin/ayat/AyatKategoriTab";
-import { AyatHarianTab }      from "@/components/admin/ayat/AyatHarianTab";
-import { AyatMingguanTab }    from "@/components/admin/ayat/AyatMingguanTab";
-import { AyatBulanTahunTab }  from "@/components/admin/ayat/AyatBulanTahunTab";
-import { BacaanTab }          from "@/components/admin/ayat/BacaanTab";
-import { Star, CalendarDays, Sun, Calendar, BookOpen } from "lucide-react";
+import { AdminLayout }               from "@/components/admin/AdminLayout";
+import { AdminGuard }                from "@/components/admin/AdminGuard";
+import { AyatKategoriTab }           from "@/components/admin/ayat/AyatKategoriTab";
+import { AyatHarianMingguanTab }     from "@/components/admin/ayat/AyatHarianMingguanTab";
+import { AyatBulanTahunTab }         from "@/components/admin/ayat/AyatBulanTahunTab";
+import { BacaanTab }                 from "@/components/admin/ayat/BacaanTab";
+import { Star, CalendarDays, Calendar, BookOpen } from "lucide-react";
 
 const TABS = [
-  { id: "kategori"    as const, label: "Kategori",      icon: Star,         desc: "Kelola ayat kategori & Ayat Nats yang tampil di halaman renungan." },
-  { id: "harian"      as const, label: "Harian",        icon: CalendarDays, desc: "Ayat per tanggal — siapkan hari ini & mendatang, import JSON massal." },
-  { id: "mingguan"    as const, label: "Mingguan",      icon: Sun,          desc: "Ayat Minggu" },
-  { id: "bulantahun"  as const, label: "Bulan & Tahun", icon: Calendar,     desc: "Ayat 12 bulan & ayat tahun — pilih dari Alkitab atau import JSON." },
-  { id: "bacaan"      as const, label: "Bacaan",        icon: BookOpen,     desc: "Kelola bacaan Alkitab beserta perikop terkait (cross-reference)." },
+  { id: "kategori"   as const, label: "Kategori",      icon: Star,         desc: "Kelola ayat kategori & Ayat Nats yang tampil di halaman renungan." },
+  { id: "harian"     as const, label: "Harian & Mingguan", icon: CalendarDays, desc: "Ayat per tanggal (harian) dan per Minggu — termasuk Mazmur Minggu." },
+  { id: "bulantahun" as const, label: "Bulan & Tahun", icon: Calendar,     desc: "Ayat 12 bulan & ayat tahun — pilih dari Alkitab atau import JSON." },
+  { id: "bacaan"     as const, label: "Bacaan",        icon: BookOpen,     desc: "Kelola bacaan Alkitab beserta perikop terkait (cross-reference)." },
 ];
 
 type TabId = typeof TABS[number]["id"];
@@ -54,8 +52,7 @@ export default function AdminAyatPage() {
         </div>
 
         {activeTab === "kategori"   && <AyatKategoriTab />}
-        {activeTab === "harian"     && <AyatHarianTab />}
-        {activeTab === "mingguan"   && <AyatMingguanTab />}
+        {activeTab === "harian"     && <AyatHarianMingguanTab />}
         {activeTab === "bulantahun" && <AyatBulanTahunTab />}
         {activeTab === "bacaan"     && <BacaanTab />}
       </AdminLayout>

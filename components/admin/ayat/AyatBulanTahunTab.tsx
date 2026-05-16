@@ -8,38 +8,7 @@ import {
   Calendar, Star, Save, Loader2,
   Upload, Download, Info,
 } from "lucide-react";
-import { formatRef } from "@/lib/bible-books";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const BULAN_NAMES = [
-  "Januari","Februari","Maret","April","Mei","Juni",
-  "Juli","Agustus","September","Oktober","November","Desember",
-];
-
-function todayISO() { return new Date().toISOString().split("T")[0]; }
-
-function selToRef(sel: VerseSelection) {
-  if (!sel.bookSlug) return "";
-  return formatRef(sel.bookName, sel.chapter, sel.verseFrom, sel.verseTo);
-}
-
-async function fetchVerseText(sel: VerseSelection): Promise<string> {
-  if (!sel.bookSlug) return "";
-  try {
-    const res  = await fetch(`/api/bible?book=${sel.bookSlug}&chapter=${sel.chapter}&from=${sel.verseFrom}&to=${sel.verseTo}`);
-    const json = await res.json();
-    if (!res.ok || json.error) return "";
-    return (json.verses as { verse: number; text: string }[]).map((v) => v.text).join(" ");
-  } catch { return ""; }
-}
-
-function exportJSON(obj: unknown, filename: string) {
-  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a"); a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
-}
+import { todayISO, BULAN_NAMES, selToRef, fetchVerseText, exportJSON } from "@/lib/utils/adminAyat";
 
 // ─── Import Modals ────────────────────────────────────────────────────────────
 
