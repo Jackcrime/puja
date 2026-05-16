@@ -26,11 +26,6 @@ export function Header() {
     { href: "/pengaturan", label: "Pengaturan", icon: Settings },
   ];
 
-  const mobileLinks = [
-    { href: "/tentang", label: t("nav.tentang"), icon: Info },
-    { href: "/pengaturan", label: "Pengaturan", icon: Settings },
-  ];
-
   const themes = [
     { value: "light", icon: Sun },
     { value: "dark", icon: Moon },
@@ -157,17 +152,8 @@ export function Header() {
         {mobileOpen && (
           <div className="md:hidden border-t bg-card">
             <nav className="max-w-5xl mx-auto px-4 py-3 flex flex-col gap-1">
-              {mobileLinks.map((link) => (
-                <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)}
-                  className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    pathname === link.href ? "font-semibold" : "text-muted-foreground"
-                  }`}
-                  style={pathname === link.href ? { color: "var(--brand)", backgroundColor: "var(--brand-muted)" } : {}}
-                >
-                  {link.label}
-                </Link>
-              ))}
               <div className="border-t pt-3 mt-1 space-y-3">
+                <p className="text-xs text-muted-foreground px-3 mb-2 font-semibold uppercase tracking-wider">Tema</p>
                   <div className="flex gap-2">
                     {themes.map(({ value, icon: Icon }) => (
                       <button key={value} onClick={() => setTheme(value)}

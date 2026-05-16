@@ -13,7 +13,7 @@ import { Star, CalendarDays, Sun, Calendar, BookOpen } from "lucide-react";
 const TABS = [
   { id: "kategori"    as const, label: "Kategori",      icon: Star,         desc: "Kelola ayat kategori & Ayat Nats yang tampil di halaman renungan." },
   { id: "harian"      as const, label: "Harian",        icon: CalendarDays, desc: "Ayat per tanggal — siapkan hari ini & mendatang, import JSON massal." },
-  { id: "mingguan"    as const, label: "Mingguan",      icon: Sun,          desc: "Ayat Minggu, Mazmur Minggu, Bahan Khotbah, dan Pokok Doa Harian." },
+  { id: "mingguan"    as const, label: "Mingguan",      icon: Sun,          desc: "Ayat Minggu" },
   { id: "bulantahun"  as const, label: "Bulan & Tahun", icon: Calendar,     desc: "Ayat 12 bulan & ayat tahun — pilih dari Alkitab atau import JSON." },
   { id: "bacaan"      as const, label: "Bacaan",        icon: BookOpen,     desc: "Kelola bacaan Alkitab beserta perikop terkait (cross-reference)." },
 ];
