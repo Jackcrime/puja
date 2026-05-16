@@ -119,8 +119,20 @@ export function RenunganSection() {
                 <button
                   onClick={async () => {
                     const url = (current as any).audioUrl;
+                    // Update state lokal dulu
                     set("audioUrl", "");
-                    if (url) await deleteUploadThingFile(url).catch(() => {});
+                    try {
+                      // Langsung simpan ke Firestore — jangan tunggu tombol Simpan
+                      // supaya URL lama tidak tersisa di DB kalau admin tutup halaman
+                      await update({ ...(form ?? data), audioUrl: "" });
+                      // Baru hapus file dari UploadThing setelah Firestore sukses
+                      if (url) await deleteUploadThingFile(url).catch(() => {});
+                      showToast.success("Audio berhasil dihapus.");
+                    } catch {
+                      // Rollback state lokal kalau Firestore gagal
+                      set("audioUrl", url);
+                      showToast.error("Gagal menghapus audio. Coba lagi.");
+                    }
                   }}
                   className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500 transition-colors shrink-0"
                 >

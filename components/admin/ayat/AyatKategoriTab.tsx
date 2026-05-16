@@ -340,9 +340,10 @@ export function AyatKategoriTab() {
 
   const handleDelete = async () => {
     if (!target) return;
-    const name = target.reference || target.label;
+    const deleted = target; // simpan dulu sebelum di-null-kan
+    const name = deleted.reference || deleted.label;
     setTarget(null);
-    await persist(verses.filter((v) => v.id !== target.id));
+    await persist(verses.filter((v) => v.id !== deleted.id));
     showToast.success(`Ayat "${name}" berhasil dihapus.`);
   };
 

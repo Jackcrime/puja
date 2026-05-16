@@ -1,5 +1,4 @@
 export { AyatKategoriTab }    from "./AyatKategoriTab";
-export { AyatDWMYTab }        from "./AyatDWMYTab";
 export { AyatHarianTab }      from "./AyatHarianTab";
 export { AyatMingguanTab }    from "./AyatMingguanTab";
 export { AyatBulanTahunTab }  from "./AyatBulanTahunTab";

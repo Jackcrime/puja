@@ -242,7 +242,7 @@ function ReadingForm({
 export function BacaanTab() {
   const { data, loading, save } = useBibleReadings();
   const [items,    setItems]    = useState<ReadingWithPerikop[]>([]);
-  const [synced,   setSynced]   = useState(false);
+  // const [synced,   setSynced]   = useState(false);
   const [form,     setForm]     = useState(false);
   const [editing,  setEditing]  = useState<{ index: number; data: ReadingWithPerikop } | null>(null);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
@@ -252,11 +252,8 @@ export function BacaanTab() {
   const [search,   setSearch]   = useState("");
 
   useEffect(() => {
-    if (!loading && !synced) {
-      setItems(data as ReadingWithPerikop[]);
-      setSynced(true);
-    }
-  }, [loading, data, synced]);
+    if (!loading) setItems(data as ReadingWithPerikop[]);
+  }, [loading, data]);
 
   const filtered = useMemo(() =>
     items.filter((r) =>

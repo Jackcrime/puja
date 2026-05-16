@@ -17,7 +17,7 @@ function todayISO() { return new Date().toISOString().split("T")[0]; }
 function nearestSunday(): string {
   const d = new Date();
   const day = d.getDay();
-  d.setDate(d.getDate() - day);
+  if (day !== 0) d.setDate(d.getDate() + (7 - day)); 
   return d.toISOString().split("T")[0];
 }
 
