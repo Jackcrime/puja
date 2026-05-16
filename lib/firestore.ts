@@ -11,6 +11,7 @@ import {
   collection,
   getDocs,
   addDoc,
+  onSnapshot,
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -109,6 +110,20 @@ export async function updateItem<T extends object>(
   }
 }
 
+// ─── Clear document (overwrite with empty/default data) ───────────────────────
+export async function clearDoc<T extends object>(
+  collectionName: CollectionName,
+  docId: string,
+  emptyData: T
+): Promise<void> {
+  try {
+    const ref = doc(db, collectionName, docId);
+    await setDoc(ref, { ...emptyData, updatedAt: serverTimestamp() });
+  } catch (e) {
+    console.error(`[firestore] clearDoc error:`, e);
+  }
+}
+
 // ─── Delete item from collection ───────────────────────────────────────────────
 export async function deleteItem(
   collectionName: CollectionName,
@@ -120,4 +135,25 @@ export async function deleteItem(
   } catch (e) {
     console.error(`[firestore] deleteItem error:`, e);
   }
+}
+// ─── Realtime subscription (onSnapshot) ───────────────────────────────────────
+export function subscribeDoc<T>(
+  collectionName: CollectionName,
+  docId: string,
+  fallback: T,
+  onData: (data: T) => void
+): () => void {
+  const ref = doc(db, collectionName, docId);
+  const unsub = onSnapshot(
+    ref,
+    (snap) => {
+      if (!snap.exists()) { onData(fallback); return; }
+      onData(snap.data() as T);
+    },
+    (err) => {
+      console.error(`[firestore] subscribeDoc error:`, err);
+      onData(fallback);
+    }
+  );
+  return unsub; // call to unsubscribe
 }

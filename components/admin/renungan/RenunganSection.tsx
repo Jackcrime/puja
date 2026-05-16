@@ -204,13 +204,14 @@ function AudioUploadZone({ currentUrl, onUploaded, onRemove }: AudioUploadZonePr
 // ─── RenunganSection ──────────────────────────────────────────────────────────
 
 export function RenunganSection() {
-  const { data, loading, update }                   = useDevotional();
+  const { data, loading, update, clear }            = useDevotional();
   const { data: authorsDict, loading: authLoading } = useAuthors();
 
-  const [form,    setForm]    = useState<typeof data | null>(null);
-  const [saving,  setSaving]  = useState(false);
-  const [saved,   setSaved]   = useState(false);
-  const [preview, setPreview] = useState(false);
+  const [form,       setForm]      = useState<typeof data | null>(null);
+  const [saving,     setSaving]    = useState(false);
+  const [saved,      setSaved]     = useState(false);
+  const [resetting,  setResetting] = useState(false);
+  const [preview,    setPreview]   = useState(false);
 
   const current = form ?? data;
 
@@ -224,6 +225,18 @@ export function RenunganSection() {
 
   const set = (key: string, value: string) =>
     setForm((f) => ({ ...(f ?? data), [key]: value }));
+
+  const handleReset = async () => {
+    setResetting(true);
+    try {
+      await clear();
+      setForm(null);
+      showToast.success("Renungan berhasil direset.");
+    } catch {
+      showToast.error("Gagal mereset. Coba lagi.");
+    }
+    setResetting(false);
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -349,6 +362,13 @@ export function RenunganSection() {
 
           <div className="flex gap-2 pt-1">
             <SaveButton saving={saving} saved={saved} onClick={handleSave} label="Simpan ke Firestore" />
+            <button
+              onClick={handleReset}
+              disabled={resetting}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-border hover:bg-muted transition-colors text-muted-foreground disabled:opacity-50"
+            >
+              {resetting ? "Mereset..." : "Reset Form"}
+            </button>
             <button
               onClick={() => setPreview(!preview)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-border hover:bg-muted transition-colors"

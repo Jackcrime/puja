@@ -5,12 +5,11 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminGuard }  from "@/components/admin/AdminGuard";
 import {
   RenunganSection,
-  MazmurMingguSection,
-  BahanKhotbahSection,
+  MazmurKhotbahSection,
   PokokDoaSection,
   RenunganStatsPanel,
 } from "@/components/admin/renungan";
-import { BookOpen, BookMarked, FlameKindling, HandHeart } from "lucide-react";
+import { BookOpen, BookMarked, HandHeart } from "lucide-react";
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
 
@@ -22,16 +21,10 @@ const TABS = [
     description: "Edit konten renungan harian, penulis, dan audio.",
   },
   {
-    id:          "mazmur" as const,
-    label:       "Mazmur Minggu",
+    id:          "mazmur-khotbah" as const,
+    label:       "Mazmur & Khotbah",
     icon:        BookMarked,
-    description: "Pilih Mazmur Minggu menggunakan pemilih ayat Alkitab.",
-  },
-  {
-    id:          "khotbah" as const,
-    label:       "Bahan Khotbah",
-    icon:        FlameKindling,
-    description: "Susun bahan khotbah mingguan — referensi, tema, poin, dan penutup.",
+    description: "Pilih Mazmur Minggu dan Bahan Khotbah untuk minggu yang dipilih.",
   },
   {
     id:          "pokdoa" as const,
@@ -90,8 +83,7 @@ export default function AdminRenungan() {
           {/* ── Left: Tab content ─────────────────────────────────────────── */}
           <div className="flex-1 min-w-0">
             {activeTab === "renungan" && <RenunganSection />}
-            {activeTab === "mazmur"   && <MazmurMingguSection />}
-            {activeTab === "khotbah"  && <BahanKhotbahSection />}
+            {activeTab === "mazmur-khotbah" && <MazmurKhotbahSection />}
             {activeTab === "pokdoa"   && <PokokDoaSection />}
           </div>
 

@@ -2,7 +2,7 @@
 
 // ─── Firestore Data Hooks ─────────────────────────────────────────────────────
 import { useState, useEffect, useCallback } from "react";
-import { readDoc, readCollection, writeDoc, addItem, updateItem, deleteItem } from "@/lib/firestore";
+import { readDoc, readCollection, writeDoc, addItem, updateItem, deleteItem, clearDoc } from "@/lib/firestore";
 import {
   DEVOTIONAL, PERIKOP, VERSE_HIGHLIGHTS, SPECIAL_VERSES,
   PRAYER_TOPIC, ANNOUNCEMENT, AYAT_CATEGORIES,
@@ -56,7 +56,13 @@ export function useDevotional() {
     setData(updated);
   }, [data]);
 
-  return { data, loading, update };
+  const clear = useCallback(async () => {
+    const empty = { ...DEVOTIONAL, audioUrl: "" } as Devotional;
+    await clearDoc("devotional", "current", empty);
+    setData(empty);
+  }, []);
+
+  return { data, loading, update, clear };
 }
 
 // ─── 2. Perikop ───────────────────────────────────────────────────────────────
@@ -93,7 +99,12 @@ export function useVerseHighlights() {
     ).then((d) => setData(d.items ?? VERSE_HIGHLIGHTS)).finally(() => setLoading(false));
   }, []);
 
-  return { data, loading };
+  const save = useCallback(async (items: typeof VERSE_HIGHLIGHTS) => {
+    await writeDoc("verse_highlights", "current", { items });
+    setData(items);
+  }, []);
+
+  return { data, loading, save };
 }
 
 // ─── 4. Special Verses ────────────────────────────────────────────────────────
@@ -399,16 +410,21 @@ export function useMazmurMinggu(date?: Date) {
 
 // ─── 15. Bahan Khotbah ────────────────────────────────────────────────────────
 export interface BahanKhotbah {
-  reference:    string;
-  title:        string;
-  thema:        string;
-  pendahuluan:  string;
-  poinUtama:    { judul: string; isi: string }[];
-  penutup:      string;
+  bookSlug:  string;
+  bookName:  string;
+  chapter:   number;
+  verseFrom: number;
+  verseTo:   number;
+  /** Human-readable reference label, e.g. "Lukas 24:36-49" */
+  reference: string;
 }
 
+const EMPTY_BAHAN_KHOTBAH: BahanKhotbah = {
+  bookSlug: "", bookName: "", chapter: 1, verseFrom: 1, verseTo: 1, reference: "",
+};
+
 export function useBahanKhotbah(date?: Date) {
-  const [data, setData]       = useState<BahanKhotbah>(BAHAN_KHOTBAH);
+  const [data, setData]       = useState<BahanKhotbah>(EMPTY_BAHAN_KHOTBAH);
   const [loading, setLoading] = useState(true);
   const dateKey = getSundayKey(date ?? new Date());
 
@@ -416,8 +432,8 @@ export function useBahanKhotbah(date?: Date) {
     setLoading(true);
     readDoc<BahanKhotbah>("bahan_khotbah", dateKey, null as any)
       .then((d) => {
-        if (d && d.reference) return d;
-        return readDoc<BahanKhotbah>("bahan_khotbah", "current", BAHAN_KHOTBAH);
+        if (d && d.bookSlug) return d;
+        return readDoc<BahanKhotbah>("bahan_khotbah", "current", EMPTY_BAHAN_KHOTBAH);
       })
       .then(setData)
       .finally(() => setLoading(false));
@@ -430,7 +446,14 @@ export function useBahanKhotbah(date?: Date) {
     setData(next);
   }, [date]);
 
-  return { data, loading, save, dateKey };
+  const clear = useCallback(async (targetDate?: Date) => {
+    const key = getSundayKey(targetDate ?? date ?? new Date());
+    await clearDoc("bahan_khotbah", key, EMPTY_BAHAN_KHOTBAH);
+    await clearDoc("bahan_khotbah", "current", EMPTY_BAHAN_KHOTBAH);
+    setData(EMPTY_BAHAN_KHOTBAH);
+  }, [date]);
+
+  return { data, loading, save, clear, dateKey };
 }
 
 // ─── 16. Pokok Doa Harian ─────────────────────────────────────────────────────

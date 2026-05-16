@@ -3,12 +3,19 @@
 import React, { useState } from "react";
 import { Music, ChevronDown, ChevronUp, Copy, Check } from "lucide-react";
 import { useMazmurMinggu } from "@/lib/hooks/useFirestoreData";
+import { getLiturgicalEvents } from "@/lib/utils/liturgicalCalendar";
 import { SectionDivider } from "@/components/shared/SectionDivider";
 
 export function MazmurSection({ date }: { date?: Date }) {
-  const { data, loading } = useMazmurMinggu(date);
+  const d = date ?? new Date();
+  const { data, loading } = useMazmurMinggu(d);
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied]     = useState(false);
+
+  // Hanya tampil pada hari Minggu atau hari raya liturgi penting
+  const isSunday   = d.getDay() === 0;
+  const isHoliday  = getLiturgicalEvents(d).length > 0;
+  if (!isSunday && !isHoliday) return null;
 
   if (loading) return null;
   if (!data.reference || !data.verses || data.verses.length === 0) return null;
@@ -39,7 +46,7 @@ export function MazmurSection({ date }: { date?: Date }) {
           </p>
         </div>
         <p className="font-serif font-bold text-base mb-4" style={{ color: "var(--brand)" }}>
-          {data.reference} — {data.title}
+          {data.reference}
         </p>
 
         {/* Verses */}

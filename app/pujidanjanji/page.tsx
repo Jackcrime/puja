@@ -17,6 +17,7 @@ import {
 } from "@/lib/hooks/useFirestoreData";
 import { useI18n } from "@/lib/hooks/useI18n";
 import { useDate } from "@/lib/context/DateContext";
+import { getLiturgicalEvents, getLiturgicalSeason } from "@/lib/utils/liturgicalCalendar";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 
@@ -47,6 +48,10 @@ export default function PujiDanJanji() {
 
   const displayDate = format(date, "EEEE, d MMMM yyyy", { locale: localeId });
 
+  // Liturgical season & events for selected date
+  const liturgicalSeason = getLiturgicalSeason(date);
+  const liturgicalEvents = getLiturgicalEvents(date);
+
   // Ayat Harian dari date-linked record
   const dateKey     = format(date, "yyyy-MM-dd");
   const ayatHarian  = khusus.harian?.[dateKey];
@@ -64,6 +69,21 @@ export default function PujiDanJanji() {
             <h1 className="font-serif font-bold text-2xl sm:text-3xl" style={{ color: "var(--brand)" }}>
               {displayDate}
             </h1>
+            {/* Liturgical season badge */}
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <span className="text-sm">{liturgicalSeason.emoji}</span>
+              <span className="text-xs font-semibold" style={{ color: liturgicalSeason.color }}>
+                {liturgicalSeason.name}
+              </span>
+              {liturgicalEvents.length > 0 && (
+                <span
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                  style={{ backgroundColor: liturgicalEvents[0].color }}
+                >
+                  {liturgicalEvents[0].name}
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex gap-2">
             {/* Calendar button */}
