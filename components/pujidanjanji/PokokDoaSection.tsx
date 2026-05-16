@@ -10,8 +10,6 @@ interface Props {
   selectedDate?: Date;
 }
 
-const HARI_ORDER = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
-
 export function PokokDoaSection({ selectedDate }: Props) {
   const { data, loading } = usePokokDoaHarian();
 
@@ -57,38 +55,6 @@ export function PokokDoaSection({ selectedDate }: Props) {
             <p className="text-xs text-muted-foreground leading-relaxed">{todayEntry.detail}</p>
           </div>
         )}
-
-        {/* Weekly grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {HARI_ORDER.map((hari) => {
-            const entry    = data.find((d) => d.hari === hari);
-            const isToday  = hari === hariIniCapital;
-            if (!entry) return null;
-            return (
-              <div
-                key={hari}
-                className="flex gap-3 px-3 py-2.5 rounded-lg border transition-colors"
-                style={{
-                  borderColor: isToday ? "var(--brand)" : "var(--border)",
-                  backgroundColor: isToday ? "var(--brand-muted)" : "transparent",
-                }}
-              >
-                <p
-                  className="text-xs font-bold w-14 shrink-0 pt-0.5"
-                  style={{ color: isToday ? "var(--brand)" : "var(--muted-foreground)" }}
-                >
-                  {hari}
-                </p>
-                <p
-                  className="text-xs font-medium leading-snug"
-                  style={{ color: isToday ? "var(--brand)" : "var(--foreground)" }}
-                >
-                  {entry.topik}
-                </p>
-              </div>
-            );
-          })}
-        </div>
       </div>
     </div>
   );

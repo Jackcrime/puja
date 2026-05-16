@@ -13,7 +13,7 @@ import { PokokDoaSection }     from "@/components/pujidanjanji/PokokDoaSection";
 import { SectionDivider }      from "@/components/shared/SectionDivider";
 import { CalendarDays, ChevronRight, Copy, Check, BookOpen, ScrollText, Loader2 } from "lucide-react";
 import {
-  useBibleReadings, useAyatKhusus, usePerikop,
+  useBibleReadings, useAyatKhusus,
 } from "@/lib/hooks/useFirestoreData";
 import { useI18n } from "@/lib/hooks/useI18n";
 import { format } from "date-fns";
@@ -38,12 +38,10 @@ function CopyBtn({ text, reference }: { text: string; reference: string }) {
 export default function PujiDanJanji() {
   const { t } = useI18n();
   const { data: BIBLE_READINGS } = useBibleReadings();
-  const { data: PERIKOP }        = usePerikop();
   const { data: khusus }         = useAyatKhusus();
 
   const [date,        setDate]        = useState<Date | undefined>(new Date());
   const [calOpen,     setCalOpen]     = useState(false);
-  const [perikopOpen, setPerikopOpen] = useState(false);
   const [readVerse,   setReadVerse]   = useState<string[]>([]);
 
   const displayDate = date
@@ -69,38 +67,6 @@ export default function PujiDanJanji() {
             </h1>
           </div>
           <div className="flex gap-2">
-            {/* Perikop button */}
-            <Dialog open={perikopOpen} onOpenChange={setPerikopOpen}>
-              <DialogTrigger asChild>
-                <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                  <ScrollText className="h-4 w-4" />
-                  <span className="hidden sm:inline">{t("pujidanjanji.perikop")}</span>
-                </button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="font-serif" style={{ color: "var(--brand)" }}>
-                    {t("pujidanjanji.perikop")}
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="flex flex-col gap-2 py-2">
-                  {PERIKOP.map((p: any, i: number) => (
-                    <div key={i} className="flex items-start gap-3 p-3 rounded-xl" style={{ backgroundColor: "var(--brand-muted)" }}>
-                      <div className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: "var(--brand)" }}>
-                        {i + 1}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-serif font-semibold text-sm leading-snug" style={{ color: "var(--brand)" }}>
-                          {p.bookName ?? p.book} {p.chapter}:{p.verses ?? `${p.verseFrom}–${p.verseTo}`}
-                        </p>
-                        {p.heading && <p className="text-xs text-muted-foreground mt-0.5">{p.heading}</p>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </DialogContent>
-            </Dialog>
-
             {/* Calendar button */}
             <Dialog open={calOpen} onOpenChange={setCalOpen}>
               <DialogTrigger asChild>
@@ -144,8 +110,6 @@ export default function PujiDanJanji() {
               bookTitle={khusus.minggu.reference.split(" ").slice(0, -1).join(" ")}
               date={khusus.minggu.date}
               accentColor="brand"
-              showPerikop
-              noPerikop
             />
           </section>
         )}
@@ -160,8 +124,6 @@ export default function PujiDanJanji() {
               bookTitle={ayatHarian.reference.split(" ").slice(0, -1).join(" ")}
               label={`AYAT — ${displayDate}`}
               accentColor="gold"
-              showPerikop
-              noPerikop
             />
           ) : (
             <div className="text-center py-8 text-muted-foreground text-sm border border-dashed border-border rounded-xl">
