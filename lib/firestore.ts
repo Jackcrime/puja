@@ -57,16 +57,17 @@ export async function writeDoc<T extends object>(
   docId: string,
   data: T
 ): Promise<void> {
+  const ref = doc(db, collectionName, docId);
+  // Firestore tidak menerima nilai undefined — hapus semua field yang undefined
+  const clean = Object.fromEntries(
+    Object.entries({ ...data, updatedAt: serverTimestamp() })
+      .filter(([, v]) => v !== undefined)
+  );
   try {
-    const ref = doc(db, collectionName, docId);
-    // Firestore tidak menerima nilai undefined — hapus semua field yang undefined
-    const clean = Object.fromEntries(
-      Object.entries({ ...data, updatedAt: serverTimestamp() })
-        .filter(([, v]) => v !== undefined)
-    );
     await setDoc(ref, clean);
   } catch (e) {
-    console.error(`[firestore] writeDoc error:`, e);
+    console.error(`[firestore] writeDoc error (${collectionName}/${docId}):`, e);
+    throw e; // re-throw agar hook bisa catch dan tampilkan toast + batalkan setData
   }
 }
 
@@ -91,13 +92,13 @@ export async function addItem<T extends object>(
   collectionName: CollectionName,
   data: T
 ): Promise<string> {
+  const ref = collection(db, collectionName);
   try {
-    const ref = collection(db, collectionName);
     const docRef = await addDoc(ref, { ...data, createdAt: serverTimestamp() });
     return docRef.id;
   } catch (e) {
-    console.error(`[firestore] addItem error:`, e);
-    return "";
+    console.error(`[firestore] addItem error (${collectionName}):`, e);
+    throw e;
   }
 }
 
@@ -107,11 +108,12 @@ export async function updateItem<T extends object>(
   docId: string,
   changes: Partial<T>
 ): Promise<void> {
+  const ref = doc(db, collectionName, docId);
   try {
-    const ref = doc(db, collectionName, docId);
     await updateDoc(ref, { ...changes, updatedAt: serverTimestamp() });
   } catch (e) {
-    console.error(`[firestore] updateItem error:`, e);
+    console.error(`[firestore] updateItem error (${collectionName}/${docId}):`, e);
+    throw e;
   }
 }
 
@@ -121,11 +123,12 @@ export async function clearDoc<T extends object>(
   docId: string,
   emptyData: T
 ): Promise<void> {
+  const ref = doc(db, collectionName, docId);
   try {
-    const ref = doc(db, collectionName, docId);
     await setDoc(ref, { ...emptyData, updatedAt: serverTimestamp() });
   } catch (e) {
-    console.error(`[firestore] clearDoc error:`, e);
+    console.error(`[firestore] clearDoc error (${collectionName}/${docId}):`, e);
+    throw e;
   }
 }
 
@@ -134,11 +137,12 @@ export async function deleteItem(
   collectionName: CollectionName,
   docId: string
 ): Promise<void> {
+  const ref = doc(db, collectionName, docId);
   try {
-    const ref = doc(db, collectionName, docId);
     await deleteDoc(ref);
   } catch (e) {
-    console.error(`[firestore] deleteItem error:`, e);
+    console.error(`[firestore] deleteItem error (${collectionName}/${docId}):`, e);
+    throw e;
   }
 }
 // ─── Realtime subscription (onSnapshot) ───────────────────────────────────────
