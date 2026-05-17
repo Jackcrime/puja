@@ -184,13 +184,21 @@ export function RenunganStatsPanel({ selectedDate }: RenunganStatsPanelProps = {
 
   // Mazmur + Bahan Khotbah digabung
   const bacaanGroup: StatGroup = {
-    id: "bacaan", title: `Bacaan Minggu (${trackedSunday})`, icon: BookMarked, color: "#7c3aed",
+    id: "bacaan", 
+    title: `Bacaan Minggu (${trackedSunday})`, 
+    icon: BookMarked, 
+    color: "#7c3aed",
     rows: [
       // Mazmur
-      { label: "Mazmur — Referensi", filled: !!mazmur.reference?.trim(),              detail: mazmur.reference },
-      { label: "Mazmur — Ayat",      filled: (mazmur.verses?.length ?? 0) > 0,        detail: mazmur.verses?.length ? `${mazmur.verses.length} ayat` : undefined },
-      // Bahan Khotbah
-      { label: "Khotbah — Perikop",  filled: !!khotbah.bookSlug?.trim(),              detail: khotbah.reference || undefined },
+      { label: "Mazmur — Referensi", filled: !!mazmur.reference?.trim(), detail: mazmur.reference },
+      { label: "Mazmur — Ayat", filled: (mazmur.verses?.length ?? 0) > 0, detail: mazmur.verses?.length ? `${mazmur.verses.length} ayat` : undefined },
+
+      // Bahan Khotbah — Perbaikan logic
+      { 
+        label: "Khotbah — Perikop",  
+        filled: !!khotbah.bookSlug?.trim() && khotbah.visible !== false, 
+        detail: khotbah.reference || undefined 
+      },
     ],
   };
 
