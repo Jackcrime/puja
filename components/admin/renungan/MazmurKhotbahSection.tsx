@@ -13,7 +13,7 @@ import { selToRef } from "@/lib/utils/adminAyat";
 import { showToast } from "@/lib/utils/toast";
 import {
   BookMarked, BookOpen, CalendarDays,
-  Check, Eye, EyeOff, Loader2, Save, RotateCcw,
+  Check, CheckCircle2 as CheckCircle2Icon, Eye, EyeOff, Loader2, Save, RotateCcw,
 } from "lucide-react";
 import { FieldLabel, SectionCard, SaveButton } from "./shared";
 import { Calendar } from "@/components/ui/calendar";
@@ -222,9 +222,15 @@ function BahanKhotbahSubSection({ date }: { date: Date }) {
     setSaving(true);
     try {
       const next: BahanKhotbah = {
-        ...data,
+        bookSlug:  sel.bookSlug,
+        bookName:  sel.bookName,
+        chapter:   sel.chapter,
+        verseFrom: sel.verseFrom,
+        verseTo:   sel.verseTo,
         reference: refLabel(sel),
-        visible: isVisible,
+        visible:   isVisible,
+        visibleFrom:  data.visibleFrom,
+        visibleUntil: data.visibleUntil,
       };
       await save(next, date);
       setSaved(true); showToast.success("Bahan Khotbah disimpan.");
@@ -308,6 +314,53 @@ function BahanKhotbahSubSection({ date }: { date: Date }) {
         <div>
           <FieldLabel>Pilih Ayat Bahan Khotbah</FieldLabel>
           <BibleVerseSelector value={current} onChange={(v) => setSel(v)} showPreview />
+        </div>
+
+        {/* ── Jadwal Tampil (date range) ── */}
+        <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-3.5 w-3.5" style={{ color: "var(--brand)" }} />
+            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--brand)" }}>
+              Jadwal Tampil di Halaman Publik
+            </p>
+          </div>
+          <p className="text-[10px] text-muted-foreground leading-relaxed">
+            Bahan khotbah hanya muncul dalam rentang tanggal ini. Kosongkan keduanya untuk tampil setiap hari.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
+                Mulai Tampil
+              </label>
+              <input
+                type="date"
+                value={data.visibleFrom ?? ""}
+                onChange={async (e) => {
+                  await save({ ...data, visibleFrom: e.target.value || undefined }, date);
+                }}
+                className="w-full px-3 py-2 text-xs border border-border rounded-lg bg-background focus:outline-none focus:ring-1"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
+                Selesai Tampil
+              </label>
+              <input
+                type="date"
+                value={data.visibleUntil ?? ""}
+                onChange={async (e) => {
+                  await save({ ...data, visibleUntil: e.target.value || undefined }, date);
+                }}
+                className="w-full px-3 py-2 text-xs border border-border rounded-lg bg-background focus:outline-none focus:ring-1"
+              />
+            </div>
+          </div>
+          {(data.visibleFrom || data.visibleUntil) && (
+            <div className="flex items-center gap-2 text-[10px] text-green-700 dark:text-green-400">
+              <CheckCircle2Icon className="h-3.5 w-3.5 shrink-0" />
+              Tampil{data.visibleFrom ? ` dari ${data.visibleFrom}` : ""}{data.visibleUntil ? ` s/d ${data.visibleUntil}` : ""}
+            </div>
+          )}
         </div>
       </div>
     </div>

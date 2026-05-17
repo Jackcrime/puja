@@ -161,20 +161,29 @@ export function useAnnouncement() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    readDoc<Announcement>("announcement", "current", ANNOUNCEMENT)
-      .then(setData).finally(() => setLoading(false));
+    // Gunakan subscribeDoc agar realtime — perubahan dari admin langsung terlihat
+    const unsub = subscribeDoc<Announcement>(
+      "announcement", "current", ANNOUNCEMENT,
+      (d) => { setData(d ?? ANNOUNCEMENT); setLoading(false); }
+    );
+    return () => unsub();
   }, []);
 
   const update = useCallback(async (changes: Partial<Announcement>) => {
-    const updated = { ...data, ...changes };
+    // Gunakan setDoc dengan data baru saja (bukan merge dengan stale data)
+    // Ini memastikan yang lama selalu terhapus dan digantikan yang baru
+    const fresh: Announcement = {
+      text: changes.text ?? "",
+      link: changes.link ?? "",
+    };
     try {
-      await writeDoc("announcement", "current", updated);
-      setData(updated);
+      await writeDoc("announcement", "current", fresh);
+      setData(fresh);
     } catch (e) {
       console.error("[useAnnouncement] update error:", e);
       toast.error("Gagal menyimpan pengumuman. Coba lagi.");
     }
-  }, [data]);
+  }, []);
 
   return { data, loading, update };
 }
@@ -518,6 +527,10 @@ export interface BahanKhotbah {
   reference: string;
   /** Jika false, section ini disembunyikan di halaman Puji & Janji. Default: true */
   visible?:  boolean;
+  /** Tanggal mulai tampil (yyyy-MM-dd), jika tidak diset = tampil selalu */
+  visibleFrom?:  string;
+  /** Tanggal akhir tampil (yyyy-MM-dd), jika tidak diset = tampil sampai kapanpun */
+  visibleUntil?: string;
 }
 
 const EMPTY_BAHAN_KHOTBAH: BahanKhotbah = {

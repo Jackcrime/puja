@@ -175,14 +175,20 @@ function LiturgicalCalendarPanel({ onSelectGreeting }: CalendarPanelProps) {
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function AdminPengumuman() {
   const { data, loading, update } = useAnnouncement();
-  const [text,   setText]   = useState("");
-  const [link,   setLink]   = useState("");
-  const [saved,  setSaved]  = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [text,        setText]        = useState("");
+  const [link,        setLink]        = useState("");
+  const [saved,       setSaved]       = useState(false);
+  const [saving,      setSaving]      = useState(false);
+  // Inisialisasi form hanya sekali saat data pertama kali dimuat
+  const [initialized, setInitialized] = useState(false);
 
   React.useEffect(() => {
-    if (!loading) { setText(data.text); setLink(data.link); }
-  }, [loading, data]);
+    if (!loading && !initialized) {
+      setText(data.text);
+      setLink(data.link);
+      setInitialized(true);
+    }
+  }, [loading, initialized]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAutoGreeting = (greeting: string) => {
     setText(greeting);
@@ -192,8 +198,9 @@ export default function AdminPengumuman() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Kirim HANYA text dan link yang baru — yang lama otomatis digantikan sepenuhnya
       await update({ text, link });
-      showToast.success("Pengumuman berhasil disimpan.");
+      showToast.success("Pengumuman berhasil disimpan. Pengumuman lama sudah digantikan.");
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch {
@@ -221,6 +228,19 @@ export default function AdminPengumuman() {
                     <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--gold)" }}>Banner Pengumuman</p>
                     <span className="ml-auto text-xs bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 px-2 py-0.5 rounded-full font-semibold">Live Firestore</span>
                   </div>
+
+                  {/* Pengumuman aktif di Firestore */}
+                  {data.text && (
+                    <div className="rounded-xl px-3 py-2.5 border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
+                      <p className="text-[10px] font-bold uppercase tracking-wider mb-1 text-amber-700 dark:text-amber-400">
+                        Pengumuman Aktif Sekarang
+                      </p>
+                      <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">{data.text}</p>
+                      <p className="text-[10px] text-amber-600 dark:text-amber-500 mt-1">
+                        ↓ Isi form di bawah dan klik Simpan untuk menggantikan pengumuman ini sepenuhnya.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Live preview */}
                   <div className="rounded-xl px-4 py-2.5 text-white text-sm flex items-center gap-2" style={{ backgroundColor: "var(--brand)" }}>

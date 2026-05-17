@@ -214,6 +214,7 @@ export default function JanjiHidup() {
         )}
 
         {/* ── Renungan ─────────────────────────────────────────────────────── */}
+        {(devLoading || devotional.title?.trim() || devotional.body?.trim()) && (
         <section className="mb-8">
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="h-1 w-full" style={{ backgroundColor: "var(--brand)" }} />
@@ -262,8 +263,10 @@ export default function JanjiHidup() {
             </div>
           </div>
         </section>
+        )}
 
         {/* ── Doa ──────────────────────────────────────────────────────────── */}
+        {!devLoading && devotional.prayer?.trim() && (
         <section className="mb-8">
           <div className="rounded-xl border border-border bg-card overflow-hidden">
             <div className="h-0.5 w-full" style={{ backgroundColor: "var(--gold)" }} />
@@ -277,6 +280,7 @@ export default function JanjiHidup() {
             </div>
           </div>
         </section>
+        )}
 
         {/* ── Pokok Doa Hari Ini ───────────────────────────────────────────── */}
         {/* Data dari usePokokDoaHarian() — sama persis dengan yang di-manage admin */}

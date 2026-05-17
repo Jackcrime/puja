@@ -45,7 +45,8 @@ export default function Home() {
           <p className="text-foreground leading-relaxed italic">&ldquo;{dailyVerse.text}&rdquo;</p>
         </div>
 
-        {/* Devotional preview */}
+        {/* Devotional preview — hanya tampil jika ada konten */}
+        {(devLoading || devotional.title?.trim() || devotional.body?.trim()) && (
         <div className="mb-8 bg-card rounded-xl border p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -67,6 +68,7 @@ export default function Home() {
             </>
           )}
         </div>
+        )}
 
         {/* Feature Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

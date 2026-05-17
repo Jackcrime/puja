@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { BookMarked, ChevronDown, ChevronUp, Loader2, Copy, Check, BookOpen } from "lucide-react";
 import { useBahanKhotbah } from "@/lib/hooks/useFirestoreData";
-import { getLiturgicalEvents } from "@/lib/utils/liturgicalCalendar";
 import { SectionDivider } from "@/components/shared/SectionDivider";
 import type { BiblePassageResponse } from "@/app/api/bible/route";
 
@@ -18,13 +17,14 @@ export function BahanKhotbahSection({ date }: { date?: Date }) {
   // Reset verses ketika data berubah (misal ganti minggu)
   useEffect(() => { setVerses(null); setOpen(false); }, [data.bookSlug, data.chapter]);
 
-  const isSunday  = d.getDay() === 0;
-  const isHoliday = getLiturgicalEvents(d).length > 0;
-  if (!isSunday && !isHoliday) return null;
-
   if (loading) return null;
   if (data.visible === false) return null;
   if (!data.bookSlug) return null;
+
+  // Cek jadwal tampil berdasarkan date range (jika diset)
+  const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  if (data.visibleFrom && todayStr < data.visibleFrom) return null;
+  if (data.visibleUntil && todayStr > data.visibleUntil) return null;
 
   const handleOpen = async () => {
     const next = !open;

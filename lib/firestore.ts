@@ -59,7 +59,12 @@ export async function writeDoc<T extends object>(
 ): Promise<void> {
   try {
     const ref = doc(db, collectionName, docId);
-    await setDoc(ref, { ...data, updatedAt: serverTimestamp() });
+    // Firestore tidak menerima nilai undefined — hapus semua field yang undefined
+    const clean = Object.fromEntries(
+      Object.entries({ ...data, updatedAt: serverTimestamp() })
+        .filter(([, v]) => v !== undefined)
+    );
+    await setDoc(ref, clean);
   } catch (e) {
     console.error(`[firestore] writeDoc error:`, e);
   }
