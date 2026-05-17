@@ -76,14 +76,13 @@ export function useRealtimeStats(selectedDate?: Date): RealtimeStatsData {
     ));
 
     // 2. Mazmur Minggu — subscribe ke key minggu ini, fallback ke "current"
-    // Selalu update state (termasuk saat di-clear/kosong) agar stats realtime akurat
-    let mazmurWeekLoaded = false;
+    // Gunakan ref agar flag shared antar dua callback (tidak ada closure stale)
+    const mazmurWeekLoadedRef = { current: false };
     const EMPTY_MAZMUR: MazmurMinggu = { reference: "", title: "", verses: [] };
     unsubs.push(subscribeDoc<MazmurMinggu>(
       "mazmur_minggu", sundayKey, null as any,
       (d) => {
-        mazmurWeekLoaded = true;
-        // d null berarti doc belum ada; d.reference "" berarti sudah di-reset
+        mazmurWeekLoadedRef.current = true;
         setMazmur(d ?? EMPTY_MAZMUR);
         markLoaded("maz");
       }
@@ -91,18 +90,17 @@ export function useRealtimeStats(selectedDate?: Date): RealtimeStatsData {
     unsubs.push(subscribeDoc<MazmurMinggu>(
       "mazmur_minggu", "current", MAZMUR_MINGGU,
       (d) => {
-        // Hanya pakai "current" sebagai fallback jika key minggu belum ada dokumen
-        if (!mazmurWeekLoaded) setMazmur(d);
+        if (!mazmurWeekLoadedRef.current) setMazmur(d);
         markLoaded("maz");
       }
     ));
 
     // 3. Bahan Khotbah — sama seperti mazmur
-    let khotbahWeekLoaded = false;
+    const khotbahWeekLoadedRef = { current: false };
     unsubs.push(subscribeDoc<BahanKhotbah>(
       "bahan_khotbah", sundayKey, null as any,
       (d) => {
-        khotbahWeekLoaded = true;
+        khotbahWeekLoadedRef.current = true;
         setKhotbah(d ?? EMPTY_BAHAN);
         markLoaded("kot");
       }
@@ -110,7 +108,7 @@ export function useRealtimeStats(selectedDate?: Date): RealtimeStatsData {
     unsubs.push(subscribeDoc<BahanKhotbah>(
       "bahan_khotbah", "current", EMPTY_BAHAN,
       (d) => {
-        if (!khotbahWeekLoaded) setKhotbah(d);
+        if (!khotbahWeekLoadedRef.current) setKhotbah(d);
         markLoaded("kot");
       }
     ));

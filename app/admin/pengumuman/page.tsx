@@ -87,7 +87,7 @@ function LiturgicalCalendarPanel({ onSelectGreeting }: CalendarPanelProps) {
               <div key={d} className="text-center text-[10px] font-bold text-muted-foreground py-1">{d}</div>
             ))}
           </div>
-          <div className="grid grid-cols-7 gap-y-0.5">
+          <div className="grid grid-cols-7 gap-1">
             {cells.map((day, i) => {
               if (!day) return <div key={i} />;
               const cellDate = new Date(year, month, day);

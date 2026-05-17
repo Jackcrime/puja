@@ -40,3 +40,9 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Service Worker — file ini di-generate ulang setiap build, jangan di-commit
+public/sw.js
+public/workbox-*.js
+public/swe-worker-*.js
+public/worker-*.js

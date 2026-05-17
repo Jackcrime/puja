@@ -84,7 +84,6 @@ export default function AdminLogin() {
             </form>
 
             <div className="mt-5 pt-4 border-t border-border text-xs text-muted-foreground space-y-1">
-              <p>Email: <code className="bg-muted px-1 rounded">{process.env.NEXT_PUBLIC_ADMIN_EMAIL || "—"}</code></p>
               <p>Password diatur di Firebase Console → Authentication → Users</p>
             </div>
           </div>

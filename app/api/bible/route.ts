@@ -19,7 +19,7 @@ import { BIBLE_BOOKS } from "@/lib/bible-books";
 const LAI_URL    = process.env.LAI_BIBLE_API_URL ?? "https://bible-api.alkitab.or.id/bible-api/api/v1";
 const LAI_KEY    = process.env.LAI_BIBLE_API_KEY ?? "";
 const AYT_URL    = "https://api.ayt.co/v1";
-const AYT_SRC    = process.env.NEXT_PUBLIC_SITE_URL ?? "gkpb.or.id";
+const AYT_SRC    = process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "gkpb.or.id";
 const BOLLS_URL  = "https://bolls.life/get-passage";
 const EN_VERSION = process.env.EN_BIBLE_VERSION ?? "KJV";
 
@@ -59,6 +59,19 @@ export async function GET(req: NextRequest) {
   const chapterNum = Number(chapter);
   const verseFrom  = Number(from);
   const verseTo    = Number(to);
+
+  // Validasi: harus integer positif, dan from <= to
+  if (
+    !Number.isInteger(chapterNum) || chapterNum < 1 ||
+    !Number.isInteger(verseFrom)  || verseFrom < 1  ||
+    !Number.isInteger(verseTo)    || verseTo < 1    ||
+    verseFrom > verseTo
+  ) {
+    return NextResponse.json(
+      { error: "Parameter chapter, from, to harus angka bulat positif, dan from ≤ to." },
+      { status: 400 }
+    );
+  }
 
   const bookIndex = BIBLE_BOOKS.findIndex(b => b.slug === book);
   if (bookIndex === -1) {

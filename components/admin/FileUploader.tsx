@@ -160,7 +160,12 @@ export function FileUploader({
         </p>
       )}
 
-      <label className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => !isUploading && inputRef.current?.click()}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") inputRef.current?.click(); }}
+        className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
           isUploading ? "opacity-50 pointer-events-none" : "hover:bg-muted"
         }`} style={{ borderColor: "var(--brand-border)" }}>
         {isUploading
@@ -187,9 +192,7 @@ export function FileUploader({
             </span>
           )}
         </div>
-        <input type="file" accept={accept} className="hidden"
-          onChange={handleChange} disabled={isUploading} />
-      </label>
+      </div>
 
       {error && <p className="text-xs text-red-500 mt-1.5">{error}</p>}
     </div>

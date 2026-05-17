@@ -1,5 +1,13 @@
 // ─── Firebase Admin SDK ─────────────────────────────────────────────────────
-// SERVER-SIDE ONLY.
+// SERVER-SIDE ONLY — hanya boleh diimport di:
+//   - Server Components (page.tsx / layout.tsx tanpa "use client")
+//   - Route Handlers (app/api/**/route.ts)
+//   - Server Actions ("use server")
+//
+// ⚠️  JANGAN import di file "use client" atau komponen yang ter-bundle ke browser.
+//     Untuk melindungi service account credentials, tambahkan:
+//       import 'server-only'   ← package ini akan throw saat di-bundle ke client
+//     Install jika belum ada: npm install server-only
 
 import { getApps, initializeApp, cert, type App } from "firebase-admin/app";
 

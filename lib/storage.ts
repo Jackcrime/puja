@@ -20,8 +20,8 @@ import {
   type UploadTask,
 } from "firebase/storage";
 import { storage } from "@/lib/firebase";
-
-export type StorageFolder = "pustaka" | "audio" | "images";
+// Shared utilities — satu sumber kebenaran untuk format & validasi
+export { formatFileSize, validateStorageFile as validateFile, type StorageFolder } from "@/lib/file-utils";
 
 export interface UploadResult {
   url: string;
@@ -113,36 +113,5 @@ export async function listFiles(
   }
 }
 
-// ─── Format ukuran file untuk UI ─────────────────────────────────────────────
-export function formatFileSize(bytes: number): string {
-  if (bytes < 1024)       return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-// ─── Validasi file sebelum upload ────────────────────────────────────────────
-export function validateFile(
-  file: File,
-  folder: StorageFolder
-): { valid: boolean; error?: string } {
-  const maxSize = 50 * 1024 * 1024; // 50 MB
-
-  const allowedTypes: Record<StorageFolder, string[]> = {
-    pustaka: ["application/pdf"],
-    audio:   ["audio/mpeg", "audio/mp3", "audio/wav", "audio/ogg"],
-    images:  ["image/jpeg", "image/png", "image/webp"],
-  };
-
-  if (file.size > maxSize) {
-    return { valid: false, error: `Ukuran file maksimal 50 MB (file kamu: ${formatFileSize(file.size)})` };
-  }
-
-  if (!allowedTypes[folder].includes(file.type)) {
-    return {
-      valid: false,
-      error: `Format tidak didukung. Harus: ${allowedTypes[folder].join(", ")}`,
-    };
-  }
-
-  return { valid: true };
-}
+// ─── Format ukuran file & validasi — re-exported dari lib/file-utils.ts ──────
+// (dulu ada di sini, sekarang dipusatkan di file-utils untuk menghindari duplikasi)

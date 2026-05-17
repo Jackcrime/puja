@@ -19,8 +19,6 @@ interface I18nContextType {
   t: (key: string) => string;
 }
 
-import { createContext as _createContext } from "react";
-
 export const I18nContext = createContext<I18nContextType>({
   lang: "id",
   setLang: () => {},

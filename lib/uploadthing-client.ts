@@ -4,6 +4,8 @@
 import { generateUploadButton, generateUploadDropzone, generateReactHelpers } from "@uploadthing/react";
 import type { OurFileRouter } from "@/lib/uploadthing";
 import { auth } from "@/lib/firebase";
+// Shared utilities — satu sumber kebenaran untuk format & validasi
+export { formatFileSize as formatSize, validateUploadThingFile as validateFile, type UploadEndpoint } from "@/lib/file-utils";
 
 export const UploadButton   = generateUploadButton<OurFileRouter>();
 export const UploadDropzone = generateUploadDropzone<OurFileRouter>();
@@ -27,12 +29,8 @@ export async function getUploadHeaders(): Promise<Record<string, string>> {
   return { Authorization: `Bearer ${token}` };
 }
 
-// ─── Format ukuran file ───────────────────────────────────────────────────────
-export function formatSize(bytes: number): string {
-  if (bytes < 1024)         return `${bytes} B`;
-  if (bytes < 1024 * 1024)  return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+// ─── Format & validasi — re-exported dari lib/file-utils.ts ──────────────────
+// (dulu duplikat di sini, sekarang dipusatkan untuk menghindari inkonsistensi)
 
 // ─── Hapus file dari UploadThing via API route ────────────────────────────────
 // Dipanggil saat admin menghapus record yang punya file (foto penulis, PDF pustaka, dll.)
@@ -61,22 +59,4 @@ export async function deleteUploadThingFile(url: string | string[]): Promise<voi
   }
 }
 
-// ─── Validasi sebelum upload ──────────────────────────────────────────────────
-const LIMITS: Record<UploadEndpoint, { maxBytes: number; types: string[]; label: string }> = {
-  pustakaUploader: { maxBytes: 32 * 1024 * 1024, types: ["application/pdf"],       label: "PDF, maks 32 MB"  },
-  audioUploader:   { maxBytes: 64 * 1024 * 1024, types: ["audio/mpeg","audio/wav","audio/webm","audio/ogg","audio/mp4","audio/aac"], label: "MP3/WAV/WebM, maks 64 MB" },
-  imageUploader:   { maxBytes: 4  * 1024 * 1024, types: ["image/jpeg","image/png","image/webp"], label: "JPG/PNG/WebP, maks 4 MB" },
-};
-
-export function validateFile(
-  file: File,
-  endpoint: UploadEndpoint
-): { valid: boolean; error?: string } {
-  const limit = LIMITS[endpoint];
-  if (!limit) return { valid: true };
-  if (file.size > limit.maxBytes)
-    return { valid: false, error: `Ukuran maks ${formatSize(limit.maxBytes)}. File kamu: ${formatSize(file.size)}` };
-  if (!limit.types.includes(file.type))
-    return { valid: false, error: `Format harus ${limit.label}` };
-  return { valid: true };
-}
+// ─── Validasi sebelum upload — gunakan validateFile dari lib/file-utils.ts ────

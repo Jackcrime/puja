@@ -6,9 +6,10 @@
 export interface LiturgicalEvent {
   name: string;
   emoji: string;
-  greeting: string;       // ucapan selamat
-  color: string;          // warna liturgi (hex/var)
-  season?: string;        // musim liturgi
+  greeting: string;
+  color: string;         // warna background light mode
+  darkColor?: string;    // warna background dark mode (opsional, fallback ke color)
+  season?: string;
   description?: string;
 }
 
@@ -107,10 +108,10 @@ export function getLiturgicalEvents(date: Date): LiturgicalEvent[] {
     events.push({ name: "Sabtu Sunyi", emoji: "🕯️", greeting: "Menanti dalam doa dan pengharapan kebangkitan.", color: "#374151", season: "Pekan Suci" });
 
   if (sameDay(date, easter))
-    events.push({ name: "Hari Paskah", emoji: "🌅", greeting: "Kristus Telah Bangkit! Haleluya! Selamat Paskah.", color: "#fff7ed", season: "Paskah" });
+    events.push({ name: "Hari Paskah", emoji: "🌅", greeting: "Kristus Telah Bangkit! Haleluya! Selamat Paskah.", color: "#f59e0b", darkColor: "#b45309", season: "Paskah" });
 
   if (sameDay(date, addDays(easter, 1)))
-    events.push({ name: "Senin Paskah", emoji: "🌅", greeting: "Kristus Telah Bangkit! Selamat Paskah.", color: "#fff7ed", season: "Paskah" });
+    events.push({ name: "Senin Paskah", emoji: "🌅", greeting: "Kristus Telah Bangkit! Selamat Paskah.", color: "#f59e0b", darkColor: "#b45309", season: "Paskah" });
 
   if (sameDay(date, ascension))
     events.push({ name: "Kenaikan Tuhan Yesus Kristus", emoji: "☁️", greeting: "Selamat merayakan Kenaikan Tuhan Yesus ke surga!", color: "#7c3aed", season: "Paskah" });

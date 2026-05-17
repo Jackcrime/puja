@@ -1,8 +1,9 @@
 "use client";
 
 // ─── Firestore Data Hooks ─────────────────────────────────────────────────────
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { readDoc, readCollection, writeDoc, addItem, updateItem, deleteItem, clearDoc, subscribeDoc } from "@/lib/firestore";
+import { toast } from "sonner";
 import {
   DEVOTIONAL, PERIKOP, VERSE_HIGHLIGHTS, SPECIAL_VERSES,
   PRAYER_TOPIC, ANNOUNCEMENT, AYAT_CATEGORIES,
@@ -52,14 +53,24 @@ export function useDevotional() {
 
   const update = useCallback(async (changes: Partial<Devotional>) => {
     const updated = { ...data, ...changes };
-    await writeDoc("devotional", "current", updated);
-    setData(updated);
+    try {
+      await writeDoc("devotional", "current", updated);
+      setData(updated);
+    } catch (e) {
+      console.error("[useDevotional] update error:", e);
+      toast.error("Gagal menyimpan renungan. Coba lagi.");
+    }
   }, [data]);
 
   const clear = useCallback(async () => {
     const empty = { ...DEVOTIONAL, audioUrl: "" } as Devotional;
-    await clearDoc("devotional", "current", empty);
-    setData(empty);
+    try {
+      await clearDoc("devotional", "current", empty);
+      setData(empty);
+    } catch (e) {
+      console.error("[useDevotional] clear error:", e);
+      toast.error("Gagal mereset renungan. Coba lagi.");
+    }
   }, []);
 
   return { data, loading, update, clear };
@@ -76,8 +87,13 @@ export function usePerikop() {
   }, []);
 
   const save = useCallback(async (items: typeof PERIKOP) => {
-    await writeDoc("perikop", "current", { items });
-    setData(items);
+    try {
+      await writeDoc("perikop", "current", { items });
+      setData(items);
+    } catch (e) {
+      console.error("[usePerikop] save error:", e);
+      toast.error("Gagal menyimpan perikop. Coba lagi.");
+    }
   }, []);
 
   return { data, loading, save };
@@ -100,8 +116,13 @@ export function useVerseHighlights() {
   }, []);
 
   const save = useCallback(async (items: typeof VERSE_HIGHLIGHTS) => {
-    await writeDoc("verse_highlights", "current", { items });
-    setData(items);
+    try {
+      await writeDoc("verse_highlights", "current", { items });
+      setData(items);
+    } catch (e) {
+      console.error("[useVerseHighlights] save error:", e);
+      toast.error("Gagal menyimpan highlight. Coba lagi.");
+    }
   }, []);
 
   return { data, loading, save };
@@ -146,8 +167,13 @@ export function useAnnouncement() {
 
   const update = useCallback(async (changes: Partial<Announcement>) => {
     const updated = { ...data, ...changes };
-    await writeDoc("announcement", "current", updated);
-    setData(updated);
+    try {
+      await writeDoc("announcement", "current", updated);
+      setData(updated);
+    } catch (e) {
+      console.error("[useAnnouncement] update error:", e);
+      toast.error("Gagal menyimpan pengumuman. Coba lagi.");
+    }
   }, [data]);
 
   return { data, loading, update };
@@ -179,8 +205,13 @@ export function useAuthors() {
   }, []);
 
   const save = useCallback(async (authors: AuthorsMap) => {
-    await writeDoc("authors", "current", authors);
-    setData(authors);
+    try {
+      await writeDoc("authors", "current", authors);
+      setData(authors);
+    } catch (e) {
+      console.error("[useAuthors] save error:", e);
+      toast.error("Gagal menyimpan data penulis. Coba lagi.");
+    }
   }, []);
 
   return { data, loading, save };
@@ -198,8 +229,13 @@ export function useAyatCategories() {
   }, []);
 
   const save = useCallback(async (items: typeof AYAT_CATEGORIES) => {
-    await writeDoc("ayat_categories", "current", { items });
-    setData(items);
+    try {
+      await writeDoc("ayat_categories", "current", { items });
+      setData(items);
+    } catch (e) {
+      console.error("[useAyatCategories] save error:", e);
+      toast.error("Gagal menyimpan kategori ayat. Coba lagi.");
+    }
   }, []);
 
   return { data, loading, save };
@@ -228,9 +264,18 @@ export function usePustakaBooks() {
 
   useEffect(() => { load(); }, [load]);
 
-  const add    = useCallback(async (book: Omit<PustakaBook, "id">) => { const id = await addItem("pustaka_books", book); await load(); return id; }, [load]);
-  const update = useCallback(async (id: string, changes: Partial<PustakaBook>) => { await updateItem("pustaka_books", id, changes); await load(); }, [load]);
-  const remove = useCallback(async (id: string) => { await deleteItem("pustaka_books", id); await load(); }, [load]);
+  const add    = useCallback(async (book: Omit<PustakaBook, "id">) => {
+    try { const id = await addItem("pustaka_books", book); await load(); return id; }
+    catch (e) { console.error("[usePustakaBooks] add error:", e); toast.error("Gagal menambah buku. Coba lagi."); return ""; }
+  }, [load]);
+  const update = useCallback(async (id: string, changes: Partial<PustakaBook>) => {
+    try { await updateItem("pustaka_books", id, changes); await load(); }
+    catch (e) { console.error("[usePustakaBooks] update error:", e); toast.error("Gagal memperbarui buku. Coba lagi."); }
+  }, [load]);
+  const remove = useCallback(async (id: string) => {
+    try { await deleteItem("pustaka_books", id); await load(); }
+    catch (e) { console.error("[usePustakaBooks] remove error:", e); toast.error("Gagal menghapus buku. Coba lagi."); }
+  }, [load]);
 
   return { data, loading, add, update, remove, reload: load };
 }
@@ -258,9 +303,18 @@ export function useMinistries() {
 
   useEffect(() => { load(); }, [load]);
 
-  const add    = useCallback(async (m: Omit<Ministry, "id">) => { await addItem("ministries", m); await load(); }, [load]);
-  const update = useCallback(async (id: string, changes: Partial<Ministry>) => { await updateItem("ministries", id, changes); await load(); }, [load]);
-  const remove = useCallback(async (id: string) => { await deleteItem("ministries", id); await load(); }, [load]);
+  const add    = useCallback(async (m: Omit<Ministry, "id">) => {
+    try { await addItem("ministries", m); await load(); }
+    catch (e) { console.error("[useMinistries] add error:", e); toast.error("Gagal menambah pelayanan. Coba lagi."); }
+  }, [load]);
+  const update = useCallback(async (id: string, changes: Partial<Ministry>) => {
+    try { await updateItem("ministries", id, changes); await load(); }
+    catch (e) { console.error("[useMinistries] update error:", e); toast.error("Gagal memperbarui pelayanan. Coba lagi."); }
+  }, [load]);
+  const remove = useCallback(async (id: string) => {
+    try { await deleteItem("ministries", id); await load(); }
+    catch (e) { console.error("[useMinistries] remove error:", e); toast.error("Gagal menghapus pelayanan. Coba lagi."); }
+  }, [load]);
 
   return { data, loading, add, update, remove, reload: load };
 }
@@ -302,8 +356,13 @@ export function useBibleReadings() {
   }, []);
 
   const save = useCallback(async (items: BibleReading[]) => {
-    await writeDoc("bible_readings", "current", { items });
-    setData(items);
+    try {
+      await writeDoc("bible_readings", "current", { items });
+      setData(items);
+    } catch (e) {
+      console.error("[useBibleReadings] save error:", e);
+      toast.error("Gagal menyimpan bacaan Alkitab. Coba lagi.");
+    }
   }, []);
 
   return { data, loading, save };
@@ -357,8 +416,13 @@ export function useAyatKhusus() {
   }, []);
 
   const save = useCallback(async (next: AyatKhusus) => {
-    await writeDoc("ayat_khusus", "current", next);
-    setData(next);
+    try {
+      await writeDoc("ayat_khusus", "current", next);
+      setData(next);
+    } catch (e) {
+      console.error("[useAyatKhusus] save error:", e);
+      toast.error("Gagal menyimpan ayat khusus. Coba lagi.");
+    }
   }, []);
 
   return { data, loading, save };
@@ -389,17 +453,15 @@ export function useMazmurMinggu(date?: Date) {
 
   useEffect(() => {
     setLoading(true);
-    // Subscribe realtime: prioritas key minggu, fallback ke "current"
-    let weekLoaded = false;
+    // useRef agar flag shared antar dua callback (tidak ada closure stale)
+    const weekLoadedRef = { current: false };
     const unsubWeek = subscribeDoc<MazmurMinggu>(
       "mazmur_minggu", dateKey, null as any,
       (d) => {
-        weekLoaded = true;
+        weekLoadedRef.current = true;
         if (d && d.reference) {
-          // Ada data valid untuk minggu ini (termasuk visible:false — dihormati)
           setData(d);
         } else {
-          // Dokumen minggu ini tidak ada atau kosong (di-reset) — pakai default kosong
           setData({ reference: "", title: "", verses: [], visible: true });
         }
         setLoading(false);
@@ -408,8 +470,7 @@ export function useMazmurMinggu(date?: Date) {
     const unsubCurrent = subscribeDoc<MazmurMinggu>(
       "mazmur_minggu", "current", MAZMUR_MINGGU,
       (d) => {
-        // Hanya pakai "current" jika dokumen minggu belum pernah exist
-        if (!weekLoaded) {
+        if (!weekLoadedRef.current) {
           setData(d ?? MAZMUR_MINGGU);
           setLoading(false);
         }
@@ -420,18 +481,27 @@ export function useMazmurMinggu(date?: Date) {
 
   const save = useCallback(async (next: MazmurMinggu, targetDate?: Date) => {
     const key = getSundayKey(targetDate ?? date ?? new Date());
-    await writeDoc("mazmur_minggu", key, next);
-    // Juga simpan ke "current" untuk backward compat
-    await writeDoc("mazmur_minggu", "current", next);
-    setData(next);
+    try {
+      await writeDoc("mazmur_minggu", key, next);
+      await writeDoc("mazmur_minggu", "current", next);
+      setData(next);
+    } catch (e) {
+      console.error("[useMazmurMinggu] save error:", e);
+      toast.error("Gagal menyimpan Mazmur Minggu. Coba lagi.");
+    }
   }, [date]);
 
   const clear = useCallback(async (targetDate?: Date) => {
     const key = getSundayKey(targetDate ?? date ?? new Date());
     const empty: MazmurMinggu = { reference: "", title: "", verses: [] };
-    await clearDoc("mazmur_minggu", key, empty as any);
-    await clearDoc("mazmur_minggu", "current", empty as any);
-    setData(MAZMUR_MINGGU);
+    try {
+      await clearDoc("mazmur_minggu", key, empty as any);
+      await clearDoc("mazmur_minggu", "current", empty as any);
+      setData(MAZMUR_MINGGU);
+    } catch (e) {
+      console.error("[useMazmurMinggu] clear error:", e);
+      toast.error("Gagal mereset Mazmur Minggu. Coba lagi.");
+    }
   }, [date]);
 
   return { data, loading, save, clear, dateKey };
@@ -461,17 +531,15 @@ export function useBahanKhotbah(date?: Date) {
 
   useEffect(() => {
     setLoading(true);
-    // Subscribe realtime: prioritas key minggu, fallback ke "current"
-    let weekLoaded = false;
+    // useRef agar flag shared antar dua callback (tidak ada closure stale)
+    const weekLoadedRef = { current: false };
     const unsubWeek = subscribeDoc<BahanKhotbah>(
       "bahan_khotbah", dateKey, null as any,
       (d) => {
-        weekLoaded = true;
+        weekLoadedRef.current = true;
         if (d && d.bookSlug) {
-          // Ada data valid untuk minggu ini (termasuk visible:false)
           setData(d);
         } else {
-          // Kosong / di-reset
           setData(EMPTY_BAHAN_KHOTBAH);
         }
         setLoading(false);
@@ -480,7 +548,7 @@ export function useBahanKhotbah(date?: Date) {
     const unsubCurrent = subscribeDoc<BahanKhotbah>(
       "bahan_khotbah", "current", EMPTY_BAHAN_KHOTBAH,
       (d) => {
-        if (!weekLoaded) {
+        if (!weekLoadedRef.current) {
           setData(d ?? EMPTY_BAHAN_KHOTBAH);
           setLoading(false);
         }
@@ -491,16 +559,26 @@ export function useBahanKhotbah(date?: Date) {
 
   const save = useCallback(async (next: BahanKhotbah, targetDate?: Date) => {
     const key = getSundayKey(targetDate ?? date ?? new Date());
-    await writeDoc("bahan_khotbah", key, next);
-    await writeDoc("bahan_khotbah", "current", next);
-    setData(next);
+    try {
+      await writeDoc("bahan_khotbah", key, next);
+      await writeDoc("bahan_khotbah", "current", next);
+      setData(next);
+    } catch (e) {
+      console.error("[useBahanKhotbah] save error:", e);
+      toast.error("Gagal menyimpan Bahan Khotbah. Coba lagi.");
+    }
   }, [date]);
 
   const clear = useCallback(async (targetDate?: Date) => {
     const key = getSundayKey(targetDate ?? date ?? new Date());
-    await clearDoc("bahan_khotbah", key, EMPTY_BAHAN_KHOTBAH);
-    await clearDoc("bahan_khotbah", "current", EMPTY_BAHAN_KHOTBAH);
-    setData(EMPTY_BAHAN_KHOTBAH);
+    try {
+      await clearDoc("bahan_khotbah", key, EMPTY_BAHAN_KHOTBAH);
+      await clearDoc("bahan_khotbah", "current", EMPTY_BAHAN_KHOTBAH);
+      setData(EMPTY_BAHAN_KHOTBAH);
+    } catch (e) {
+      console.error("[useBahanKhotbah] clear error:", e);
+      toast.error("Gagal mereset Bahan Khotbah. Coba lagi.");
+    }
   }, [date]);
 
   return { data, loading, save, clear, dateKey };
@@ -522,8 +600,13 @@ export function usePokokDoaHarian() {
       .finally(() => setLoading(false));
   }, []);
   const save = useCallback(async (items: PokokDoa[]) => {
-    await writeDoc("pokok_doa_harian", "current", { items });
-    setData(items);
+    try {
+      await writeDoc("pokok_doa_harian", "current", { items });
+      setData(items);
+    } catch (e) {
+      console.error("[usePokokDoaHarian] save error:", e);
+      toast.error("Gagal menyimpan pokok doa. Coba lagi.");
+    }
   }, []);
   return { data, loading, save };
 }
@@ -559,8 +642,13 @@ export function useAyatNats() {
       .finally(() => setLoading(false));
   }, []);
   const save = useCallback(async (next: AyatNats) => {
-    await writeDoc("ayat_nats", "current", next);
-    setData(next);
+    try {
+      await writeDoc("ayat_nats", "current", next);
+      setData(next);
+    } catch (e) {
+      console.error("[useAyatNats] save error:", e);
+      toast.error("Gagal menyimpan ayat nats. Coba lagi.");
+    }
   }, []);
   return { data, loading, save };
 }

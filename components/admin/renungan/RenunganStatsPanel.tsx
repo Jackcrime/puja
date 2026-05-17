@@ -208,7 +208,12 @@ export function RenunganStatsPanel({ selectedDate }: RenunganStatsPanelProps = {
   const khususGroup: StatGroup = {
     id: "khusus", title: "Ayat Khusus", icon: Star, color: "#d97706",
     rows: [
-      { label: "Ayat Minggu",              filled: !!(khusus?.minggu?.reference?.trim()),             detail: khusus?.minggu?.reference },
+      // Cek field mingguan (sistem baru, key = sundayKey) + fallback ke field minggu lama
+      { label: "Ayat Minggu",
+        filled: !!(khusus?.mingguan?.[(() => { const d = new Date(selectedDate ?? new Date()); d.setDate(d.getDate() - d.getDay()); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()]?.reference?.trim())
+             || !!(khusus?.minggu?.reference?.trim()),
+        detail: khusus?.mingguan?.[(() => { const d = new Date(selectedDate ?? new Date()); d.setDate(d.getDate() - d.getDay()); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()]?.reference
+             || khusus?.minggu?.reference },
       { label: `Hari ini (${todayLabel})`, filled: !!(khusus?.harian?.[todayKey]?.reference?.trim()), detail: khusus?.harian?.[todayKey]?.reference },
     ],
   };
