@@ -2,7 +2,7 @@
 
 // ─── Firestore Data Hooks ─────────────────────────────────────────────────────
 import { useState, useEffect, useCallback } from "react";
-import { readDoc, readCollection, writeDoc, addItem, updateItem, deleteItem, clearDoc } from "@/lib/firestore";
+import { readDoc, readCollection, writeDoc, addItem, updateItem, deleteItem, clearDoc, subscribeDoc } from "@/lib/firestore";
 import {
   DEVOTIONAL, PERIKOP, VERSE_HIGHLIGHTS, SPECIAL_VERSES,
   PRAYER_TOPIC, ANNOUNCEMENT, AYAT_CATEGORIES,
@@ -389,14 +389,33 @@ export function useMazmurMinggu(date?: Date) {
 
   useEffect(() => {
     setLoading(true);
-    // Coba ambil data untuk minggu ini, fallback ke "current" lalu ke default
-    readDoc<MazmurMinggu>("mazmur_minggu", dateKey, null as any)
-      .then((d) => {
-        if (d && d.reference) return d;
-        return readDoc<MazmurMinggu>("mazmur_minggu", "current", MAZMUR_MINGGU);
-      })
-      .then(setData)
-      .finally(() => setLoading(false));
+    // Subscribe realtime: prioritas key minggu, fallback ke "current"
+    let weekLoaded = false;
+    const unsubWeek = subscribeDoc<MazmurMinggu>(
+      "mazmur_minggu", dateKey, null as any,
+      (d) => {
+        weekLoaded = true;
+        if (d && d.reference) {
+          // Ada data valid untuk minggu ini (termasuk visible:false — dihormati)
+          setData(d);
+        } else {
+          // Dokumen minggu ini tidak ada atau kosong (di-reset) — pakai default kosong
+          setData({ reference: "", title: "", verses: [], visible: true });
+        }
+        setLoading(false);
+      }
+    );
+    const unsubCurrent = subscribeDoc<MazmurMinggu>(
+      "mazmur_minggu", "current", MAZMUR_MINGGU,
+      (d) => {
+        // Hanya pakai "current" jika dokumen minggu belum pernah exist
+        if (!weekLoaded) {
+          setData(d ?? MAZMUR_MINGGU);
+          setLoading(false);
+        }
+      }
+    );
+    return () => { unsubWeek(); unsubCurrent(); };
   }, [dateKey]);
 
   const save = useCallback(async (next: MazmurMinggu, targetDate?: Date) => {
@@ -407,7 +426,15 @@ export function useMazmurMinggu(date?: Date) {
     setData(next);
   }, [date]);
 
-  return { data, loading, save, dateKey };
+  const clear = useCallback(async (targetDate?: Date) => {
+    const key = getSundayKey(targetDate ?? date ?? new Date());
+    const empty: MazmurMinggu = { reference: "", title: "", verses: [] };
+    await clearDoc("mazmur_minggu", key, empty as any);
+    await clearDoc("mazmur_minggu", "current", empty as any);
+    setData(MAZMUR_MINGGU);
+  }, [date]);
+
+  return { data, loading, save, clear, dateKey };
 }
 
 // ─── 15. Bahan Khotbah ────────────────────────────────────────────────────────
@@ -434,13 +461,32 @@ export function useBahanKhotbah(date?: Date) {
 
   useEffect(() => {
     setLoading(true);
-    readDoc<BahanKhotbah>("bahan_khotbah", dateKey, null as any)
-      .then((d) => {
-        if (d && d.bookSlug) return d;
-        return readDoc<BahanKhotbah>("bahan_khotbah", "current", EMPTY_BAHAN_KHOTBAH);
-      })
-      .then(setData)
-      .finally(() => setLoading(false));
+    // Subscribe realtime: prioritas key minggu, fallback ke "current"
+    let weekLoaded = false;
+    const unsubWeek = subscribeDoc<BahanKhotbah>(
+      "bahan_khotbah", dateKey, null as any,
+      (d) => {
+        weekLoaded = true;
+        if (d && d.bookSlug) {
+          // Ada data valid untuk minggu ini (termasuk visible:false)
+          setData(d);
+        } else {
+          // Kosong / di-reset
+          setData(EMPTY_BAHAN_KHOTBAH);
+        }
+        setLoading(false);
+      }
+    );
+    const unsubCurrent = subscribeDoc<BahanKhotbah>(
+      "bahan_khotbah", "current", EMPTY_BAHAN_KHOTBAH,
+      (d) => {
+        if (!weekLoaded) {
+          setData(d ?? EMPTY_BAHAN_KHOTBAH);
+          setLoading(false);
+        }
+      }
+    );
+    return () => { unsubWeek(); unsubCurrent(); };
   }, [dateKey]);
 
   const save = useCallback(async (next: BahanKhotbah, targetDate?: Date) => {

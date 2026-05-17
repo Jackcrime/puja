@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRealtimeStats } from "@/lib/hooks/useRealtimeStats";
 import {
   CheckCircle2, XCircle, Loader2, BookOpen, Music,
+  Minus,
   BookMarked, HandHeart, Star, ChevronDown, ChevronUp, RefreshCw,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -100,7 +101,9 @@ function StatBlock({ group }: { group: StatGroup }) {
               <div className="flex items-center gap-1.5 min-w-0">
                 {row.filled
                   ? <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                  : <XCircle      className="h-3.5 w-3.5 text-red-400 shrink-0"   />}
+                  : row.detail
+                    ? <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />
+                    : <Minus   className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />}
                 {row.detail && (
                   <span className="text-[10px] truncate max-w-[96px]"
                     style={{ color: row.filled ? "hsl(var(--foreground))" : "hsl(var(--muted-foreground))" }}>
@@ -148,8 +151,12 @@ function LiveDot({ lastUpdated }: { lastUpdated: Date | null }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export function RenunganStatsPanel() {
-  const { devotional: dev, mazmur, khotbah, pokdoa, khusus, authors, loading, lastUpdated } = useRealtimeStats();
+interface RenunganStatsPanelProps {
+  selectedDate?: Date;
+}
+
+export function RenunganStatsPanel({ selectedDate }: RenunganStatsPanelProps = {}) {
+  const { devotional: dev, mazmur, khotbah, pokdoa, khusus, authors, loading, lastUpdated } = useRealtimeStats(selectedDate);
 
   const authorName = (() => {
     if (!dev.authorCode) return undefined;
@@ -170,9 +177,14 @@ export function RenunganStatsPanel() {
     ],
   };
 
+  const trackedSunday = format(
+    (() => { const d = new Date(selectedDate ?? new Date()); d.setDate(d.getDate() - d.getDay()); return d; })(),
+    "d MMM", { locale: localeId }
+  );
+
   // Mazmur + Bahan Khotbah digabung
   const bacaanGroup: StatGroup = {
-    id: "bacaan", title: "Bacaan Minggu", icon: BookMarked, color: "#7c3aed",
+    id: "bacaan", title: `Bacaan Minggu (${trackedSunday})`, icon: BookMarked, color: "#7c3aed",
     rows: [
       // Mazmur
       { label: "Mazmur — Referensi", filled: !!mazmur.reference?.trim(),              detail: mazmur.reference },

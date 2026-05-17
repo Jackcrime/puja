@@ -13,7 +13,7 @@ import { selToRef } from "@/lib/utils/adminAyat";
 import { showToast } from "@/lib/utils/toast";
 import {
   BookMarked, BookOpen, CalendarDays,
-  Check, Eye, EyeOff, Loader2, Save,
+  Check, Eye, EyeOff, Loader2, Save, RotateCcw,
 } from "lucide-react";
 import { FieldLabel, SectionCard, SaveButton } from "./shared";
 import { Calendar } from "@/components/ui/calendar";
@@ -31,10 +31,11 @@ function getSunday(d: Date): Date {
 
 // ─── Sub-section: Mazmur ──────────────────────────────────────────────────────
 function MazmurSubSection({ date }: { date: Date }) {
-  const { data, loading, save } = useMazmurMinggu(date);
+  const { data, loading, save, clear } = useMazmurMinggu(date);
   const [sel,           setSel]           = useState<VerseSelection>(emptySelection());
   const [saving,        setSaving]        = useState(false);
   const [saved,         setSaved]         = useState(false);
+  const [resetting,     setResetting]     = useState(false);
   const [showPreview,   setShowPreview]   = useState(false);
   const [previewVerses, setPreviewVerses] = useState<{ number: string; text: string }[]>([]);
   const [loadingVerses, setLoadingVerses] = useState(false);
@@ -58,6 +59,18 @@ function MazmurSubSection({ date }: { date: Date }) {
       }
     } catch {}
     setLoadingVerses(false);
+  };
+
+  const handleReset = async () => {
+    setResetting(true);
+    try {
+      await clear(date);
+      // Reset ke selection awal dengan bookSlug "mazmur" agar field tidak terkunci (lockedBook)
+      setSel({ bookSlug: "mazmur", bookName: "Mazmur", chapter: 1, verseFrom: 1, verseTo: 1 });
+      setPreviewVerses([]);
+      showToast.success("Mazmur Minggu berhasil direset.");
+    } catch { showToast.error("Gagal mereset. Coba lagi."); }
+    setResetting(false);
   };
 
   const handleSave = async () => {
@@ -108,6 +121,12 @@ function MazmurSubSection({ date }: { date: Date }) {
             }`}
           >
             {isVisible ? <><Eye className="h-3 w-3" /> Tampil</> : <><EyeOff className="h-3 w-3" /> Disembunyikan</>}
+          </button>
+          <button onClick={handleReset} disabled={saving || resetting}
+            title="Hapus data Mazmur minggu ini"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 disabled:opacity-60 transition-all"
+          >
+            {resetting ? <><Loader2 className="h-3 w-3 animate-spin" /> Reset...</> : <><RotateCcw className="h-3 w-3" /> Reset</>}
           </button>
           <button onClick={handleSave} disabled={saving}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60 transition-all"
@@ -175,10 +194,11 @@ function MazmurSubSection({ date }: { date: Date }) {
 
 // ─── Sub-section: Bahan Khotbah ───────────────────────────────────────────────
 function BahanKhotbahSubSection({ date }: { date: Date }) {
-  const { data, loading, save } = useBahanKhotbah(date);
+  const { data, loading, save, clear } = useBahanKhotbah(date);
   const [sel,       setSel]       = useState<VerseSelection | null>(null);
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const isVisible = data.visible !== false;
 
@@ -186,6 +206,16 @@ function BahanKhotbahSubSection({ date }: { date: Date }) {
     ? { bookSlug: "", bookName: "", chapter: 0, verseFrom: 0, verseTo: 0 }
     : emptySelection()
   );
+
+  const handleReset = async () => {
+    setResetting(true);
+    try {
+      await clear(date);
+      setSel(null);
+      showToast.success("Bahan Khotbah berhasil direset.");
+    } catch { showToast.error("Gagal mereset. Coba lagi."); }
+    setResetting(false);
+  };
 
   const handleSave = async () => {
     if (!sel?.bookSlug) { showToast.error("Pilih ayat Bahan Khotbah terlebih dahulu."); return; }
@@ -236,6 +266,12 @@ function BahanKhotbahSubSection({ date }: { date: Date }) {
           >
             {isVisible ? <><Eye className="h-3 w-3" /> Tampil</> : <><EyeOff className="h-3 w-3" /> Disembunyikan</>}
           </button>
+          <button onClick={handleReset} disabled={saving || resetting}
+            title="Hapus data Bahan Khotbah minggu ini"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 disabled:opacity-60 transition-all"
+          >
+            {resetting ? <><Loader2 className="h-3 w-3 animate-spin" /> Reset...</> : <><RotateCcw className="h-3 w-3" /> Reset</>}
+          </button>
           <button onClick={handleSave} disabled={saving}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60 transition-all"
             style={{ backgroundColor: saved ? "#16a34a" : "var(--brand)" }}
@@ -279,10 +315,20 @@ function BahanKhotbahSubSection({ date }: { date: Date }) {
 }
 
 // ─── Main Export: satu date picker, dua section ───────────────────────────────
-export function MazmurKhotbahSection() {
+interface MazmurKhotbahSectionProps {
+  onDateChange?: (date: Date) => void;
+}
+
+export function MazmurKhotbahSection({ onDateChange }: MazmurKhotbahSectionProps = {}) {
   const [targetDate, setTargetDate] = useState<Date>(new Date());
   const [calOpen,    setCalOpen]    = useState(false);
   const sundayLabel = format(getSunday(targetDate), "d MMMM yyyy", { locale: localeId });
+
+  const handleDateSelect = (d: Date) => {
+    setTargetDate(d);
+    onDateChange?.(d);
+    setCalOpen(false);
+  };
 
   return (
     <div className="space-y-5">
@@ -309,7 +355,7 @@ export function MazmurKhotbahSection() {
               <Calendar
                 mode="single"
                 selected={targetDate}
-                onSelect={(d) => { if (d) setTargetDate(d); setCalOpen(false); }}
+                onSelect={(d) => { if (d) handleDateSelect(d); }}
                 className="rounded-lg border"
               />
             </div>

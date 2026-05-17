@@ -45,14 +45,14 @@ export function BibleVerseSelector({
   const [preErr,  setPreErr]    = useState("");
   const [noKey,   setNoKey]     = useState(false);
 
-  // Jika lockedBook diisi, otomatis set book saat mount jika belum terpilih
+  // Jika lockedBook diisi, otomatis set book saat mount atau saat bookSlug dikosongkan (misal setelah reset)
   React.useEffect(() => {
     if (lockedBook && value.bookSlug !== lockedBook) {
       const book = BIBLE_BOOKS.find((b) => b.slug === lockedBook);
       if (book) onChange({ bookSlug: book.slug, bookName: book.name, chapter: value.chapter || 1, verseFrom: value.verseFrom || 1, verseTo: value.verseTo || 1 });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lockedBook]);
+  }, [lockedBook, value.bookSlug]);
 
   const PLbooks = BIBLE_BOOKS.filter((b) => b.testament === "PL");
   const PBbooks = BIBLE_BOOKS.filter((b) => b.testament === "PB");

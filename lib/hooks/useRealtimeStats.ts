@@ -43,8 +43,8 @@ export interface RealtimeStatsData {
   lastUpdated: Date | null;
 }
 
-export function useRealtimeStats(): RealtimeStatsData {
-  const sundayKey = getSundayKey(new Date());
+export function useRealtimeStats(selectedDate?: Date): RealtimeStatsData {
+  const sundayKey = getSundayKey(selectedDate ?? new Date());
 
   const [devotional,  setDevotional]  = useState<Devotional>(DEVOTIONAL as Devotional);
   const [mazmur,      setMazmur]      = useState<MazmurMinggu>(MAZMUR_MINGGU);
@@ -76,33 +76,43 @@ export function useRealtimeStats(): RealtimeStatsData {
     ));
 
     // 2. Mazmur Minggu — subscribe ke key minggu ini, fallback ke "current"
-    // Dua subscription: key minggu & current; pakai yang pertama ada datanya
-    let mazmurFromWeek = false;
+    // Selalu update state (termasuk saat di-clear/kosong) agar stats realtime akurat
+    let mazmurWeekLoaded = false;
+    const EMPTY_MAZMUR: MazmurMinggu = { reference: "", title: "", verses: [] };
     unsubs.push(subscribeDoc<MazmurMinggu>(
       "mazmur_minggu", sundayKey, null as any,
       (d) => {
-        if (d && d.reference) { mazmurFromWeek = true; setMazmur(d); }
-        else if (!mazmurFromWeek) { /* tunggu current */ }
+        mazmurWeekLoaded = true;
+        // d null berarti doc belum ada; d.reference "" berarti sudah di-reset
+        setMazmur(d ?? EMPTY_MAZMUR);
         markLoaded("maz");
       }
     ));
     unsubs.push(subscribeDoc<MazmurMinggu>(
       "mazmur_minggu", "current", MAZMUR_MINGGU,
-      (d) => { if (!mazmurFromWeek) setMazmur(d); markLoaded("maz"); }
+      (d) => {
+        // Hanya pakai "current" sebagai fallback jika key minggu belum ada dokumen
+        if (!mazmurWeekLoaded) setMazmur(d);
+        markLoaded("maz");
+      }
     ));
 
     // 3. Bahan Khotbah — sama seperti mazmur
-    let khotbahFromWeek = false;
+    let khotbahWeekLoaded = false;
     unsubs.push(subscribeDoc<BahanKhotbah>(
       "bahan_khotbah", sundayKey, null as any,
       (d) => {
-        if (d && d.bookSlug) { khotbahFromWeek = true; setKhotbah(d); }
+        khotbahWeekLoaded = true;
+        setKhotbah(d ?? EMPTY_BAHAN);
         markLoaded("kot");
       }
     ));
     unsubs.push(subscribeDoc<BahanKhotbah>(
       "bahan_khotbah", "current", EMPTY_BAHAN,
-      (d) => { if (!khotbahFromWeek) setKhotbah(d); markLoaded("kot"); }
+      (d) => {
+        if (!khotbahWeekLoaded) setKhotbah(d);
+        markLoaded("kot");
+      }
     ));
 
     // 4. Pokok Doa Harian

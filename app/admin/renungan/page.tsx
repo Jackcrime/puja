@@ -39,7 +39,8 @@ type TabId = typeof TABS[number]["id"];
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AdminRenungan() {
-  const [activeTab, setActiveTab] = useState<TabId>("renungan");
+  const [activeTab,    setActiveTab]    = useState<TabId>("renungan");
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const activeTabDef = TABS.find((t) => t.id === activeTab)!;
   const TabIcon      = activeTabDef.icon;
@@ -83,13 +84,13 @@ export default function AdminRenungan() {
           {/* ── Left: Tab content ─────────────────────────────────────────── */}
           <div className="flex-1 min-w-0">
             {activeTab === "renungan" && <RenunganSection />}
-            {activeTab === "mazmur-khotbah" && <MazmurKhotbahSection />}
+            {activeTab === "mazmur-khotbah" && <MazmurKhotbahSection onDateChange={setSelectedDate} />}
             {activeTab === "pokdoa"   && <PokokDoaSection />}
           </div>
 
           {/* ── Right: Stats panel ────────────────────────────────────────── */}
           <div className="w-64 shrink-0 hidden lg:block sticky top-6">
-            <RenunganStatsPanel />
+            <RenunganStatsPanel selectedDate={selectedDate} />
           </div>
         </div>
 
