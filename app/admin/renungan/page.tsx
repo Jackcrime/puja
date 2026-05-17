@@ -7,9 +7,10 @@ import {
   RenunganSection,
   MazmurKhotbahSection,
   PokokDoaSection,
+  BacaanAlkitabSection,
   RenunganStatsPanel,
 } from "@/components/admin/renungan";
-import { BookOpen, BookMarked, HandHeart } from "lucide-react";
+import { BookOpen, BookMarked, HandHeart, ScrollText } from "lucide-react";
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
 
@@ -19,6 +20,12 @@ const TABS = [
     label:       "Renungan Harian",
     icon:        BookOpen,
     description: "Edit konten renungan harian, penulis, dan audio.",
+  },
+  {
+    id:          "bacaan" as const,
+    label:       "Bacaan Alkitab",
+    icon:        ScrollText,
+    description: "Kelola daftar bacaan Alkitab harian beserta cross-reference perikop terkait.",
   },
   {
     id:          "mazmur-khotbah" as const,
@@ -84,6 +91,7 @@ export default function AdminRenungan() {
           {/* ── Left: Tab content ─────────────────────────────────────────── */}
           <div className="flex-1 min-w-0">
             {activeTab === "renungan" && <RenunganSection />}
+            {activeTab === "bacaan"   && <BacaanAlkitabSection />}
             {activeTab === "mazmur-khotbah" && <MazmurKhotbahSection onDateChange={setSelectedDate} />}
             {activeTab === "pokdoa"   && <PokokDoaSection />}
           </div>

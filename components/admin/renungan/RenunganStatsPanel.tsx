@@ -5,7 +5,7 @@ import { useRealtimeStats } from "@/lib/hooks/useRealtimeStats";
 import {
   CheckCircle2, XCircle, Loader2, BookOpen, Music,
   Minus,
-  BookMarked, HandHeart, Star, ChevronDown, ChevronUp, RefreshCw,
+  BookMarked, HandHeart, ChevronDown, ChevronUp, RefreshCw,
 } from "lucide-react";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -156,7 +156,7 @@ interface RenunganStatsPanelProps {
 }
 
 export function RenunganStatsPanel({ selectedDate }: RenunganStatsPanelProps = {}) {
-  const { devotional: dev, mazmur, khotbah, pokdoa, khusus, authors, loading, lastUpdated } = useRealtimeStats(selectedDate);
+  const { devotional: dev, mazmur, khotbah, pokdoa, authors, bibleReadings, loading, lastUpdated } = useRealtimeStats(selectedDate);
 
   const authorName = (() => {
     if (!dev.authorCode) return undefined;
@@ -203,24 +203,20 @@ export function RenunganStatsPanel({ selectedDate }: RenunganStatsPanelProps = {
     }),
   };
 
-  const todayKey   = format(new Date(), "yyyy-MM-dd");
-  const todayLabel = format(new Date(), "d MMM", { locale: localeId });
-  const khususGroup: StatGroup = {
-    id: "khusus", title: "Ayat Khusus", icon: Star, color: "#d97706",
-    rows: [
-      // Cek field mingguan (sistem baru, key = sundayKey) + fallback ke field minggu lama
-      { label: "Ayat Minggu",
-        filled: !!(khusus?.mingguan?.[(() => { const d = new Date(selectedDate ?? new Date()); d.setDate(d.getDate() - d.getDay()); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()]?.reference?.trim())
-             || !!(khusus?.minggu?.reference?.trim()),
-        detail: khusus?.mingguan?.[(() => { const d = new Date(selectedDate ?? new Date()); d.setDate(d.getDate() - d.getDay()); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()]?.reference
-             || khusus?.minggu?.reference },
-      { label: `Hari ini (${todayLabel})`, filled: !!(khusus?.harian?.[todayKey]?.reference?.trim()), detail: khusus?.harian?.[todayKey]?.reference },
-    ],
+  const bacaanAlkitabGroup: StatGroup = {
+    id: "bacaan-alkitab", title: "Bacaan Alkitab", icon: BookOpen, color: "#16a34a",
+    rows: bibleReadings.length > 0
+      ? bibleReadings.map((r, i) => ({
+          label:  `Bacaan ${i + 1}`,
+          filled: !!(r.reference?.trim() && r.verses?.length > 0),
+          detail: r.reference?.slice(0, 20) || undefined,
+        }))
+      : [{ label: "Belum ada bacaan", filled: false }],
   };
 
   // ── Overall progress ─────────────────────────────────────────────────────
 
-  const allGroups = [renunganGroup, bacaanGroup, pokdoaGroup, khususGroup];
+  const allGroups = [renunganGroup, bacaanGroup, pokdoaGroup, bacaanAlkitabGroup];
   const totalRows = allGroups.reduce((s, g) => s + g.rows.length, 0);
   const totalFill = allGroups.reduce((s, g) => s + g.rows.filter((r) => r.filled).length, 0);
   const pct       = Math.round((totalFill / totalRows) * 100);

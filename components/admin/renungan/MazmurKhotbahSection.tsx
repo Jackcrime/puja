@@ -14,19 +14,72 @@ import { showToast } from "@/lib/utils/toast";
 import {
   BookMarked, BookOpen, CalendarDays,
   Check, CheckCircle2 as CheckCircle2Icon, Eye, EyeOff, Loader2, Save, RotateCcw,
+  ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { FieldLabel, SectionCard, SaveButton } from "./shared";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
-} from "@/components/ui/dialog";
-import { format } from "date-fns";
+import { format, addWeeks, subWeeks, startOfWeek, endOfWeek } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 
 function getSunday(d: Date): Date {
   const r = new Date(d);
   r.setDate(r.getDate() - r.getDay());
   return r;
+}
+
+// ─── Inline Week Picker ───────────────────────────────────────────────────────
+
+function WeekPicker({ date, onChange }: { date: Date; onChange: (d: Date) => void }) {
+  const sunday = getSunday(date);
+  const saturday = new Date(sunday);
+  saturday.setDate(saturday.getDate() + 6);
+
+  const sunLabel = format(sunday,   "d MMM", { locale: localeId });
+  const satLabel = format(saturday, "d MMM yyyy", { locale: localeId });
+
+  const isThisWeek = getSunday(new Date()).toDateString() === sunday.toDateString();
+
+  return (
+    <div className="flex items-center gap-1 p-1 bg-muted/40 rounded-xl border border-border w-fit">
+      <button
+        onClick={() => onChange(subWeeks(date, 1))}
+        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background hover:shadow-sm transition-all text-muted-foreground hover:text-foreground"
+        title="Minggu sebelumnya"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-background border border-border min-w-[180px] justify-center">
+        <CalendarDays className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--brand)" }} />
+        <span className="text-xs font-semibold" style={{ color: "var(--brand)" }}>
+          {sunLabel} — {satLabel}
+        </span>
+        {isThisWeek && (
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white shrink-0" style={{ backgroundColor: "var(--brand)" }}>
+            INI
+          </span>
+        )}
+      </div>
+
+      <button
+        onClick={() => onChange(addWeeks(date, 1))}
+        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background hover:shadow-sm transition-all text-muted-foreground hover:text-foreground"
+        title="Minggu berikutnya"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+
+      {!isThisWeek && (
+        <button
+          onClick={() => onChange(new Date())}
+          className="ml-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold hover:bg-background transition-colors"
+          style={{ color: "var(--brand)" }}
+          title="Kembali ke minggu ini"
+        >
+          Sekarang
+        </button>
+      )}
+    </div>
+  );
 }
 
 // ─── Sub-section: Mazmur ──────────────────────────────────────────────────────
@@ -65,7 +118,6 @@ function MazmurSubSection({ date }: { date: Date }) {
     setResetting(true);
     try {
       await clear(date);
-      // Reset ke selection awal dengan bookSlug "mazmur" agar field tidak terkunci (lockedBook)
       setSel({ bookSlug: "mazmur", bookName: "Mazmur", chapter: 1, verseFrom: 1, verseTo: 1 });
       setPreviewVerses([]);
       showToast.success("Mazmur Minggu berhasil direset.");
@@ -109,7 +161,6 @@ function MazmurSubSection({ date }: { date: Date }) {
           <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--brand)" }}>Mazmur Minggu</p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Visible toggle */}
           <button
             onClick={handleToggleVisible}
             disabled={saving}
@@ -140,17 +191,15 @@ function MazmurSubSection({ date }: { date: Date }) {
       </div>
 
       <div className="p-5 space-y-4">
-        {/* Status visible */}
         {!isVisible && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
             <EyeOff className="h-3.5 w-3.5 text-amber-600 shrink-0" />
             <p className="text-xs text-amber-700 dark:text-amber-400">
-              Section ini <strong>disembunyikan</strong> di halaman Puji &amp; Janji. Klik tombol &ldquo;Disembunyikan&rdquo; untuk menampilkan kembali.
+              Section ini <strong>disembunyikan</strong> di halaman Puji &amp; Janji.
             </p>
           </div>
         )}
 
-        {/* Aktif saat ini */}
         {data.reference && (
           <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border bg-muted/30">
             <BookMarked className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--brand)" }} />
@@ -161,7 +210,6 @@ function MazmurSubSection({ date }: { date: Date }) {
           </div>
         )}
 
-        {/* Selector — locked ke Mazmur */}
         <div>
           <FieldLabel>Pilih Mazmur Minggu</FieldLabel>
           <BibleVerseSelector value={sel} onChange={handleSelChange} showPreview lockedBook="mazmur" />
@@ -259,7 +307,6 @@ function BahanKhotbahSubSection({ date }: { date: Date }) {
           <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--brand)" }}>Bahan Khotbah</p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Visible toggle */}
           <button
             onClick={handleToggleVisible}
             disabled={saving}
@@ -273,7 +320,6 @@ function BahanKhotbahSubSection({ date }: { date: Date }) {
             {isVisible ? <><Eye className="h-3 w-3" /> Tampil</> : <><EyeOff className="h-3 w-3" /> Disembunyikan</>}
           </button>
           <button onClick={handleReset} disabled={saving || resetting}
-            title="Hapus data Bahan Khotbah minggu ini"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 disabled:opacity-60 transition-all"
           >
             {resetting ? <><Loader2 className="h-3 w-3 animate-spin" /> Reset...</> : <><RotateCcw className="h-3 w-3" /> Reset</>}
@@ -290,17 +336,15 @@ function BahanKhotbahSubSection({ date }: { date: Date }) {
       </div>
 
       <div className="p-5 space-y-4">
-        {/* Status visible */}
         {!isVisible && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
             <EyeOff className="h-3.5 w-3.5 text-amber-600 shrink-0" />
             <p className="text-xs text-amber-700 dark:text-amber-400">
-              Section ini <strong>disembunyikan</strong> di halaman Puji &amp; Janji. Klik tombol &ldquo;Disembunyikan&rdquo; untuk menampilkan kembali.
+              Section ini <strong>disembunyikan</strong> di halaman Puji &amp; Janji.
             </p>
           </div>
         )}
 
-        {/* Aktif saat ini */}
         {data.reference && (
           <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border bg-muted/30">
             <BookOpen className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--brand)" }} />
@@ -367,57 +411,33 @@ function BahanKhotbahSubSection({ date }: { date: Date }) {
   );
 }
 
-// ─── Main Export: satu date picker, dua section ───────────────────────────────
+// ─── Main Export ──────────────────────────────────────────────────────────────
 interface MazmurKhotbahSectionProps {
   onDateChange?: (date: Date) => void;
 }
 
 export function MazmurKhotbahSection({ onDateChange }: MazmurKhotbahSectionProps = {}) {
   const [targetDate, setTargetDate] = useState<Date>(new Date());
-  const [calOpen,    setCalOpen]    = useState(false);
-  const sundayLabel = format(getSunday(targetDate), "d MMMM yyyy", { locale: localeId });
 
-  const handleDateSelect = (d: Date) => {
+  const handleDateChange = (d: Date) => {
     setTargetDate(d);
     onDateChange?.(d);
-    setCalOpen(false);
   };
 
   return (
     <div className="space-y-5">
-      {/* Date picker bersama */}
+      {/* Inline week picker */}
       <div>
-        <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--gold)" }}>
-          Minggu / Tanggal
+        <p className="text-xs font-bold uppercase tracking-wider mb-2.5" style={{ color: "var(--gold)" }}>
+          Pilih Minggu
         </p>
-        <Dialog open={calOpen} onOpenChange={setCalOpen}>
-          <DialogTrigger asChild>
-            <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-background text-sm font-medium hover:bg-muted transition-colors">
-              <CalendarDays className="h-3.5 w-3.5" style={{ color: "var(--brand)" }} />
-              Minggu {sundayLabel}
-            </button>
-          </DialogTrigger>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle className="font-serif" style={{ color: "var(--brand)" }}>Pilih Minggu</DialogTitle>
-            </DialogHeader>
-            <p className="text-xs text-muted-foreground px-1 mb-2">
-              Mazmur dan Bahan Khotbah akan disimpan untuk Minggu di minggu yang dipilih.
-            </p>
-            <div className="flex justify-center p-4">
-              <Calendar
-                mode="single"
-                selected={targetDate}
-                onSelect={(d) => { if (d) handleDateSelect(d); }}
-                className="rounded-lg border"
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
+        <WeekPicker date={targetDate} onChange={handleDateChange} />
+        <p className="text-[10px] text-muted-foreground mt-1.5">
+          Mazmur dan Bahan Khotbah disimpan per minggu. Gunakan panah untuk berpindah minggu.
+        </p>
       </div>
 
-      {/* Dua section di bawah, berbagi date yang sama */}
-      <MazmurSubSection     date={targetDate} />
+      <MazmurSubSection       date={targetDate} />
       <BahanKhotbahSubSection date={targetDate} />
     </div>
   );

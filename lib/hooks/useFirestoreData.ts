@@ -348,9 +348,10 @@ export function useDailyVerse(dateKey?: string) {
 
 // ─── 12. Bible Readings ───────────────────────────────────────────────────────
 export interface BibleReading {
-  reference: string;
-  title:     string;
-  verses:    { number: string; text: string }[];
+  reference:  string;
+  title:      string;
+  verses:     { number: string; text: string }[];
+  crossRefs?: { reference: string; note?: string }[];
 }
 
 export function useBibleReadings() {

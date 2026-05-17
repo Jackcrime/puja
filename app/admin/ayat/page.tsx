@@ -6,7 +6,6 @@ import { AdminGuard }                from "@/components/admin/AdminGuard";
 import { AyatKategoriTab }           from "@/components/admin/ayat/AyatKategoriTab";
 import { AyatHarianMingguanTab }     from "@/components/admin/ayat/AyatHarianMingguanTab";
 import { AyatBulanTahunTab }         from "@/components/admin/ayat/AyatBulanTahunTab";
-import { BacaanTab }                 from "@/components/admin/ayat/BacaanTab";
 import { Star, CalendarDays, Calendar, BookOpen } from "lucide-react";
 
 const TABS = [
@@ -54,7 +53,6 @@ export default function AdminAyatPage() {
         {activeTab === "kategori"   && <AyatKategoriTab />}
         {activeTab === "harian"     && <AyatHarianMingguanTab />}
         {activeTab === "bulantahun" && <AyatBulanTahunTab />}
-        {activeTab === "bacaan"     && <BacaanTab />}
       </AdminLayout>
     </AdminGuard>
   );

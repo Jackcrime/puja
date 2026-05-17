@@ -53,8 +53,16 @@ export default function PujiDanJanji() {
   const liturgicalEvents = getLiturgicalEvents(date);
 
   // Ayat Harian dari date-linked record
-  const dateKey     = format(date, "yyyy-MM-dd");
-  const ayatHarian  = khusus.harian?.[dateKey];
+  const dateKey    = format(date, "yyyy-MM-dd");
+  const ayatHarian = khusus.harian?.[dateKey];
+
+  // Ayat Minggu — pakai mingguan[sundayKey] (sistem baru), fallback ke minggu lama
+  const sundayKey  = (() => {
+    const d = new Date(date);
+    d.setDate(d.getDate() - d.getDay());
+    return format(d, "yyyy-MM-dd");
+  })();
+  const ayatMinggu = khusus.mingguan?.[sundayKey] ?? khusus.minggu ?? null;
 
   return (
     <AppLayout>
@@ -117,14 +125,14 @@ export default function PujiDanJanji() {
         <MazmurSection date={date} />
 
         {/* ── Ayat Minggu ───────────────────────────────────────────────────── */}
-        {khusus.minggu && (
+        {ayatMinggu && (
           <section className="mb-8">
             <SectionDivider label="Ayat Minggu" />
             <VerseCard
-              reference={khusus.minggu.reference}
-              text={khusus.minggu.text}
-              bookTitle={khusus.minggu.reference.split(" ").slice(0, -1).join(" ")}
-              date={khusus.minggu.date}
+              reference={ayatMinggu.reference}
+              text={ayatMinggu.text}
+              bookTitle={ayatMinggu.reference.split(" ").slice(0, -1).join(" ")}
+              date={"date" in ayatMinggu ? (ayatMinggu as any).date : undefined}
               accentColor="brand"
             />
           </section>
