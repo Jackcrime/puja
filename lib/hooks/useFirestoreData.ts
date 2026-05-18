@@ -41,37 +41,70 @@ export interface Author {
   servedUntil?:   string;
 }
 
+// ─── Helper: format date key ──────────────────────────────────────────────────
+export function formatDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 // ─── 1. Devotional ────────────────────────────────────────────────────────────
-export function useDevotional() {
+export function useDevotional(date?: Date) {
   const [data, setData]       = useState<Devotional>(DEVOTIONAL);
   const [loading, setLoading] = useState(true);
+  const dateKey = date ? formatDateKey(date) : null;
 
   useEffect(() => {
-    readDoc<Devotional>("devotional", "current", DEVOTIONAL)
-      .then(setData).finally(() => setLoading(false));
-  }, []);
+    setLoading(true);
+    if (dateKey) {
+      // Per-date: coba baca dari dateKey, fallback ke current
+      const loadedRef = { current: false };
+      const unsubDate = subscribeDoc<Devotional>(
+        "devotional", dateKey, null as any,
+        (d) => {
+          loadedRef.current = true;
+          setData(d && (d.title || d.body) ? d : { ...DEVOTIONAL, audioUrl: "" });
+          setLoading(false);
+        }
+      );
+      const unsubCurrent = subscribeDoc<Devotional>(
+        "devotional", "current", DEVOTIONAL,
+        (d) => { if (!loadedRef.current) { setData(d ?? DEVOTIONAL); setLoading(false); } }
+      );
+      return () => { unsubDate(); unsubCurrent(); };
+    } else {
+      readDoc<Devotional>("devotional", "current", DEVOTIONAL)
+        .then(setData).finally(() => setLoading(false));
+    }
+  }, [dateKey]);
 
   const update = useCallback(async (changes: Partial<Devotional>) => {
     const updated = { ...data, ...changes };
     try {
-      await writeDoc("devotional", "current", updated);
+      if (dateKey) {
+        await writeDoc("devotional", dateKey, updated);
+        await writeDoc("devotional", "current", updated);
+      } else {
+        await writeDoc("devotional", "current", updated);
+      }
       setData(updated);
     } catch (e) {
       console.error("[useDevotional] update error:", e);
       toast.error("Gagal menyimpan renungan. Coba lagi.");
     }
-  }, [data]);
+  }, [data, dateKey]);
 
   const clear = useCallback(async () => {
     const empty = { ...DEVOTIONAL, audioUrl: "" } as Devotional;
     try {
+      if (dateKey) {
+        await clearDoc("devotional", dateKey, empty);
+      }
       await clearDoc("devotional", "current", empty);
       setData(empty);
     } catch (e) {
       console.error("[useDevotional] clear error:", e);
       toast.error("Gagal mereset renungan. Coba lagi.");
     }
-  }, []);
+  }, [dateKey]);
 
   return { data, loading, update, clear };
 }
@@ -354,26 +387,50 @@ export interface BibleReading {
   crossRefs?: { reference: string; note?: string }[];
 }
 
-export function useBibleReadings() {
+export function useBibleReadings(date?: Date) {
   const [data, setData]       = useState<BibleReading[]>(BIBLE_READINGS);
   const [loading, setLoading] = useState(true);
+  const dateKey = date ? formatDateKey(date) : null;
 
   useEffect(() => {
-    readDoc<{ items: BibleReading[] }>(
-      "bible_readings", "current", { items: BIBLE_READINGS }
-    ).then((d) => setData(d.items ?? BIBLE_READINGS))
-      .finally(() => setLoading(false));
-  }, []);
+    setLoading(true);
+    if (dateKey) {
+      const loadedRef = { current: false };
+      const unsubDate = subscribeDoc<{ items: BibleReading[] }>(
+        "bible_readings", dateKey, null as any,
+        (d) => {
+          loadedRef.current = true;
+          setData(d?.items ?? []);
+          setLoading(false);
+        }
+      );
+      const unsubCurrent = subscribeDoc<{ items: BibleReading[] }>(
+        "bible_readings", "current", { items: BIBLE_READINGS },
+        (d) => { if (!loadedRef.current) { setData(d?.items ?? BIBLE_READINGS); setLoading(false); } }
+      );
+      return () => { unsubDate(); unsubCurrent(); };
+    } else {
+      readDoc<{ items: BibleReading[] }>(
+        "bible_readings", "current", { items: BIBLE_READINGS }
+      ).then((d) => setData(d.items ?? BIBLE_READINGS))
+        .finally(() => setLoading(false));
+    }
+  }, [dateKey]);
 
   const save = useCallback(async (items: BibleReading[]) => {
     try {
-      await writeDoc("bible_readings", "current", { items });
+      if (dateKey) {
+        await writeDoc("bible_readings", dateKey, { items });
+        await writeDoc("bible_readings", "current", { items });
+      } else {
+        await writeDoc("bible_readings", "current", { items });
+      }
       setData(items);
     } catch (e) {
       console.error("[useBibleReadings] save error:", e);
       toast.error("Gagal menyimpan bacaan Alkitab. Coba lagi.");
     }
-  }, []);
+  }, [dateKey]);
 
   return { data, loading, save };
 }
@@ -441,11 +498,13 @@ export function useAyatKhusus() {
 import { MAZMUR_MINGGU, BAHAN_KHOTBAH, POKOK_DOA_HARIAN, AYAT_NATS } from "@/lib/mockData";
 
 export interface MazmurMinggu {
-  reference: string;
-  title:     string;
-  verses:    { number: string; text: string }[];
+  reference:    string;
+  title:        string;
+  verses:       { number: string; text: string }[];
   /** Jika false, section ini disembunyikan di halaman Puji & Janji. Default: true */
-  visible?:  boolean;
+  visible?:     boolean;
+  /** Hari-hari dalam seminggu konten ini tampil (0=Min,1=Sen,...,6=Sab). Default: [0]=Minggu */
+  visibleDays?: number[];
 }
 
 // Dapatkan key Minggu dari tanggal (format: yyyy-MM-dd hari Minggu di minggu itu)
@@ -528,9 +587,11 @@ export interface BahanKhotbah {
   reference: string;
   /** Jika false, section ini disembunyikan di halaman Puji & Janji. Default: true */
   visible?:  boolean;
-  /** Tanggal mulai tampil (yyyy-MM-dd), jika tidak diset = tampil selalu */
+  /** Hari-hari dalam seminggu konten ini tampil (0=Min,1=Sen,...,6=Sab). Default: [0]=Minggu */
+  visibleDays?: number[];
+  /** Legacy: Tanggal mulai tampil (yyyy-MM-dd) */
   visibleFrom?:  string;
-  /** Tanggal akhir tampil (yyyy-MM-dd), jika tidak diset = tampil sampai kapanpun */
+  /** Legacy: Tanggal akhir tampil (yyyy-MM-dd) */
   visibleUntil?: string;
 }
 

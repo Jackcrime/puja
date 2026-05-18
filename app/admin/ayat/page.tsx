@@ -12,7 +12,6 @@ const TABS = [
   { id: "kategori"   as const, label: "Kategori",      icon: Star,         desc: "Kelola ayat kategori & Ayat Nats yang tampil di halaman renungan." },
   { id: "harian"     as const, label: "Harian & Mingguan", icon: CalendarDays, desc: "Ayat per tanggal (harian) dan per Minggu — termasuk Mazmur Minggu." },
   { id: "bulantahun" as const, label: "Bulan & Tahun", icon: Calendar,     desc: "Ayat 12 bulan & ayat tahun — pilih dari Alkitab atau import JSON." },
-  { id: "bacaan"     as const, label: "Bacaan",        icon: BookOpen,     desc: "Kelola bacaan Alkitab beserta perikop terkait (cross-reference)." },
 ];
 
 type TabId = typeof TABS[number]["id"];

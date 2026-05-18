@@ -4,34 +4,25 @@ import React, { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminGuard }  from "@/components/admin/AdminGuard";
 import {
-  RenunganSection,
+  RenunganBacaanSection,
   MazmurKhotbahSection,
   PokokDoaSection,
-  BacaanAlkitabSection,
   RenunganStatsPanel,
 } from "@/components/admin/renungan";
-import { BookOpen, BookMarked, HandHeart, ScrollText } from "lucide-react";
-
-// ─── Tab definitions ──────────────────────────────────────────────────────────
+import { BookOpen, BookMarked, HandHeart } from "lucide-react";
 
 const TABS = [
   {
-    id:          "renungan" as const,
-    label:       "Renungan Harian",
+    id:          "renungan-bacaan" as const,
+    label:       "Renungan & Bacaan",
     icon:        BookOpen,
-    description: "Edit konten renungan harian, penulis, dan audio.",
-  },
-  {
-    id:          "bacaan" as const,
-    label:       "Bacaan Alkitab",
-    icon:        ScrollText,
-    description: "Kelola daftar bacaan Alkitab harian beserta cross-reference perikop terkait.",
+    description: "Edit renungan harian, audio, penulis, dan bacaan Alkitab — per tanggal.",
   },
   {
     id:          "mazmur-khotbah" as const,
     label:       "Mazmur & Khotbah",
     icon:        BookMarked,
-    description: "Pilih Mazmur Minggu dan Bahan Khotbah untuk minggu yang dipilih.",
+    description: "Pilih Mazmur Minggu dan Bahan Khotbah. Atur hari tampil termasuk hari raya Kristen.",
   },
   {
     id:          "pokdoa" as const,
@@ -43,10 +34,8 @@ const TABS = [
 
 type TabId = typeof TABS[number]["id"];
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function AdminRenungan() {
-  const [activeTab,    setActiveTab]    = useState<TabId>("renungan");
+  const [activeTab,    setActiveTab]    = useState<TabId>("renungan-bacaan");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const activeTabDef = TABS.find((t) => t.id === activeTab)!;
@@ -79,7 +68,6 @@ export default function AdminRenungan() {
             })}
           </div>
 
-          {/* Description */}
           <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
             <TabIcon className="h-3.5 w-3.5" style={{ color: "var(--brand)" }} />
             {activeTabDef.description}
@@ -88,15 +76,12 @@ export default function AdminRenungan() {
 
         {/* Main 2-column layout */}
         <div className="flex gap-6 items-start">
-          {/* ── Left: Tab content ─────────────────────────────────────────── */}
           <div className="flex-1 min-w-0">
-            {activeTab === "renungan" && <RenunganSection />}
-            {activeTab === "bacaan"   && <BacaanAlkitabSection />}
-            {activeTab === "mazmur-khotbah" && <MazmurKhotbahSection onDateChange={setSelectedDate} />}
-            {activeTab === "pokdoa"   && <PokokDoaSection />}
+            {activeTab === "renungan-bacaan" && <RenunganBacaanSection />}
+            {activeTab === "mazmur-khotbah"  && <MazmurKhotbahSection onDateChange={setSelectedDate} />}
+            {activeTab === "pokdoa"          && <PokokDoaSection />}
           </div>
 
-          {/* ── Right: Stats panel ────────────────────────────────────────── */}
           <div className="w-64 shrink-0 hidden lg:block sticky top-6">
             <RenunganStatsPanel selectedDate={selectedDate} />
           </div>

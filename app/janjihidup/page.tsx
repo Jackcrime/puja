@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { AppLayout }       from "@/components/layout/AppLayout";
-import { VerseCard }       from "@/components/ui/VerseCard";
 import { AuthorModal }     from "@/components/ui/AuthorModal";
 import { FocusMode }       from "@/components/ui/FocusMode";
 import { AyatNatsCard }    from "@/components/pujidanjanji/AyatNatsCard";
@@ -20,7 +19,6 @@ import { format, getDay } from "date-fns";
 import { id as localeId }  from "date-fns/locale";
 import {
   useDevotional,
-  useVerseHighlights,
   useBibleReadings,
   usePokokDoaHarian,
   useAuthors,
@@ -36,10 +34,9 @@ export default function JanjiHidup() {
   const { date } = useDate();
 
   // ── Data hooks — semua sinkron dengan admin ───────────────────────────────
-  const { data: devotional, loading: devLoading } = useDevotional();
-  const { data: highlights, loading: hlLoading }  = useVerseHighlights();
-  const { data: readings }                         = useBibleReadings();
-  const { data: pokokDoaList }                     = usePokokDoaHarian();   // ← sama seperti admin
+  const { data: devotional, loading: devLoading } = useDevotional(date);
+  const { data: readings }                         = useBibleReadings(date);
+  const { data: pokokDoaList }                     = usePokokDoaHarian();
   const { data: authors }                          = useAuthors();
 
   // ── Audio state ───────────────────────────────────────────────────────────
@@ -345,25 +342,6 @@ export default function JanjiHidup() {
             </Accordion>
           </div>
         </section>
-
-        {/* ── Ayat Highlights ──────────────────────────────────────────────── */}
-        {!hlLoading && highlights.length > 0 && (
-          <section className="mb-8">
-            <SectionDivider label={t("pujidanjanji.highlights")} />
-            <div className="flex flex-col gap-3">
-              {highlights.map((v, i) => (
-                <VerseCard
-                  key={i}
-                  reference={v.reference}
-                  text={v.text}
-                  bookTitle={v.reference.split(" ").slice(0, -1).join(" ")}
-                  accentColor={i % 2 === 0 ? "gold" : "brand"}
-                  showPerikop
-                />
-              ))}
-            </div>
-          </section>
-        )}
 
       </div>
     </AppLayout>
