@@ -383,7 +383,7 @@ export function useDailyVerse(dateKey?: string) {
 export interface BibleReading {
   reference:  string;
   title:      string;
-  verses:     { number: string; text: string }[];
+  verses?:    { number: string; text: string }[];
   crossRefs?: { reference: string; note?: string }[];
 }
 
@@ -691,6 +691,12 @@ export interface AyatNatsItem {
   id:        string;
   reference: string;
   text:      string;
+  // Optional verse location for perikop modal
+  bookSlug?:  string;
+  bookName?:  string;
+  chapter?:   number;
+  verseFrom?: number;
+  verseTo?:   number;
 }
 export interface AyatNats { items: AyatNatsItem[]; }
 

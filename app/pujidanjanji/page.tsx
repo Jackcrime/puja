@@ -189,7 +189,7 @@ export default function PujiDanJanji() {
                   </AccordionTrigger>
                   <AccordionContent className="px-5 pb-5 pt-2 bg-muted/20">
                     <div className="flex flex-col gap-3">
-                      {reading.verses.map((verse, vi) => (
+                      {(reading.verses ?? []).map((verse, vi) => (
                         <div key={vi} className="flex items-start gap-3">
                           <span className="text-xs font-bold min-w-[1.5rem] pt-0.5" style={{ color: "var(--brand)" }}>
                             {verse.number.split(":")[1]}
@@ -198,7 +198,7 @@ export default function PujiDanJanji() {
                         </div>
                       ))}
                       <div className="pt-3 border-t border-border mt-1">
-                        <CopyBtn reference={reading.reference} text={reading.verses.map((v) => v.text).join(" ")} />
+                        <CopyBtn reference={reading.reference} text={(reading.verses ?? []).map((v) => v.text).join(" ")} />
                       </div>
                     </div>
                   </AccordionContent>

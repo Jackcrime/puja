@@ -1,17 +1,15 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { AppLayout }       from "@/components/layout/AppLayout";
 import { AuthorModal }     from "@/components/ui/AuthorModal";
 import { FocusMode }       from "@/components/ui/FocusMode";
 import { AyatNatsCard }    from "@/components/pujidanjanji/AyatNatsCard";
 import { SectionDivider }  from "@/components/shared/SectionDivider";
-import {
-  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
-} from "@/components/ui/accordion";
+import { parseReference }  from "@/lib/bible-books";
 import {
   Play, Pause, Headphones, BookOpen, Printer, Share2, Check,
-  Maximize2, Loader2, HandHeart,
+  Maximize2, Loader2, HandHeart, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { useI18n } from "@/lib/hooks/useI18n";
 import { useDate } from "@/lib/context/DateContext";
@@ -26,6 +24,99 @@ import {
 
 // ─── Helper: hari ini dalam seminggu (0=Minggu…6=Sabtu) → nama hari ─────────
 const NAMA_HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"] as const;
+
+// ─── ReadingCollapse — one bacaan row with lazy-fetched verses ───────────────
+
+interface VerseRow { number: string; text: string; }
+
+function ReadingCollapse({ reading, index }: { reading: { reference: string; title: string }; index: number }) {
+  const [open,    setOpen]    = useState(false);
+  const [verses,  setVerses]  = useState<VerseRow[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState(false);
+
+  const fetchVerses = useCallback(async () => {
+    if (verses !== null || loading) return;
+    const parsed = parseReference(reading.reference);
+    if (!parsed) { setVerses([]); return; }
+    setLoading(true); setError(false);
+    try {
+      const res  = await fetch(
+        `/api/bible?book=${parsed.book.slug}&chapter=${parsed.chapter}&from=${parsed.verseFrom}&to=${parsed.verseTo}`
+      );
+      const json = await res.json();
+      if (res.ok && Array.isArray(json.verses)) {
+        setVerses(json.verses.map((v: any) => ({ number: String(v.verse), text: v.text })));
+      } else {
+        setVerses([]);
+      }
+    } catch { setError(true); setVerses([]); }
+    setLoading(false);
+  }, [reading.reference, verses, loading]);
+
+  const toggle = () => {
+    if (!open) fetchVerses();
+    setOpen((o) => !o);
+  };
+
+  return (
+    <div className="border-b border-border last:border-0">
+      {/* Header row */}
+      <button
+        onClick={toggle}
+        className="w-full flex items-center gap-3 px-5 py-4 hover:bg-muted/40 transition-colors text-left"
+      >
+        <span
+          className="text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0"
+          style={{ backgroundColor: "var(--gold)" }}
+        >
+          {index + 1}
+        </span>
+        <BookOpen className="h-4 w-4 shrink-0" style={{ color: "var(--gold)" }} />
+        <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+          <span className="font-serif font-semibold text-sm leading-tight" style={{ color: "var(--brand)" }}>
+            {reading.reference}
+          </span>
+          {reading.title && (
+            <span className="text-xs text-muted-foreground truncate">{reading.title}</span>
+          )}
+        </div>
+        <span className="shrink-0 text-muted-foreground">
+          {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </span>
+      </button>
+
+      {/* Verses panel */}
+      {open && (
+        <div className="px-5 pb-5 pt-1 bg-muted/20">
+          {loading && (
+            <div className="flex items-center gap-2 py-3 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Memuat ayat...
+            </div>
+          )}
+          {error && (
+            <p className="text-xs text-red-500 py-3">Gagal memuat ayat. Cek koneksi.</p>
+          )}
+          {!loading && !error && verses && verses.length === 0 && (
+            <p className="text-xs text-muted-foreground py-3 italic">Ayat tidak ditemukan.</p>
+          )}
+          {!loading && verses && verses.length > 0 && (
+            <div className="flex flex-col gap-3 pt-2">
+              {verses.map((v, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <span className="text-xs font-bold min-w-[1.5rem] pt-0.5 shrink-0" style={{ color: "var(--brand)" }}>
+                    {v.number}
+                  </span>
+                  <p className="text-foreground leading-relaxed text-sm flex-1">{v.text}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -309,37 +400,13 @@ export default function JanjiHidup() {
         <section className="mb-8">
           <SectionDivider label={t("pujidanjanji.readings")} />
           <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <Accordion type="multiple" defaultValue={["r-0"]} className="w-full">
-              {readings.map((reading, idx) => (
-                <AccordionItem value={`r-${idx}`} key={idx} className="border-b last:border-0">
-                  <AccordionTrigger className="px-5 py-4 hover:bg-muted/50 transition-colors">
-                    <div className="flex flex-col gap-0.5 text-left">
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="h-4 w-4 shrink-0" style={{ color: "var(--gold)" }} />
-                        <span className="font-serif font-semibold" style={{ color: "var(--brand)" }}>
-                          {reading.reference}
-                        </span>
-                      </div>
-                      {reading.title && (
-                        <span className="text-xs text-muted-foreground pl-6">{reading.title}</span>
-                      )}
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-5 pb-5 pt-2 bg-muted/20">
-                    <div className="flex flex-col gap-3">
-                      {reading.verses.map((verse, vi) => (
-                        <div key={vi} className="flex items-start gap-3">
-                          <span className="text-xs font-bold min-w-[1.5rem] pt-0.5" style={{ color: "var(--brand)" }}>
-                            {verse.number.split(":")[1]}
-                          </span>
-                          <p className="text-foreground leading-relaxed text-sm flex-1">{verse.text}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+            {readings.length === 0 ? (
+              <div className="px-5 py-6 text-center text-sm text-muted-foreground">
+                Belum ada bacaan untuk hari ini.
+              </div>
+            ) : readings.map((reading, idx) => (
+              <ReadingCollapse key={idx} reading={reading} index={idx} />
+            ))}
           </div>
         </section>
 

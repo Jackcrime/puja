@@ -208,7 +208,7 @@ export function RenunganStatsPanel({ selectedDate }: RenunganStatsPanelProps = {
     rows: bibleReadings.length > 0
       ? bibleReadings.map((r, i) => ({
           label:  `Bacaan ${i + 1}`,
-          filled: !!(r.reference?.trim() && r.verses?.length > 0),
+          filled: !!(r.reference?.trim()),
           detail: r.reference?.slice(0, 20) || undefined,
         }))
       : [{ label: "Belum ada bacaan", filled: false }],

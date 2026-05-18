@@ -1,13 +1,15 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { DataTable }      from "@/components/admin/DataTable";
 import { FormModal }      from "@/components/admin/FormModal";
 import { ConfirmDialog }  from "@/components/admin/ConfirmDialog";
-import { useAyatCategories, useAyatNats, useVerseHighlights, type AyatNatsItem, type VerseHighlightItem } from "@/lib/hooks/useFirestoreData";
+import { useAyatCategories, useAyatNats, type AyatNatsItem } from "@/lib/hooks/useFirestoreData";
+import { BibleVerseSelector, emptySelection, type VerseSelection } from "@/components/admin/ayat/BibleVerseSelector";
+import { selToRef } from "@/lib/utils/adminAyat";
 import {
   Loader2, Flame, Plus, Trash2, Save, Check,
-  Upload, Download, FileJson, AlertCircle, X, GripVertical, Star,
+  Upload, Download, FileJson, AlertCircle, X, GripVertical, BookOpen, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { showToast } from "@/lib/utils/toast";
 
@@ -57,43 +59,211 @@ function flatToCategories(verses: Verse[]) {
     .filter((c) => c.verses.length > 0);
 }
 
+// ─── Nats Item Card (expandable with BibleVerseSelector) ─────────────────────
+
+interface NatsDraft {
+  id:        string;
+  reference: string;
+  text:      string;
+  bookSlug:  string;
+  bookName:  string;
+  chapter:   number;
+  verseFrom: number;
+  verseTo:   number;
+  sel:       VerseSelection;
+  expanded:  boolean;
+  loadingVerse: boolean;
+}
+
+function emptyNatsDraft(): NatsDraft {
+  return {
+    id: crypto.randomUUID(), reference: "", text: "",
+    bookSlug: "", bookName: "", chapter: 1, verseFrom: 1, verseTo: 1,
+    sel: emptySelection(), expanded: true, loadingVerse: false,
+  };
+}
+
+function natsDraftFromItem(it: AyatNatsItem): NatsDraft {
+  return {
+    id: it.id, reference: it.reference, text: it.text,
+    bookSlug:  it.bookSlug  ?? "",
+    bookName:  it.bookName  ?? "",
+    chapter:   it.chapter   ?? 1,
+    verseFrom: it.verseFrom ?? 1,
+    verseTo:   it.verseTo   ?? 1,
+    sel: emptySelection(), expanded: false, loadingVerse: false,
+  };
+}
+
+function NatsItemCard({
+  draft, index, total,
+  onChange, onDelete, onMoveUp, onMoveDown,
+}: {
+  draft:      NatsDraft;
+  index:      number;
+  total:      number;
+  onChange:   (d: NatsDraft) => void;
+  onDelete:   () => void;
+  onMoveUp:   () => void;
+  onMoveDown: () => void;
+}) {
+  const hasContent = draft.reference.trim() !== "";
+
+  const handleSelChange = useCallback(async (sel: VerseSelection) => {
+    const ref = selToRef(sel);
+    onChange({ ...draft, sel, reference: ref, loadingVerse: !!sel.bookSlug });
+    if (!sel.bookSlug || !sel.chapter || !sel.verseFrom) return;
+    try {
+      const res  = await fetch(`/api/bible?book=${sel.bookSlug}&chapter=${sel.chapter}&from=${sel.verseFrom}&to=${sel.verseTo}`);
+      const json = await res.json();
+      if (res.ok && !json.error && json.verses?.length > 0) {
+        // Untuk nats: ambil teks ayat pertama sebagai default, admin bisa edit
+        const firstVerse = json.verses[0];
+        onChange({
+          ...draft, sel, reference: ref,
+          bookSlug:  sel.bookSlug, bookName: sel.bookName,
+          chapter:   sel.chapter,
+          verseFrom: sel.verseFrom, verseTo: sel.verseTo,
+          text: draft.text || firstVerse.text,  // hanya isi otomatis jika teks kosong
+          loadingVerse: false,
+        });
+      } else {
+        onChange({
+          ...draft, sel, reference: ref,
+          bookSlug: sel.bookSlug, bookName: sel.bookName,
+          chapter: sel.chapter, verseFrom: sel.verseFrom, verseTo: sel.verseTo,
+          loadingVerse: false,
+        });
+      }
+    } catch {
+      onChange({ ...draft, sel, reference: ref, loadingVerse: false });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft]);
+
+  return (
+    <div className="border border-border rounded-xl overflow-hidden bg-card">
+      {/* Collapsed header */}
+      <div
+        className="flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-muted/30 transition-colors"
+        style={{ backgroundColor: "var(--brand-muted)" }}
+        onClick={() => onChange({ ...draft, expanded: !draft.expanded })}
+      >
+        <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+        <span
+          className="text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center text-white shrink-0"
+          style={{ backgroundColor: "var(--brand)" }}
+        >
+          {index + 1}
+        </span>
+        <div className="flex-1 min-w-0">
+          {hasContent
+            ? <p className="text-sm font-semibold truncate" style={{ color: "var(--brand)" }}>{draft.reference}</p>
+            : <p className="text-xs text-muted-foreground italic">Nats baru (belum dipilih)</p>}
+        </div>
+        <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <button onClick={onMoveUp} disabled={index === 0} className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted disabled:opacity-30"><ChevronUp className="h-3.5 w-3.5" /></button>
+          <button onClick={onMoveDown} disabled={index === total - 1} className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted disabled:opacity-30"><ChevronDown className="h-3.5 w-3.5" /></button>
+          <button onClick={onDelete} className="w-6 h-6 flex items-center justify-center rounded hover:bg-red-50 text-muted-foreground hover:text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
+          {draft.expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground ml-1" /> : <ChevronDown className="h-4 w-4 text-muted-foreground ml-1" />}
+        </div>
+      </div>
+
+      {/* Expanded form */}
+      {draft.expanded && (
+        <div className="p-4 space-y-4 border-t border-border">
+          {/* Perikop selector */}
+          <div>
+            <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
+              Pilih Perikop Nats
+            </label>
+            <BibleVerseSelector value={draft.sel} onChange={handleSelChange} showPreview={false} compact />
+            {draft.reference && (
+              <div className="flex items-center gap-2 mt-2 text-xs">
+                <BookOpen className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--brand)" }} />
+                <span className="font-semibold" style={{ color: "var(--brand)" }}>{draft.reference}</span>
+                {draft.loadingVerse && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+              </div>
+            )}
+          </div>
+
+          {/* Referensi manual override */}
+          <div>
+            <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
+              Referensi (otomatis terisi, bisa diedit)
+            </label>
+            <input
+              value={draft.reference}
+              onChange={(e) => onChange({ ...draft, reference: e.target.value })}
+              placeholder="mis. Lukas 24:48"
+              className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-1 font-semibold"
+              style={{ color: "var(--brand)" }}
+            />
+          </div>
+
+          {/* Teks ayat nats */}
+          <div>
+            <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
+              Teks Ayat Nats
+            </label>
+            <textarea
+              rows={3}
+              value={draft.text}
+              onChange={(e) => onChange({ ...draft, text: e.target.value })}
+              placeholder="Teks ayat nats yang ditampilkan..."
+              className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-1 resize-none"
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Otomatis terisi dari ayat pertama yang dipilih. Bisa diedit sesuai kebutuhan.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Ayat Nats Section ────────────────────────────────────────────────────────
-const NATS_SAMPLE = [
-  { id: "1", reference: "Lukas 24:48",   text: "Dan kamu adalah saksi dari semuanya ini." },
-  { id: "2", reference: "Yohanes 15:5",  text: "Akulah pokok anggur dan kamulah ranting-rantingnya." },
-  { id: "3", reference: "Filipi 4:13",   text: "Segala perkara dapat kutanggung di dalam Dia yang memberi kekuatan kepadaku." },
-];
 
 function AyatNatsSection() {
   const { data, loading, save } = useAyatNats();
-  const [items,   setItems]   = useState<AyatNatsItem[]>([]);
-  const [saving,  setSaving]  = useState(false);
-  const [saved,   setSaved]   = useState(false);
-  const [dragOver, setDragOver] = useState(false);
+  const [drafts,       setDrafts]       = useState<NatsDraft[]>([]);
+  const [saving,       setSaving]       = useState(false);
+  const [saved,        setSaved]        = useState(false);
+  const [synced,       setSynced]       = useState(false);
+  const [dragOver,     setDragOver]     = useState(false);
   const [importStatus, setImportStatus] = useState<"idle" | "ok" | "err">("idle");
   const [importErr,    setImportErr]    = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!loading) setItems(data.items ?? []);
-  }, [loading, data]);
+    if (!loading && !synced) {
+      setDrafts((data.items ?? []).map(natsDraftFromItem));
+      setSynced(true);
+    }
+  }, [loading, data, synced]);
 
-  const addItem = () =>
-    setItems((prev) => [...prev, { id: Date.now().toString(), reference: "", text: "" }]);
-
-  const removeItem = (id: string) =>
-    setItems((prev) => prev.filter((it) => it.id !== id));
-
-  const updateItem = (id: string, key: keyof AyatNatsItem, val: string) =>
-    setItems((prev) => prev.map((it) => it.id === id ? { ...it, [key]: val } : it));
+  const updateDraft = useCallback((id: string, updated: NatsDraft) =>
+    setDrafts((p) => p.map((d) => d.id === id ? updated : d)), []);
+  const deleteDraft = useCallback((id: string) =>
+    setDrafts((p) => p.filter((d) => d.id !== id)), []);
+  const moveUp      = useCallback((i: number) =>
+    setDrafts((p) => { const n = [...p]; [n[i-1], n[i]] = [n[i], n[i-1]]; return n; }), []);
+  const moveDown    = useCallback((i: number) =>
+    setDrafts((p) => { const n = [...p]; [n[i], n[i+1]] = [n[i+1], n[i]]; return n; }), []);
 
   const handleSave = async () => {
-    const valid = items.filter((it) => it.reference.trim() && it.text.trim());
+    const valid = drafts.filter((d) => d.reference.trim() && d.text.trim());
     if (valid.length === 0) { showToast.error("Isi minimal satu Ayat Nats."); return; }
     setSaving(true);
     try {
-      await save({ items: valid });
-      setItems(valid);
+      const items: AyatNatsItem[] = valid.map((d) => ({
+        id:        d.id,
+        reference: d.reference,
+        text:      d.text,
+        ...(d.bookSlug ? { bookSlug: d.bookSlug, bookName: d.bookName, chapter: d.chapter, verseFrom: d.verseFrom, verseTo: d.verseTo } : {}),
+      }));
+      await save({ items });
       showToast.success(`${valid.length} Ayat Nats berhasil disimpan.`);
       setSaved(true); setTimeout(() => setSaved(false), 2500);
     } catch { showToast.error("Gagal menyimpan."); }
@@ -109,15 +279,14 @@ function AyatNatsSection() {
         if (!it.reference) throw new Error(`Item ${i + 1}: field 'reference' wajib.`);
         if (!it.text)      throw new Error(`Item ${i + 1}: field 'text' wajib.`);
       });
-      const withIds: AyatNatsItem[] = parsed.map((it: any, i: number) => ({
-        id:        it.id ?? `${Date.now()}-${i}`,
-        reference: it.reference,
-        text:      it.text,
+      const items: AyatNatsItem[] = parsed.map((it: any, i: number) => ({
+        id: it.id ?? `${Date.now()}-${i}`, reference: it.reference, text: it.text,
       }));
-      await save({ items: withIds });
-      setItems(withIds);
+      await save({ items });
+      setDrafts(items.map(natsDraftFromItem));
+      setSynced(true);
       setImportStatus("ok");
-      showToast.success(`${withIds.length} Ayat Nats diimport.`);
+      showToast.success(`${items.length} Ayat Nats diimport.`);
     } catch (e: any) {
       setImportStatus("err");
       setImportErr(e.message ?? "JSON tidak valid.");
@@ -127,23 +296,16 @@ function AyatNatsSection() {
 
   const handleFile = (files: FileList | null) => {
     const f = files?.[0]; if (!f) return;
-    if (!f.name.endsWith(".json")) {
-      setImportStatus("err"); setImportErr("File harus .json"); return;
-    }
+    if (!f.name.endsWith(".json")) { setImportStatus("err"); setImportErr("File harus .json"); return; }
     f.text().then(processImport);
   };
 
   const handleExport = () => {
+    const items = drafts.map(({ id, reference, text, bookSlug, bookName, chapter, verseFrom, verseTo }) =>
+      ({ id, reference, text, ...(bookSlug ? { bookSlug, bookName, chapter, verseFrom, verseTo } : {}) }));
     const blob = new Blob([JSON.stringify(items, null, 2)], { type: "application/json" });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a"); a.href = url; a.download = "ayat-nats.json"; a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const downloadSample = () => {
-    const blob = new Blob([JSON.stringify(NATS_SAMPLE, null, 2)], { type: "application/json" });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a"); a.href = url; a.download = "sample-ayat-nats.json"; a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -166,7 +328,7 @@ function AyatNatsSection() {
             Ayat Nats
           </p>
           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-semibold">
-            {items.length} nats — tampil di halaman renungan
+            {drafts.length} nats — tampil di halaman renungan
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -183,48 +345,29 @@ function AyatNatsSection() {
       </div>
 
       <div className="p-5 space-y-4">
-        {/* Nats list */}
-        <div className="space-y-2">
-          {items.map((it, i) => (
-            <div key={it.id} className="flex gap-2 items-start group">
-              <div className="flex items-center pt-2.5 text-muted-foreground/40 cursor-grab">
-                <GripVertical className="h-4 w-4" />
-              </div>
-              <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 mt-2"
-                style={{ backgroundColor: "var(--brand)" }}>
-                {i + 1}
-              </div>
-              <input
-                value={it.reference}
-                onChange={(e) => updateItem(it.id, "reference", e.target.value)}
-                placeholder="mis. Lukas 24:48"
-                className="w-36 shrink-0 px-3 py-2 text-xs border border-border rounded-xl bg-background focus:outline-none font-semibold"
-                style={{ color: "var(--brand)" }}
-              />
-              <input
-                value={it.text}
-                onChange={(e) => updateItem(it.id, "text", e.target.value)}
-                placeholder="Teks ayat nats..."
-                className="flex-1 px-3 py-2 text-xs border border-border rounded-xl bg-background focus:outline-none"
-              />
-              <button
-                onClick={() => removeItem(it.id)}
-                className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 text-red-400 hover:text-red-600 transition-colors shrink-0 mt-0.5"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ))}
-
-          {items.length === 0 && (
-            <div className="text-center py-4 text-xs text-muted-foreground border border-dashed border-border rounded-xl">
-              Belum ada Ayat Nats. Tambah manual atau import JSON.
+        {/* Nats cards */}
+        <div className="space-y-3">
+          {drafts.length === 0 && (
+            <div className="text-center py-6 text-xs text-muted-foreground border border-dashed border-border rounded-xl">
+              Belum ada Ayat Nats. Klik "+ Tambah Nats" untuk mulai, atau import JSON.
             </div>
           )}
+          {drafts.map((draft, index) => (
+            <NatsItemCard
+              key={draft.id}
+              draft={draft}
+              index={index}
+              total={drafts.length}
+              onChange={(updated) => updateDraft(draft.id, updated)}
+              onDelete={() => deleteDraft(draft.id)}
+              onMoveUp={() => moveUp(index)}
+              onMoveDown={() => moveDown(index)}
+            />
+          ))}
         </div>
 
         <button
-          onClick={addItem}
+          onClick={() => setDrafts((p) => [...p, emptyNatsDraft()])}
           className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border hover:bg-muted transition-colors"
           style={{ color: "var(--brand)", borderColor: "var(--brand-border)" }}
         >
@@ -240,7 +383,6 @@ function AyatNatsSection() {
             </p>
           </div>
           <div className="p-4 space-y-3">
-            {/* Drop zone */}
             <div
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
@@ -258,7 +400,6 @@ function AyatNatsSection() {
             <input ref={fileRef} type="file" accept=".json" className="hidden"
               onChange={(e) => handleFile(e.target.files)} />
 
-            {/* Status */}
             {importStatus === "ok" && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 border border-green-200 text-green-700 text-xs font-medium dark:bg-green-900/20 dark:border-green-800 dark:text-green-400">
                 <Check className="h-3.5 w-3.5" /> Import berhasil!
@@ -278,16 +419,12 @@ function AyatNatsSection() {
                 style={{ color: "var(--brand)", borderColor: "var(--brand-border)" }}>
                 <Upload className="h-3.5 w-3.5" /> Pilih File
               </button>
-              {items.length > 0 && (
+              {drafts.length > 0 && (
                 <button onClick={handleExport}
                   className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
                   <Download className="h-3.5 w-3.5" /> Export JSON
                 </button>
               )}
-              <button onClick={downloadSample}
-                className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground ml-auto">
-                <FileJson className="h-3.5 w-3.5" /> Contoh Format
-              </button>
             </div>
           </div>
         </div>
@@ -295,120 +432,7 @@ function AyatNatsSection() {
     </div>
   );
 }
-
-// ─── Ayat Highlights Section ──────────────────────────────────────────────────
-function AyatHighlightsSection() {
-  const { data, loading, save } = useVerseHighlights();
-  const [items,   setItems]   = useState<VerseHighlightItem[]>([]);
-  const [saving,  setSaving]  = useState(false);
-  const [saved,   setSaved]   = useState(false);
-
-  useEffect(() => {
-    if (!loading) setItems(data);
-  }, [loading, data]);
-
-  const addItem = () =>
-    setItems((prev) => [...prev, { reference: "", text: "" }]);
-
-  const removeItem = (i: number) =>
-    setItems((prev) => prev.filter((_, idx) => idx !== i));
-
-  const updateItem = (i: number, key: keyof VerseHighlightItem, val: string) =>
-    setItems((prev) => prev.map((it, idx) => idx === i ? { ...it, [key]: val } : it));
-
-  const handleSave = async () => {
-    const valid = items.filter((it) => it.reference.trim() && it.text.trim());
-    setSaving(true);
-    try {
-      await save(valid);
-      setItems(valid);
-      showToast.success(`${valid.length} Ayat Highlight berhasil disimpan.`);
-      setSaved(true); setTimeout(() => setSaved(false), 2500);
-    } catch { showToast.error("Gagal menyimpan."); }
-    setSaving(false);
-  };
-
-  if (loading) return (
-    <div className="flex items-center gap-2 text-muted-foreground py-4 text-sm">
-      <Loader2 className="h-4 w-4 animate-spin" /> Memuat Ayat Highlight...
-    </div>
-  );
-
-  return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden mb-6">
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-5 py-3 border-b border-border"
-        style={{ backgroundColor: "var(--brand-muted)" }}
-      >
-        <div className="flex items-center gap-2">
-          <Star className="h-4 w-4" style={{ color: "var(--gold)" }} />
-          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--brand)" }}>
-            Ayat Highlight
-          </p>
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-semibold">
-            {items.length} ayat — tampil di bawah Janji Hidup
-          </span>
-        </div>
-        <button
-          onClick={handleSave} disabled={saving}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60 transition-all"
-          style={{ backgroundColor: saved ? "#16a34a" : "var(--brand)" }}
-        >
-          {saving ? <><Loader2 className="h-3 w-3 animate-spin" /> Menyimpan...</>
-           : saved ? <><Check className="h-3 w-3" /> Tersimpan ✓</>
-           :          <><Save className="h-3 w-3" /> Simpan</>}
-        </button>
-      </div>
-
-      <div className="p-5 space-y-3">
-        {items.map((it, i) => (
-          <div key={i} className="flex gap-2 items-start group">
-            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 mt-2"
-              style={{ backgroundColor: "var(--gold)" }}>
-              {i + 1}
-            </div>
-            <input
-              value={it.reference}
-              onChange={(e) => updateItem(i, "reference", e.target.value)}
-              placeholder="mis. Mazmur 23:1"
-              className="w-36 shrink-0 px-3 py-2 text-xs border border-border rounded-xl bg-background focus:outline-none font-semibold"
-              style={{ color: "var(--brand)" }}
-            />
-            <input
-              value={it.text}
-              onChange={(e) => updateItem(i, "text", e.target.value)}
-              placeholder="Teks ayat highlight..."
-              className="flex-1 px-3 py-2 text-xs border border-border rounded-xl bg-background focus:outline-none"
-            />
-            <button
-              onClick={() => removeItem(i)}
-              className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 text-red-400 hover:text-red-600 transition-colors shrink-0 mt-0.5"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        ))}
-
-        {items.length === 0 && (
-          <div className="text-center py-4 text-xs text-muted-foreground border border-dashed border-border rounded-xl">
-            Belum ada Ayat Highlight. Klik tombol di bawah untuk menambah.
-          </div>
-        )}
-
-        <button
-          onClick={addItem}
-          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border hover:bg-muted transition-colors"
-          style={{ color: "var(--gold)", borderColor: "var(--gold)" }}
-        >
-          <Plus className="h-3.5 w-3.5" /> Tambah Highlight
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Main AyatKategoriTab ─────────────────────────────────────────────────────
+// --- Main AyatKategoriTab ---
 export function AyatKategoriTab() {
   const { data: categoryData, loading, save: saveCategories } = useAyatCategories();
 
@@ -473,9 +497,6 @@ export function AyatKategoriTab() {
     <>
       {/* ── Ayat Nats Section ───────────────────────────────────────────── */}
       <AyatNatsSection />
-
-      {/* ── Ayat Highlights Section ─────────────────────────────────────── */}
-      <AyatHighlightsSection />
 
       {/* ── Status bar ──────────────────────────────────────────────────── */}
       <div className="mb-4 flex items-center gap-3">

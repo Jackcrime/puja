@@ -10,9 +10,7 @@ import {
   useDevotional, useAuthors, useBibleReadings,
   type BibleReading, formatDateKey,
 } from "@/lib/hooks/useFirestoreData";
-import {
-  BibleVerseSelector, emptySelection, type VerseSelection,
-} from "@/components/admin/ayat/BibleVerseSelector";
+import { BibleVerseSelector, emptySelection, type VerseSelection } from "@/components/admin/ayat/BibleVerseSelector";
 import { selToRef } from "@/lib/utils/adminAyat";
 import { deleteUploadThingFile, useUploadThing } from "@/lib/uploadthing-client";
 import { auth } from "@/lib/firebase";
@@ -22,7 +20,7 @@ import {
   BookOpen, CalendarDays, ChevronLeft, ChevronRight,
   Eye, EyeOff, Loader2, Music2, X, Upload, CheckCircle2, RefreshCw,
   Save, RotateCcw, Plus, Trash2, ChevronDown, ChevronUp,
-  GripVertical, Link2,
+  GripVertical,
 } from "lucide-react";
 import { INPUT_CLS, FieldLabel, SectionCard, SaveButton } from "./shared";
 import { format, addDays, subDays, isSameDay } from "date-fns";
@@ -72,7 +70,6 @@ function DayPicker({
         <ChevronRight className="h-4 w-4" />
       </button>
 
-      {/* Date input */}
       <input
         type="date"
         value={formatDateKey(date)}
@@ -94,7 +91,6 @@ function DayPicker({
         </button>
       )}
 
-      {/* Jump to date button */}
       <label
         className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background transition-all text-muted-foreground hover:text-foreground cursor-pointer ml-0.5"
         title="Pilih tanggal"
@@ -233,14 +229,13 @@ function AudioUploadZone({ currentUrl, onUploaded, onRemove }: AudioUploadZonePr
 // ─── Renungan Sub-section ─────────────────────────────────────────────────────
 
 function RenunganPart({ date }: { date: Date }) {
-  const { data, loading, update, clear }            = useDevotional(date);
+  const { data, loading, update }                   = useDevotional(date);
   const { data: authorsDict, loading: authLoading } = useAuthors();
 
-  const [form,      setForm]     = useState<typeof data | null>(null);
-  const [saving,    setSaving]   = useState(false);
-  const [saved,     setSaved]    = useState(false);
-  const [resetting, setResetting] = useState(false);
-  const [preview,   setPreview]  = useState(false);
+  const [form,    setForm]  = useState<typeof data | null>(null);
+  const [saving,  setSaving] = useState(false);
+  const [saved,   setSaved]  = useState(false);
+  const [preview, setPreview] = useState(false);
 
   // Reset form when date changes
   useEffect(() => { setForm(null); }, [date]);
@@ -258,14 +253,9 @@ function RenunganPart({ date }: { date: Date }) {
   const set = (key: string, value: string) =>
     setForm((f) => ({ ...(f ?? data), [key]: value }));
 
-  const handleReset = async () => {
-    setResetting(true);
-    try {
-      await clear();
-      setForm(null);
-      showToast.success("Renungan berhasil direset.");
-    } catch { showToast.error("Gagal mereset. Coba lagi."); }
-    setResetting(false);
+  const handleReset = () => {
+    setForm(null);
+    showToast.success("Form direset ke data terakhir.");
   };
 
   const handleSave = async () => {
@@ -354,9 +344,9 @@ function RenunganPart({ date }: { date: Date }) {
 
         <div className="flex gap-2 pt-1">
           <SaveButton saving={saving} saved={saved} onClick={handleSave} label="Simpan ke Firestore" />
-          <button onClick={handleReset} disabled={resetting}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-border hover:bg-muted transition-colors text-muted-foreground disabled:opacity-50">
-            {resetting ? "Mereset..." : "Reset Form"}
+          <button onClick={handleReset}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-border hover:bg-muted transition-colors text-muted-foreground">
+            Reset Form
           </button>
           <button onClick={() => setPreview(!preview)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-border hover:bg-muted transition-colors">
@@ -381,23 +371,18 @@ function RenunganPart({ date }: { date: Date }) {
   );
 }
 
-// ─── Bacaan Types & Helpers ───────────────────────────────────────────────────
-
-interface CrossRef { reference: string; note: string; }
+// ─── Reading Card (simplified — reference + title only, no perikop/cross-ref) ──
 
 interface ReadingDraft {
   id:        string;
   reference: string;
   title:     string;
-  verses:    { number: string; text: string }[];
-  crossRefs: CrossRef[];
   sel:       VerseSelection;
   expanded:  boolean;
-  loading:   boolean;
 }
 
 function newDraft(): ReadingDraft {
-  return { id: crypto.randomUUID(), reference: "", title: "", verses: [], crossRefs: [], sel: emptySelection(), expanded: true, loading: false };
+  return { id: crypto.randomUUID(), reference: "", title: "", sel: emptySelection(), expanded: true };
 }
 
 function draftFromSaved(r: BibleReading): ReadingDraft {
@@ -405,15 +390,10 @@ function draftFromSaved(r: BibleReading): ReadingDraft {
     id:        crypto.randomUUID(),
     reference: r.reference,
     title:     r.title,
-    verses:    r.verses,
-    crossRefs: (r.crossRefs ?? []).map((c) => ({ reference: c.reference, note: c.note ?? "" })),
     sel:       emptySelection(),
     expanded:  false,
-    loading:   false,
   };
 }
-
-// ─── Reading Card ─────────────────────────────────────────────────────────────
 
 function ReadingCard({
   draft, index, total, onChange, onDelete, onMoveUp, onMoveDown,
@@ -428,31 +408,11 @@ function ReadingCard({
 }) {
   const hasContent = draft.reference.trim() !== "";
 
-  const handleSelChange = useCallback(async (sel: VerseSelection) => {
+  const handleSelChange = useCallback((sel: VerseSelection) => {
     const ref = selToRef(sel);
-    onChange({ ...draft, sel, reference: ref, verses: [], loading: !!sel.bookSlug });
-    if (!sel.bookSlug || !sel.chapter || !sel.verseFrom) return;
-    try {
-      const res  = await fetch(`/api/bible?book=${sel.bookSlug}&chapter=${sel.chapter}&from=${sel.verseFrom}&to=${sel.verseTo}`);
-      const json = await res.json();
-      if (res.ok && !json.error) {
-        const verses = (json.verses as { verse: number; text: string }[]).map((v) => ({
-          number: `${sel.chapter}:${v.verse}`,
-          text:   v.text,
-        }));
-        onChange({ ...draft, sel, reference: ref, verses, loading: false });
-      } else {
-        onChange({ ...draft, sel, reference: ref, verses: [], loading: false });
-      }
-    } catch { onChange({ ...draft, sel, reference: ref, verses: [], loading: false }); }
-  }, [draft, onChange]);
-
-  const addCrossRef = () => onChange({ ...draft, crossRefs: [...draft.crossRefs, { reference: "", note: "" }] });
-
-  const updateCrossRef = (i: number, updated: CrossRef) => {
-    const next = [...draft.crossRefs]; next[i] = updated;
-    onChange({ ...draft, crossRefs: next });
-  };
+    onChange({ ...draft, sel, reference: ref || draft.reference });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft]);
 
   return (
     <div className="border border-border rounded-xl overflow-hidden bg-card">
@@ -480,65 +440,39 @@ function ReadingCard({
 
       {draft.expanded && (
         <div className="p-4 space-y-4 border-t border-border">
+          {/* Perikop selector */}
           <div>
-            <FieldLabel>Pilih Perikop</FieldLabel>
+            <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
+              Pilih Perikop Bacaan
+            </label>
             <BibleVerseSelector value={draft.sel} onChange={handleSelChange} showPreview={false} compact />
           </div>
 
-          {draft.reference && (
-            <div className="flex items-center gap-2 text-sm">
-              <BookOpen className="h-4 w-4 shrink-0" style={{ color: "var(--brand)" }} />
-              <span className="font-semibold" style={{ color: "var(--brand)" }}>{draft.reference}</span>
-              {draft.loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
-              {!draft.loading && draft.verses.length > 0 && <span className="text-xs text-muted-foreground">({draft.verses.length} ayat)</span>}
-            </div>
-          )}
-
+          {/* Referensi override */}
           <div>
-            <FieldLabel>Judul Perikop</FieldLabel>
-            <input value={draft.title} onChange={(e) => onChange({ ...draft, title: e.target.value })}
-              placeholder="mis. Kebenaran yang Memerdekakan"
-              className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-1" />
+            <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
+              Referensi (otomatis terisi, bisa diedit)
+            </label>
+            <input
+              value={draft.reference}
+              onChange={(e) => onChange({ ...draft, reference: e.target.value })}
+              placeholder="mis. Roma 8:1-17"
+              className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-1 font-semibold"
+              style={{ color: "var(--brand)" }}
+            />
           </div>
 
-          {draft.verses.length > 0 && (
-            <div className="rounded-xl border border-border bg-muted/20 p-3 space-y-1.5 max-h-40 overflow-y-auto">
-              {draft.verses.map((v, i) => (
-                <div key={i} className="flex items-start gap-2 text-xs">
-                  <span className="font-bold shrink-0 pt-0.5" style={{ color: "var(--brand)" }}>{v.number.split(":")[1]}</span>
-                  <p className="text-foreground leading-relaxed">{v.text}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
+          {/* Judul */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <FieldLabel><span className="flex items-center gap-1.5"><Link2 className="h-3 w-3" /> Cross-Reference</span></FieldLabel>
-              <button onClick={addCrossRef} className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg hover:bg-muted transition-colors" style={{ color: "var(--brand)" }}>
-                <Plus className="h-3 w-3" /> Tambah
-              </button>
-            </div>
-            {draft.crossRefs.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic">Belum ada cross-reference.</p>
-            ) : (
-              <div className="space-y-2">
-                {draft.crossRefs.map((cr, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <input value={cr.reference} onChange={(e) => updateCrossRef(i, { ...cr, reference: e.target.value })}
-                      placeholder="mis. Roma 6:23"
-                      className="w-32 px-2 py-1.5 text-xs border border-border rounded-lg bg-background focus:outline-none shrink-0" />
-                    <input value={cr.note} onChange={(e) => updateCrossRef(i, { ...cr, note: e.target.value })}
-                      placeholder="Catatan singkat (opsional)"
-                      className="flex-1 px-2 py-1.5 text-xs border border-border rounded-lg bg-background focus:outline-none" />
-                    <button onClick={() => onChange({ ...draft, crossRefs: draft.crossRefs.filter((_, idx) => idx !== i) })}
-                      className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors">
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
+              Judul Bacaan
+            </label>
+            <input
+              value={draft.title}
+              onChange={(e) => onChange({ ...draft, title: e.target.value })}
+              placeholder="mis. Hidup dalam Roh"
+              className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-1"
+            />
           </div>
         </div>
       )}
@@ -576,8 +510,6 @@ function BacaanPart({ date }: { date: Date }) {
       .map((d) => ({
         reference: d.reference,
         title:     d.title,
-        verses:    d.verses,
-        crossRefs: d.crossRefs.filter((c) => c.reference.trim()).map((c) => ({ reference: c.reference.trim(), note: c.note.trim() || undefined })),
       }));
     setSaving(true);
     try {
@@ -643,12 +575,21 @@ function BacaanPart({ date }: { date: Date }) {
 
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
-export function RenunganBacaanSection() {
+interface RenunganBacaanSectionProps {
+  onDateChange?: (date: Date) => void;
+}
+
+export function RenunganBacaanSection({ onDateChange }: RenunganBacaanSectionProps = {}) {
   const { date: globalDate } = useDate();
   const [selectedDate, setSelectedDate] = useState<Date>(globalDate ?? new Date());
 
   // Sync with global date on first mount
   useEffect(() => { if (globalDate) setSelectedDate(globalDate); }, []);
+
+  const handleDateChange = (d: Date) => {
+    setSelectedDate(d);
+    onDateChange?.(d);
+  };
 
   return (
     <div className="space-y-5">
@@ -657,7 +598,7 @@ export function RenunganBacaanSection() {
         <p className="text-xs font-bold uppercase tracking-wider mb-2.5" style={{ color: "var(--gold)" }}>
           Pilih Tanggal
         </p>
-        <DayPicker date={selectedDate} onChange={setSelectedDate} />
+        <DayPicker date={selectedDate} onChange={handleDateChange} />
         <p className="text-[10px] text-muted-foreground mt-1.5">
           Renungan dan bacaan disimpan per tanggal. Gunakan panah atau ikon kalender untuk berpindah hari.
         </p>

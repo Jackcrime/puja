@@ -35,8 +35,12 @@ const TABS = [
 type TabId = typeof TABS[number]["id"];
 
 export default function AdminRenungan() {
-  const [activeTab,    setActiveTab]    = useState<TabId>("renungan-bacaan");
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [activeTab,       setActiveTab]       = useState<TabId>("renungan-bacaan");
+  const [renunganDate,    setRenunganDate]    = useState<Date>(new Date());
+  const [mazmurDate,      setMazmurDate]      = useState<Date>(new Date());
+
+  // The stats panel tracks whichever tab is active
+  const statsDate = activeTab === "renungan-bacaan" ? renunganDate : mazmurDate;
 
   const activeTabDef = TABS.find((t) => t.id === activeTab)!;
   const TabIcon      = activeTabDef.icon;
@@ -77,13 +81,13 @@ export default function AdminRenungan() {
         {/* Main 2-column layout */}
         <div className="flex gap-6 items-start">
           <div className="flex-1 min-w-0">
-            {activeTab === "renungan-bacaan" && <RenunganBacaanSection />}
-            {activeTab === "mazmur-khotbah"  && <MazmurKhotbahSection onDateChange={setSelectedDate} />}
+            {activeTab === "renungan-bacaan" && <RenunganBacaanSection onDateChange={setRenunganDate} />}
+            {activeTab === "mazmur-khotbah"  && <MazmurKhotbahSection onDateChange={setMazmurDate} />}
             {activeTab === "pokdoa"          && <PokokDoaSection />}
           </div>
 
           <div className="w-64 shrink-0 hidden lg:block sticky top-6">
-            <RenunganStatsPanel selectedDate={selectedDate} />
+            <RenunganStatsPanel selectedDate={statsDate} />
           </div>
         </div>
 

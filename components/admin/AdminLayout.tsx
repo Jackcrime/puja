@@ -175,7 +175,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
               className="p-2 rounded-lg text-muted-foreground hover:bg-muted transition-colors"
               title="Toggle Theme"
             >
-              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              {theme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
             </button>
 
             {/* Notification Bell */}

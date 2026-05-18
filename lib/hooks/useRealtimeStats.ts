@@ -45,8 +45,13 @@ export interface RealtimeStatsData {
   lastUpdated:   Date | null;
 }
 
+function getDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 export function useRealtimeStats(selectedDate?: Date): RealtimeStatsData {
   const sundayKey = getSundayKey(selectedDate ?? new Date());
+  const dateKey   = getDateKey(selectedDate ?? new Date());
 
   const [devotional,    setDevotional]    = useState<Devotional>(DEVOTIONAL as Devotional);
   const [mazmur,        setMazmur]        = useState<MazmurMinggu>(MAZMUR_MINGGU);
@@ -72,10 +77,15 @@ export function useRealtimeStats(selectedDate?: Date): RealtimeStatsData {
   useEffect(() => {
     const unsubs: (() => void)[] = [];
 
-    // 1. Renungan harian
+    // 1. Renungan harian — subscribe ke dateKey, fallback ke "current"
+    const devLoadedRef = { current: false };
+    unsubs.push(subscribeDoc<Devotional>(
+      "devotional", dateKey, null as any,
+      (d) => { devLoadedRef.current = true; setDevotional(d ?? DEVOTIONAL as Devotional); markLoaded("dev"); }
+    ));
     unsubs.push(subscribeDoc<Devotional>(
       "devotional", "current", DEVOTIONAL as Devotional,
-      (d) => { setDevotional(d); markLoaded("dev"); }
+      (d) => { if (!devLoadedRef.current) setDevotional(d); markLoaded("dev"); }
     ));
 
     // 2. Mazmur Minggu — subscribe ke key minggu ini, fallback ke "current"
@@ -134,15 +144,20 @@ export function useRealtimeStats(selectedDate?: Date): RealtimeStatsData {
       (d) => { setAuthors(d ?? EMPTY_AUTHORS); markLoaded("aut"); }
     ));
 
-    // 7. Bible Readings
+    // 7. Bible Readings — subscribe ke dateKey, fallback ke "current"
+    const brLoadedRef = { current: false };
+    unsubs.push(subscribeDoc<{ items: BibleReading[] }>(
+      "bible_readings", dateKey, null as any,
+      (d) => { brLoadedRef.current = true; setBibleReadings(d?.items ?? []); markLoaded("br"); }
+    ));
     unsubs.push(subscribeDoc<{ items: BibleReading[] }>(
       "bible_readings", "current", { items: BIBLE_READINGS },
-      (d) => { setBibleReadings(d?.items ?? BIBLE_READINGS); markLoaded("br"); }
+      (d) => { if (!brLoadedRef.current) setBibleReadings(d?.items ?? BIBLE_READINGS); markLoaded("br"); }
     ));
 
     return () => unsubs.forEach((u) => u());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sundayKey]);
+  }, [sundayKey, dateKey]);
 
   return { devotional, mazmur, khotbah, pokdoa, khusus, authors, bibleReadings, loading, lastUpdated };
 }
