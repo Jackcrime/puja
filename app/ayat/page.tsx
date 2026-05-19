@@ -22,7 +22,13 @@ export default function AyatEmas() {
     const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
     const special = [
       khusus.tahun   ? { reference: khusus.tahun.reference,   text: khusus.tahun.text,   label: `AYAT TAHUN ${khusus.tahun.year}` }   : null,
-      khusus.minggu  ? { reference: khusus.minggu.reference,  text: khusus.minggu.text,  label: "AYAT MINGGU",   date: khusus.minggu.date } : null,
+      (() => {
+        // Gunakan mingguan (baru) berdasarkan Minggu minggu ini
+        const d = new Date(); d.setDate(d.getDate() - d.getDay());
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+        const m = khusus.mingguan?.[key];
+        return m ? { reference: m.reference, text: m.text, label: "AYAT MINGGU", date: key } : null;
+      })(),
       ...BULAN.map((_, i) => {
         const b = khusus.bulan?.[String(i + 1)];
         return b ? { reference: b.reference, text: b.text, label: `AYAT ${BULAN[i].toUpperCase()}` } : null;

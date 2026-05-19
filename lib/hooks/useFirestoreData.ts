@@ -371,14 +371,17 @@ export function useDailyVerse(dateKey?: string) {
   const [data, setData] = useState<{ reference: string; text: string }>({ reference: "", text: "" });
 
   useEffect(() => {
-    readDoc<AyatKhusus>("ayat_khusus", "current", DEFAULT_AYAT_KHUSUS).then((ak) => {
-      const harian = ak.harian;
-      if (!harian) return;
-      // Pakai tanggal yang diberikan, atau hari ini
-      const today = dateKey ?? new Date().toISOString().split("T")[0];
-      const verse = harian[today];
-      if (verse) setData(verse);
-    });
+    const unsub = subscribeDoc<AyatKhusus>(
+      "ayat_khusus", "current", DEFAULT_AYAT_KHUSUS,
+      (ak) => {
+        const harian = ak?.harian;
+        if (!harian) return;
+        const today = dateKey ?? new Date().toISOString().split("T")[0];
+        const verse = harian[today];
+        if (verse) setData(verse);
+      }
+    );
+    return () => unsub();
   }, [dateKey]);
 
   return { data };
@@ -453,9 +456,15 @@ export function useAyatKhusus() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    readDoc<AyatKhusus>("ayat_khusus", "current", DEFAULT_AYAT_KHUSUS)
-      .then((d) => setData(d ?? DEFAULT_AYAT_KHUSUS))
-      .finally(() => setLoading(false));
+    // Pakai subscribeDoc agar realtime — langsung update saat data Firestore berubah/dihapus
+    const unsub = subscribeDoc<AyatKhusus>(
+      "ayat_khusus", "current", DEFAULT_AYAT_KHUSUS,
+      (d) => {
+        setData(d ?? DEFAULT_AYAT_KHUSUS);
+        setLoading(false);
+      }
+    );
+    return () => unsub();
   }, []);
 
   const save = useCallback(async (next: AyatKhusus) => {

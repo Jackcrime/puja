@@ -17,12 +17,6 @@ export function getDailyVerse() {
   return DAILY_VERSES[dayOfYear % DAILY_VERSES.length];
 }
 
-// ─── Verse highlights ─────────────────────────────────────────────────────────
-export const VERSE_HIGHLIGHTS = [
-  { reference: "Amsal 31:8", text: "Bukalah mulutmu untuk orang yang bisu, untuk hak semua orang yang merana." },
-  { reference: "Markus 2:4", text: "Mereka tidak dapat membawanya kepada-Nya karena orang banyak itu, lalu mereka membuka atap yang di atas-Nya." },
-];
-
 // ─── Perikop (pericope headings) ──────────────────────────────────────────────
 export const PERIKOP = [
   { book: "Amsal", chapter: 31, verses: "1–9", heading: "Nasihat seorang ibu untuk anaknya" },

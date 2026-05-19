@@ -23,7 +23,7 @@ export function Header() {
     { href: "/pustaka-digital", label: t("nav.pustaka"), icon: Library },
     { href: "/ayat", label: t("nav.ayat"), icon: Star },
     { href: "/tentang", label: t("nav.tentang"), icon: Info },
-    { href: "/pengaturan", label: "Pengaturan", icon: Settings },
+    { href: "/pengaturan", label: t("nav.pengaturan"), icon: Settings },
   ];
 
   const themes = [
@@ -41,11 +41,11 @@ export function Header() {
   ];
 
   const fontSizes = [
-    { value: "sm", label: "Kecil", cls: "text-xs" },
-    { value: "md", label: "Normal", cls: "text-sm" },
-    { value: "lg", label: "Besar", cls: "text-base" },
-    { value: "xl", label: "Sangat Besar", cls: "text-lg" },
-    { value: "xxl", label: "Ekstra Besar", cls: "text-xl" },
+    { value: "sm", label: t("pengaturan.fontSizeSm"), cls: "text-xs" },
+    { value: "md", label: t("pengaturan.fontSizeMd"), cls: "text-sm" },
+    { value: "lg", label: t("pengaturan.fontSizeLg"), cls: "text-base" },
+    { value: "xl", label: t("pengaturan.fontSizeXl"), cls: "text-lg" },
+    { value: "xxl", label: t("pengaturan.fontSizeXxl"), cls: "text-xl" },
   ];
 
   return (
@@ -153,7 +153,7 @@ export function Header() {
           <div className="md:hidden border-t bg-card">
             <nav className="max-w-5xl mx-auto px-4 py-3 flex flex-col gap-1">
               <div className="border-t pt-3 mt-1 space-y-3">
-                <p className="text-xs text-muted-foreground px-3 mb-2 font-semibold uppercase tracking-wider">Tema</p>
+                <p className="text-xs text-muted-foreground px-3 mb-2 font-semibold uppercase tracking-wider">{t("pengaturan.theme")}</p>
                   <div className="flex gap-2">
                     {themes.map(({ value, icon: Icon }) => (
                       <button key={value} onClick={() => setTheme(value)}
@@ -168,7 +168,7 @@ export function Header() {
                     ))}
                   </div>
                 <div>
-                  <p className="text-xs text-muted-foreground px-3 mb-2 font-semibold uppercase tracking-wider">Bahasa</p>
+                  <p className="text-xs text-muted-foreground px-3 mb-2 font-semibold uppercase tracking-wider">{t("pengaturan.language")}</p>
                   <div className="flex gap-2 px-3">
                     {(["id","en"] as const).map((l) => (
                       <button key={l} onClick={() => setLang(l)}
@@ -181,7 +181,7 @@ export function Header() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground px-3 mb-2 font-semibold uppercase tracking-wider">Ukuran Teks</p>
+                  <p className="text-xs text-muted-foreground px-3 mb-2 font-semibold uppercase tracking-wider">{t("pengaturan.fontSize")}</p>
                   <div className="flex gap-2 px-3">
                     {MobilefontSizes.map((f) => (
                       <button key={f.value} onClick={() => setFontSize(f.value as any)}

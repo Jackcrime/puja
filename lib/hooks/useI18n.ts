@@ -9,14 +9,15 @@ type Translations = typeof id;
 
 const translations: Record<Lang, Translations> = { id, en };
 
-function getNestedValue(obj: any, path: string): string {
-  return path.split(".").reduce((o, k) => o?.[k], obj) ?? path;
+function getNestedValue(obj: any, path: string): any {
+  const result = path.split(".").reduce((o, k) => o?.[k], obj);
+  return result ?? path;
 }
 
 interface I18nContextType {
   lang: Lang;
   setLang: (lang: Lang) => void;
-  t: (key: string) => string;
+  t: (key: string) => any;
 }
 
 export const I18nContext = createContext<I18nContextType>({
@@ -44,7 +45,7 @@ export function useI18nProvider() {
     try { localStorage.setItem("gkpb_lang", l); } catch {}
   }, []);
 
-  const t = useCallback((key: string) => getNestedValue(translations[lang], key), [lang]);
+  const t = useCallback((key: string): any => getNestedValue(translations[lang], key), [lang]);
 
   return { lang, setLang, t };
 }

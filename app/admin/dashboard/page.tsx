@@ -156,8 +156,15 @@ export default function AdminDashboard() {
 
   // Ayat tahun
   const ayatTahun = ayatKhusus?.tahun;
-  // Ayat minggu
-  const ayatMinggu = ayatKhusus?.minggu;
+
+  // Ayat minggu — ambil dari `mingguan` (sistem baru, per tanggal Minggu)
+  // TIDAK pakai legacy `minggu` agar data yg dihapus benar-benar hilang
+  const thisSundayKey = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - d.getDay()); // mundur ke hari Minggu
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  })();
+  const ayatMinggu = ayatKhusus?.mingguan?.[thisSundayKey] ?? null;
 
   const stats = [
     { label: "Ayat Kategori",   value: totalAyat,        icon: Star,      accent: "var(--gold)"  },
@@ -168,7 +175,7 @@ export default function AdminDashboard() {
   ];
 
   const quickActions = [
-    { href: "/admin/ayat?tab=dwmy",    icon: CalendarDays, label: "Update Ayat Minggu",   sub: ayatMinggu?.reference ? `Saat ini: ${ayatMinggu.reference}` : "Belum diset" },
+    { href: "/admin/ayat?tab=dwmy",    icon: CalendarDays, label: "Update Ayat Minggu",   sub: ayatMinggu?.reference ? `Saat ini: ${ayatMinggu.reference}` : "Belum diset untuk minggu ini" },
     { href: "/admin/renungan",         icon: Pencil,       label: "Edit Renungan",         sub: devotional?.title ?? "Renungan harian" },
     { href: "/admin/ayat?tab=bacaan",  icon: BookOpen,     label: "Tambah Bacaan",         sub: `${totalReadings} bacaan aktif` },
     { href: "/admin/pengumuman",       icon: Megaphone,    label: "Atur Pengumuman",       sub: "Warta jemaat terbaru" },

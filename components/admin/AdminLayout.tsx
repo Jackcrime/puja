@@ -15,6 +15,20 @@ import { logout } from "@/lib/admin/auth";
 import { NotificationSettings } from "@/components/ui/NotificationSettings";
 import { loadSettings, initNotifications } from "@/lib/notifications";
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+// 1. Fungsi bawaan kamu (sudah rapi, tinggal dikit penyesuaian)
+function getTodayFullString(): string {
+  return new Date().toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+    hour: "2-digit",   // Menggunakan 2-digit biar format jam selalu rapi (contoh: 09:05)
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
 const NAV_GROUPS = [
   {
     label: "Konten",
@@ -48,11 +62,22 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifEnabled, setNotifEnabled] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
     initNotifications();
     const s = loadSettings();
     setNotifEnabled(s.enabled);
+  }, []);
+
+  useEffect(() => {
+    setNow(new Date());
+    
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, []);
 
   // Close notif panel on outside click
@@ -98,6 +123,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
           </div>
         </div>
       </div>
+      
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-4">
@@ -130,14 +156,26 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-4 border-t border-border">
-        <Link href="/" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors mb-1">
-          <ChevronRight className="h-4 w-4 rotate-180" /> Ke Aplikasi
-        </Link>
-        <button onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors">
-          <LogOut className="h-4 w-4" /> Keluar
-        </button>
+      <div className="px-3 py-4 border-t border-border flex flex-col gap-4">
+        {/* Tombol Aksi */}
+        <div className="flex flex-col gap-1">
+          <Link 
+            href="/" 
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <ChevronRight className="h-4 w-4 rotate-180" /> 
+            Ke Aplikasi
+          </Link>
+          
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+          >
+            <LogOut className="h-4 w-4" /> 
+            Keluar
+          </button>
+        </div>
+
       </div>
     </div>
   );
@@ -169,6 +207,18 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
           </div>
 
           <div className="flex items-center gap-2">
+            <div className="hidden md:flex flex-col items-end justify-center mr-2 border-r border-border pr-4">
+              <p className="text-[9px] font-bold tracking-[0.2em] uppercase text-muted-foreground opacity-80">
+                {now 
+                  ? now.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" }) // Tahun diilangin biar ga kepanjangan
+                  : "Memuat..."}
+              </p>
+              <p className="text-xs font-bold tracking-[0.1em] text-foreground">
+                {now 
+                  ? now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).replace(/\./g, ':')
+                  : "--:--:--"}
+              </p>
+            </div>
             {/* Dark/Light Toggle */}
             <button
               onClick={toggleTheme}
@@ -216,12 +266,12 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
             </div>
 
             {/* Logout */}
-            <button 
+            {/* <button 
               onClick={handleLogout}
               className="p-2 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
             >
               <LogOut className="h-5 w-5" />
-            </button>
+            </button> */}
           </div>
         </header>
 

@@ -7,19 +7,20 @@ import { BookOpenText, ScrollText, Library, Star, ArrowRight, CalendarDays, Book
 import { useI18n } from "@/lib/hooks/useI18n";
 import { useDevotional, useDailyVerse } from "@/lib/hooks/useFirestoreData";
 import { format } from "date-fns";
-import { id as localeId } from "date-fns/locale";
+import { id as localeId, enUS } from "date-fns/locale";
 
 export default function Home() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { data: devotional, loading: devLoading } = useDevotional();
   const { data: dailyVerse } = useDailyVerse();
-  const todayStr = format(new Date(), "EEEE, d MMMM yyyy", { locale: localeId });
+  const locale = lang === "en" ? enUS : localeId;
+  const todayStr = format(new Date(), "EEEE, d MMMM yyyy", { locale });
 
   const features = [
-    { href: "/pujidanjanji", title: t("nav.pujidanjanji"), desc: "Tuntunan membaca Alkitab setiap hari untuk membangun kedisiplinan rohani.", icon: BookOpenText },
-    { href: "/janjihidup",   title: t("nav.janjihidup"),   desc: "Refleksi harian untuk mengaplikasikan firman Tuhan dalam kehidupan nyata.", icon: ScrollText },
-    { href: "/pustaka-digital", title: t("nav.pustaka"),   desc: "Akses dokumen, tata gereja, dan materi pembinaan Sinode GKPB.", icon: Library },
-    { href: "/ayat",         title: t("nav.ayat"),         desc: "Kumpulan ayat istimewa — ayat minggu, bulanan, dan tahunan.", icon: Star },
+    { href: "/pujidanjanji", title: t("nav.pujidanjanji"), desc: t("home.featureDesc.pujidanjanji"), icon: BookOpenText },
+    { href: "/janjihidup",   title: t("nav.janjihidup"),   desc: t("home.featureDesc.janjihidup"),   icon: ScrollText },
+    { href: "/pustaka-digital", title: t("nav.pustaka"),   desc: t("home.featureDesc.pustaka"),       icon: Library },
+    { href: "/ayat",         title: t("nav.ayat"),         desc: t("home.featureDesc.ayat"),          icon: Star },
   ];
 
   return (
@@ -45,7 +46,7 @@ export default function Home() {
           <p className="text-foreground leading-relaxed italic">&ldquo;{dailyVerse.text}&rdquo;</p>
         </div>
 
-        {/* Devotional preview — hanya tampil jika ada konten */}
+        {/* Devotional preview */}
         {(devLoading || devotional.title?.trim() || devotional.body?.trim()) && (
         <div className="mb-8 bg-card rounded-xl border p-5">
           <div className="flex items-center justify-between mb-3">
@@ -59,7 +60,7 @@ export default function Home() {
           </div>
           {devLoading ? (
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <Loader2 className="h-4 w-4 animate-spin" /> Memuat...
+              <Loader2 className="h-4 w-4 animate-spin" /> {t("common.loading")}
             </div>
           ) : (
             <>

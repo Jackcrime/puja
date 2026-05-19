@@ -6,10 +6,10 @@ import { AppLayout }    from "@/components/layout/AppLayout";
 import { VerseCard }    from "@/components/ui/VerseCard";
 import { Calendar }     from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { MazmurSection }       from "@/components/pujidanjanji/MazmurSection";
 import { BahanKhotbahSection } from "@/components/pujidanjanji/BahanKhotbahSection";
 import { PokokDoaSection }     from "@/components/pujidanjanji/PokokDoaSection";
+import { ReadingCollapse }     from "@/components/pujidanjanji/ReadingCollapse";
 import { SectionDivider }      from "@/components/shared/SectionDivider";
 import { CalendarDays, ChevronRight, Copy, Check, BookOpen, ScrollText, Loader2 } from "lucide-react";
 import {
@@ -39,12 +39,11 @@ function CopyBtn({ text, reference }: { text: string; reference: string }) {
 
 export default function PujiDanJanji() {
   const { t } = useI18n();
-  const { data: BIBLE_READINGS } = useBibleReadings();
-  const { data: khusus }         = useAyatKhusus();
-
   const { date, setDate } = useDate();
-  const [calOpen,     setCalOpen]     = useState(false);
-  const [readVerse,   setReadVerse]   = useState<string[]>([]);
+  const [calOpen, setCalOpen] = useState(false);
+
+  const { data: BIBLE_READINGS } = useBibleReadings(date);
+  const { data: khusus }         = useAyatKhusus();
 
   const displayDate = format(date, "EEEE, d MMMM yyyy", { locale: localeId });
 
@@ -163,48 +162,18 @@ export default function PujiDanJanji() {
         <section className="mb-8">
           <SectionDivider label={t("pujidanjanji.readings")} />
           <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <Accordion type="multiple" className="w-full">
-              {BIBLE_READINGS.map((reading, idx) => (
-                <AccordionItem value={`r-${idx}`} key={idx} className="border-b last:border-0">
-                  <AccordionTrigger
-                    className="px-5 py-4 hover:bg-muted/50 transition-colors text-left"
-                    onClick={() => setReadVerse((p) => p.includes(reading.reference) ? p : [...p, reading.reference])}
-                  >
-                    <div className="flex flex-col gap-0.5 text-left">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <BookOpen className="h-4 w-4 shrink-0" style={{ color: "var(--gold)" }} />
-                        <span className="font-serif font-semibold" style={{ color: "var(--brand)" }}>
-                          {reading.reference}
-                        </span>
-                        {readVerse.includes(reading.reference) && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                            {t("pujidanjanji.read")}
-                          </span>
-                        )}
-                      </div>
-                      {reading.title && (
-                        <span className="text-xs text-muted-foreground pl-6">{reading.title}</span>
-                      )}
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-5 pb-5 pt-2 bg-muted/20">
-                    <div className="flex flex-col gap-3">
-                      {(reading.verses ?? []).map((verse, vi) => (
-                        <div key={vi} className="flex items-start gap-3">
-                          <span className="text-xs font-bold min-w-[1.5rem] pt-0.5" style={{ color: "var(--brand)" }}>
-                            {verse.number.split(":")[1]}
-                          </span>
-                          <p className="text-foreground leading-relaxed text-sm flex-1">{verse.text}</p>
-                        </div>
-                      ))}
-                      <div className="pt-3 border-t border-border mt-1">
-                        <CopyBtn reference={reading.reference} text={(reading.verses ?? []).map((v) => v.text).join(" ")} />
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+            {BIBLE_READINGS.length === 0 ? (
+              <div className="px-5 py-6 text-center text-sm text-muted-foreground">
+                Belum ada bacaan untuk hari ini.
+              </div>
+            ) : BIBLE_READINGS.map((reading, idx) => (
+              <ReadingCollapse
+                key={idx}
+                reading={reading}
+                index={idx}
+                trackRead
+              />
+            ))}
           </div>
         </section>
 

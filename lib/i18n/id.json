@@ -16,7 +16,13 @@
     "readFull": "Baca lengkap",
     "announcement": "Pengumuman",
     "seeAll": "Lihat semua",
-    "noAnnouncement": "Tidak ada pengumuman saat ini."
+    "noAnnouncement": "Tidak ada pengumuman saat ini.",
+    "featureDesc": {
+      "pujidanjanji": "Tuntunan membaca Alkitab setiap hari untuk membangun kedisiplinan rohani.",
+      "janjihidup": "Refleksi harian untuk mengaplikasikan firman Tuhan dalam kehidupan nyata.",
+      "pustaka": "Akses dokumen, tata gereja, dan materi pembinaan Sinode GKPB.",
+      "ayat": "Kumpulan ayat istimewa — ayat minggu, bulanan, dan tahunan."
+    }
   },
   "pujidanjanji": {
     "title": "Panduan Bacaan Alkitab Harian",
@@ -65,7 +71,7 @@
   },
   "pustaka": {
     "title": "Pustaka Digital",
-    "subtitle": "Akses dokumen, tata gereja, dan materi pembinaan Sinode GKPB",
+    "subtitle": "Akses dokumen, tata gereja, dan materi pembinaan Sinode GKPB kapan saja",
     "search": "Cari judul atau deskripsi...",
     "found": "dokumen ditemukan",
     "view": "Lihat",
@@ -85,9 +91,18 @@
   "tentang": {
     "title": "Tentang Aplikasi",
     "visi": "Visi & Misi GKPB",
+    "visiLabel": "VISI",
+    "misiLabel": "MISI",
     "publication": "Informasi Penerbitan",
     "authors": "Daftar Penulis",
+    "showLess": "Tampilkan lebih sedikit",
+    "showAll": "Lihat semua {count} penulis",
     "privacy": "Privasi & Keamanan",
+    "privacyNoData": "tidak mengumpulkan data pribadi",
+    "privacyDesc": "Aplikasi ini tidak mengumpulkan data pribadi pengguna. Semua pengaturan disimpan secara lokal di perangkat Anda.",
+    "privacyDesc2": "Preferensi seperti ukuran teks, bahasa, dan simpanan ayat hanya tersimpan di perangkat Anda sendiri dan tidak dikirim ke server manapun.",
+    "privacyDesc3": "Seluruh konten dapat diakses tanpa koneksi internet setelah diinstal sebagai aplikasi (PWA).",
+    "offlineDesc": "Aplikasi ini dapat digunakan secara offline setelah dibuka pertama kali.",
     "features": "Fitur Aplikasi",
     "contact": "Kontak",
     "edition": "Edisi",
@@ -100,11 +115,33 @@
     "pic": "Penanggung Jawab",
     "version": "Versi Aplikasi",
     "feedback": "Kirim Masukan",
-    "privacyDesc": "Aplikasi ini tidak mengumpulkan data pribadi pengguna. Semua pengaturan disimpan secara lokal di perangkat Anda.",
-    "offlineDesc": "Aplikasi ini dapat digunakan secara offline setelah dibuka pertama kali."
+    "digitalVersion": "Versi Digital — Sinode GKPB",
+    "gkpbTheme": "Tema GKPB 2026",
+    "managedBy": "Dikelola oleh TIM IT Kantor Sinode GKPB",
+    "copyright": "Sinode Gereja Kristen Protestan di Bali",
+    "privacyPolicy": "Kebijakan Privasi",
+    "featureList": [
+      "Bacaan Alkitab harian terpandu",
+      "Renungan Janji Hidup setiap hari",
+      "Perikop — judul bagian Alkitab",
+      "Profil penulis renungan",
+      "Audio renungan harian",
+      "Mode fokus untuk membaca",
+      "Simpan & salin ayat favorit",
+      "Ayat Emas per kategori",
+      "Pustaka Digital 12+ dokumen",
+      "Pratinjau dokumen sebelum unduh",
+      "Pengaturan ukuran teks",
+      "Dark mode & light mode",
+      "Tersedia dalam ID & EN",
+      "Bisa diinstal (PWA)",
+      "Bekerja tanpa internet",
+      "Cetak & bagikan renungan"
+    ]
   },
   "pengaturan": {
     "title": "Pengaturan",
+    "titleFull": "Pengaturan Aplikasi",
     "appearance": "Tampilan",
     "theme": "Tema",
     "themeLight": "Terang",
@@ -115,6 +152,7 @@
     "fontSizeMd": "Normal",
     "fontSizeLg": "Besar",
     "fontSizeXl": "Sangat Besar",
+    "fontSizeXxl": "Ekstra Besar",
     "language": "Bahasa",
     "notification": "Notifikasi",
     "notifEnable": "Aktifkan Pengingat Harian",
@@ -129,10 +167,21 @@
     "installDesc": "Pasang aplikasi ini di layar utama perangkat Anda untuk akses lebih cepat.",
     "installBtn": "Pasang Aplikasi",
     "installSuccess": "Aplikasi berhasil dipasang!",
+    "installStatus": "Status Instalasi",
+    "installStatusInstalled": "Sudah terpasang di layar utama",
+    "installStatusNotInstalled": "Belum dipasang — tambahkan ke layar utama",
+    "installStatusLabel": "Terpasang",
+    "installStatusLabelNot": "Belum",
+    "appSection": "Aplikasi",
+    "appStatusDesc": "Versi {version} · Service Worker aktif · Konten tersedia offline",
     "data": "Data & Privasi",
+    "dangerZone": "Zona Berbahaya",
+    "dangerZoneDesc": "Hapus semua preferensi tersimpan (bookmark, ukuran teks, bahasa, pengingat). Data renungan tidak terpengaruh.",
     "clearCache": "Hapus Cache",
     "clearCacheDesc": "Menghapus data yang tersimpan sementara di perangkat.",
     "clearCacheConfirm": "Cache berhasil dihapus.",
+    "clearDataBtn": "Hapus Data Preferensi",
+    "clearDataSuccess": "Berhasil dihapus",
     "days": {
       "0": "Minggu",
       "1": "Senin",
@@ -148,7 +197,8 @@
     "subtitle": "Koneksi internet tidak tersedia. Beberapa konten mungkin tidak dapat dimuat.",
     "retry": "Coba Lagi",
     "cachedContent": "Konten Tersimpan",
-    "cachedDesc": "Anda masih dapat mengakses konten yang telah dimuat sebelumnya."
+    "cachedDesc": "Anda masih dapat mengakses konten yang telah dimuat sebelumnya.",
+    "beranda": "Beranda"
   },
   "notif": {
     "testTitle": "Puji dan Janji — Uji Notifikasi",

@@ -14,7 +14,7 @@ import { initNotifications } from "@/lib/notifications";
 
 export default function Pengaturan() {
   const { fontSize, setFontSize } = useFontSize();
-  const { lang, setLang } = useI18n();
+  const { lang, setLang, t } = useI18n();
   const { theme, setTheme } = useTheme();
   const [cleared, setCleared] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -43,9 +43,9 @@ export default function Pengaturan() {
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
             <Settings className="h-5 w-5" style={{ color: "var(--gold)" }} />
-            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--gold)" }}>Pengaturan</p>
+            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--gold)" }}>{t("pengaturan.title")}</p>
           </div>
-          <h1 className="font-serif font-bold text-2xl" style={{ color: "var(--brand)" }}>Pengaturan Aplikasi</h1>
+          <h1 className="font-serif font-bold text-2xl" style={{ color: "var(--brand)" }}>{t("pengaturan.titleFull")}</h1>
         </div>
 
         {/* Notifikasi */}
@@ -55,43 +55,46 @@ export default function Pengaturan() {
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <Smartphone className="h-4 w-4" style={{ color: "var(--gold)" }} />
-            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--gold)" }}>Aplikasi</p>
+            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--gold)" }}>{t("pengaturan.appSection")}</p>
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold">Status Instalasi</p>
+              <p className="text-sm font-semibold">{t("pengaturan.installStatus")}</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {isInstalled ? "Sudah terpasang di layar utama" : "Belum dipasang — tambahkan ke layar utama"}
+                {isInstalled ? t("pengaturan.installStatusInstalled") : t("pengaturan.installStatusNotInstalled")}
               </p>
             </div>
             {isInstalled ? (
               <div className="flex items-center gap-1.5 text-xs font-semibold text-green-600">
-                <Check className="h-4 w-4" /> Terpasang
+                <Check className="h-4 w-4" /> {t("pengaturan.installStatusLabel")}
               </div>
             ) : (
               <div className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "var(--brand)" }}>
-                <Download className="h-4 w-4" /> Belum
+                <Download className="h-4 w-4" /> {t("pengaturan.installStatusLabelNot")}
               </div>
             )}
           </div>
           <div className="mt-3 pt-3 border-t border-border">
             <p className="text-xs text-muted-foreground">
-              Versi <strong>0.8 Beta</strong> · Service Worker aktif · Konten tersedia offline
+              {t("pengaturan.appStatusDesc").replace("{version}", "0.8 Beta")}
             </p>
           </div>
         </div>
 
         {/* Reset data */}
         <div className="bg-card border border-border rounded-xl p-5">
-          <p className="text-xs font-bold tracking-widest uppercase mb-3 text-red-500">Zona Berbahaya</p>
+          <p className="text-xs font-bold tracking-widest uppercase mb-3 text-red-500">{t("pengaturan.dangerZone")}</p>
           <p className="text-sm text-muted-foreground mb-4">
-            Hapus semua preferensi tersimpan (bookmark, ukuran teks, bahasa, pengingat). Data renungan tidak terpengaruh.
+            {t("pengaturan.dangerZoneDesc")}
           </p>
           <button onClick={handleClearData}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-colors"
             style={{ backgroundColor: cleared ? "#16a34a" : "#dc2626" }}
           >
-            {cleared ? <><Check className="h-4 w-4" /> Berhasil dihapus</> : <><Trash2 className="h-4 w-4" /> Hapus Data Preferensi</>}
+            {cleared
+              ? <><Check className="h-4 w-4" /> {t("pengaturan.clearDataSuccess")}</>
+              : <><Trash2 className="h-4 w-4" /> {t("pengaturan.clearDataBtn")}</>
+            }
           </button>
         </div>
 

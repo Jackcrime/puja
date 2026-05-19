@@ -76,17 +76,23 @@ export function AyatTuntunanSection({ khusus }: Props) {
               showPerikop
             />
           )}
-          {khusus.minggu && (
-            <VerseCard
-              reference={khusus.minggu.reference}
-              text={khusus.minggu.text}
-              label="AYAT MINGGU"
-              bookTitle={khusus.minggu.reference.split(" ").slice(0, -1).join(" ")}
-              date={khusus.minggu.date}
-              accentColor="brand"
-              showPerikop
-            />
-          )}
+          {(() => {
+            // Gunakan mingguan (baru) — bukan legacy `minggu`
+            const d = new Date(); d.setDate(d.getDate() - d.getDay());
+            const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+            const m = khusus.mingguan?.[key];
+            return m ? (
+              <VerseCard
+                reference={m.reference}
+                text={m.text}
+                label="AYAT MINGGU"
+                bookTitle={m.reference.split(" ").slice(0, -1).join(" ")}
+                date={key}
+                accentColor="brand"
+                showPerikop
+              />
+            ) : null;
+          })()}
         </div>
 
         {/* Accordion: Semua Ayat Bulanan */}

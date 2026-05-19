@@ -16,6 +16,8 @@ export default function Tentang() {
   const [authorsExpanded, setAuthorsExpanded] = useState(false);
   const visibleAuthors = authorsExpanded ? authorEntries : authorEntries.slice(0, 8);
 
+  const featureList: string[] = (t("tentang.featureList") as unknown as string[]) ?? [];
+
   return (
     <AppLayout>
       <div className="max-w-2xl mx-auto px-4 pt-8 pb-6 space-y-4">
@@ -26,12 +28,12 @@ export default function Tentang() {
             <Image src="/gkpb-logo.png" alt="Logo GKPB" width={70} height={70} className="object-contain" />
           </div>
           <h1 className="font-serif font-bold text-2xl mb-1" style={{ color: "var(--brand)" }}>Puji dan Janji</h1>
-          <p className="text-sm text-muted-foreground mb-1">Versi Digital — Sinode GKPB</p>
+          <p className="text-sm text-muted-foreground mb-1">{t("tentang.digitalVersion")}</p>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            Versi 0.8 Beta · 2026
+            {t("tentang.version")} 0.8 Beta · 2026
           </div>
           <div className="mt-4 pt-4 border-t border-border w-full">
-            <p className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "var(--gold)" }}>Tema GKPB 2026</p>
+            <p className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "var(--gold)" }}>{t("tentang.gkpbTheme")}</p>
             <p className="font-serif font-semibold" style={{ color: "var(--brand)" }}>&ldquo;{GKPB_INFO.theme2026}&rdquo;</p>
             <p className="text-xs text-muted-foreground mt-1 italic">{GKPB_INFO.subtheme2026}</p>
           </div>
@@ -135,9 +137,9 @@ export default function Tentang() {
               style={{ color: "var(--brand)" }}
             >
               {authorsExpanded ? (
-                <><ChevronUp className="h-4 w-4" /> Tampilkan lebih sedikit</>
+                <><ChevronUp className="h-4 w-4" /> {t("tentang.showLess")}</>
               ) : (
-                <><ChevronDown className="h-4 w-4" /> Lihat semua {authorEntries.length} penulis</>
+                <><ChevronDown className="h-4 w-4" /> {t("tentang.showAll").replace("{count}", String(authorEntries.length))}</>
               )}
             </button>
           )}
@@ -149,9 +151,9 @@ export default function Tentang() {
             <Heart className="h-4 w-4" style={{ color: "var(--gold)" }} />
             <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--gold)" }}>{t("tentang.visi")}</p>
           </div>
-          <p className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "var(--brand)" }}>VISI</p>
+          <p className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "var(--brand)" }}>{t("tentang.visiLabel")}</p>
           <p className="text-sm text-muted-foreground leading-relaxed mb-4">{GKPB_INFO.visi}</p>
-          <p className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "var(--brand)" }}>MISI</p>
+          <p className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "var(--brand)" }}>{t("tentang.misiLabel")}</p>
           <div className="space-y-2">
             {GKPB_INFO.misi.map((m, i) => (
               <div key={i} className="flex items-start gap-3 text-sm">
@@ -169,24 +171,7 @@ export default function Tentang() {
             <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--gold)" }}>{t("tentang.features")}</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {[
-              "Bacaan Alkitab harian terpandu",
-              "Renungan Janji Hidup setiap hari",
-              "Perikop — judul bagian Alkitab",
-              "Profil penulis renungan",
-              "Audio renungan harian",
-              "Mode fokus untuk membaca",
-              "Simpan & salin ayat favorit",
-              "Ayat Emas per kategori",
-              "Pustaka Digital 12+ dokumen",
-              "Pratinjau dokumen sebelum unduh",
-              "Pengaturan ukuran teks",
-              "Dark mode & light mode",
-              "Tersedia dalam ID & EN",
-              "Bisa diinstal (PWA)",
-              "Bekerja tanpa internet",
-              "Cetak & bagikan renungan",
-            ].map((f, i) => (
+            {Array.isArray(featureList) && featureList.map((f: string, i: number) => (
               <div key={i} className="flex items-center gap-2 text-sm py-1">
                 <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: "var(--gold)" }} />
                 <span>{f}</span>
@@ -202,9 +187,9 @@ export default function Tentang() {
             <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--gold)" }}>{t("tentang.privacy")}</p>
           </div>
           <div className="text-sm text-muted-foreground space-y-2 leading-relaxed">
-            <p>Aplikasi ini <strong className="font-semibold text-foreground">tidak mengumpulkan data pribadi</strong> apapun. Tidak ada akun, tidak ada pelacakan, tidak ada iklan.</p>
-            <p>Preferensi seperti ukuran teks, bahasa, dan simpanan ayat hanya tersimpan di perangkat Anda sendiri dan tidak dikirim ke server manapun.</p>
-            <p>Seluruh konten dapat diakses tanpa koneksi internet setelah diinstal sebagai aplikasi (PWA).</p>
+            <p>{t("tentang.privacyDesc").split(t("tentang.privacyNoData"))[0]}<strong className="font-semibold text-foreground">{t("tentang.privacyNoData")}</strong>{t("tentang.privacyDesc").split(t("tentang.privacyNoData"))[1] ?? ""}</p>
+            <p>{t("tentang.privacyDesc2")}</p>
+            <p>{t("tentang.privacyDesc3")}</p>
           </div>
         </div>
 
@@ -237,9 +222,9 @@ export default function Tentang() {
         </div>
 
         <div className="text-center text-xs text-muted-foreground py-2">
-          <p>Dikelola oleh TIM IT Kantor Sinode GKPB</p>
-          <p className="mt-1">&copy; {new Date().getFullYear()} Sinode Gereja Kristen Protestan di Bali</p>
-          <a href="https://pujidanjanji.balichurchsynod.org/kebijakan-privasi" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block underline hover:text-foreground">Kebijakan Privasi</a>
+          <p>{t("tentang.managedBy")}</p>
+          <p className="mt-1">&copy; {new Date().getFullYear()} {t("tentang.copyright")}</p>
+          <a href="https://pujidanjanji.balichurchsynod.org/kebijakan-privasi" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block underline hover:text-foreground">{t("tentang.privacyPolicy")}</a>
         </div>
       </div>
     </AppLayout>

@@ -9,7 +9,7 @@ out/
 dist/
 build/
 
-# Environment variables — JANGAN COMMIT INI!
+# Environment variables 
 .env
 .env.local
 .env.development.local

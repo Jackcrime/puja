@@ -107,7 +107,7 @@ const AUTHORS: Record<string, { name: string; titles: string[]; photoUrl?: strin
   WAW:    { name: "Wayan Agus Wiratama",                        titles: [],  serviceHistory: [{ ministryId: "sinode-gkpb", from: "2016", until: "Sekarang" }] },
   KS:     { name: "Kadek Suriani",                              titles: [],  serviceHistory: [{ ministryId: "sinode-gkpb", from: "2021", until: "Sekarang" }] },
   JoJo:   { name: "Jonnie Josua",                               titles: [],  serviceHistory: [{ ministryId: "sinode-gkpb", from: "2022", until: "Sekarang" }] },
-  PAP:    { name: "Penta Astari Prasetya",                      titles: [],           serviceHistory: [{ ministryId: "sinode-gkpb", from: "2023", until: "Sekarang" }] },
+  PAP:    { name: "Penta Astari Prasetya",                      titles: [],  serviceHistory: [{ ministryId: "sinode-gkpb", from: "2023", until: "Sekarang" }] },
   PSA:    { name: "Putu Surya Adinata",                         titles: [],  serviceHistory: [{ ministryId: "sinode-gkpb", from: "2022", until: "Sekarang" }] },
   NJL:    { name: "Nafthalia Julita Leander",                   titles: [],  serviceHistory: [{ ministryId: "sinode-gkpb", from: "2018", until: "Sekarang" }] },
   CWP:    { name: "Christiana Welda Putranti",                  titles: [],  serviceHistory: [{ ministryId: "sinode-gkpb", from: "2015", until: "Sekarang" }] },
