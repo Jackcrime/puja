@@ -8,7 +8,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   useDevotional, useAuthors, useBibleReadings,
-  type BibleReading, formatDateKey,
+  type BibleReading, type Devotional, formatDateKey,
 } from "@/lib/hooks/useFirestoreData";
 import { BibleVerseSelector, emptySelection, type VerseSelection } from "@/components/admin/ayat/BibleVerseSelector";
 import { selToRef } from "@/lib/utils/adminAyat";
@@ -251,7 +251,7 @@ function RenunganPart({ date }: { date: Date }) {
   }, [authorsDict, authLoading]);
 
   const set = (key: string, value: string) =>
-    setForm((f) => ({ ...(f ?? data), [key]: value }));
+    setForm((f: Devotional | null) => ({ ...(f ?? data), [key]: value }));
 
   const handleReset = () => {
     setForm(null);

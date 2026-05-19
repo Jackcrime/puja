@@ -4,16 +4,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { readDoc, readCollection, writeDoc, addItem, updateItem, deleteItem, clearDoc, subscribeDoc } from "@/lib/firestore";
 import { toast } from "sonner";
-import {
-  DEVOTIONAL, PERIKOP, VERSE_HIGHLIGHTS, SPECIAL_VERSES,
-  PRAYER_TOPIC, ANNOUNCEMENT, AYAT_CATEGORIES,
-  PUSTAKA_BOOKS, BIBLE_READINGS, getDailyVerse,
-} from "@/lib/mockData";
-
 // ─── Types ────────────────────────────────────────────────────────────────────
-export type Devotional   = typeof DEVOTIONAL & { audioUrl?: string };
-export type PrayerTopic  = typeof PRAYER_TOPIC;
-export type Announcement = typeof ANNOUNCEMENT;
+export type Devotional   = { title: string; authorCode: string; audioUrl?: string; body: string; prayer: string; };
+export type PrayerTopic  = { title: string; text: string; };
+export type Announcement = { text: string; link: string; };
 
 export interface Ministry {
   id:       string;
@@ -47,32 +41,41 @@ export function formatDateKey(date: Date): string {
 }
 
 // ─── 1. Devotional ────────────────────────────────────────────────────────────
+export const EMPTY_DEVOTIONAL: Devotional = {
+  title:      "",
+  authorCode: "",
+  audioUrl:   "",
+  body:       "",
+  prayer:     "",
+};
+
 export function useDevotional(date?: Date) {
-  const [data, setData]       = useState<Devotional>(DEVOTIONAL);
+  const [data, setData]       = useState<Devotional>(EMPTY_DEVOTIONAL);
   const [loading, setLoading] = useState(true);
   const dateKey = date ? formatDateKey(date) : null;
 
   useEffect(() => {
     setLoading(true);
+    setData(EMPTY_DEVOTIONAL);          // clear saat tanggal ganti
     if (dateKey) {
-      // Per-date: coba baca dari dateKey, fallback ke current
       const loadedRef = { current: false };
       const unsubDate = subscribeDoc<Devotional>(
         "devotional", dateKey, null as any,
         (d) => {
           loadedRef.current = true;
-          setData(d && (d.title || d.body) ? d : { ...DEVOTIONAL, audioUrl: "" });
+          setData(d && (d.title || d.body) ? d : EMPTY_DEVOTIONAL);
           setLoading(false);
         }
       );
       const unsubCurrent = subscribeDoc<Devotional>(
-        "devotional", "current", DEVOTIONAL,
-        (d) => { if (!loadedRef.current) { setData(d ?? DEVOTIONAL); setLoading(false); } }
+        "devotional", "current", EMPTY_DEVOTIONAL,
+        (d) => { if (!loadedRef.current) { setData(d ?? EMPTY_DEVOTIONAL); setLoading(false); } }
       );
       return () => { unsubDate(); unsubCurrent(); };
     } else {
-      readDoc<Devotional>("devotional", "current", DEVOTIONAL)
-        .then(setData).finally(() => setLoading(false));
+      readDoc<Devotional>("devotional", "current", EMPTY_DEVOTIONAL)
+        .then((d) => setData(d ?? EMPTY_DEVOTIONAL))
+        .finally(() => setLoading(false));
     }
   }, [dateKey]);
 
@@ -93,13 +96,10 @@ export function useDevotional(date?: Date) {
   }, [data, dateKey]);
 
   const clear = useCallback(async () => {
-    const empty = { ...DEVOTIONAL, audioUrl: "" } as Devotional;
     try {
-      if (dateKey) {
-        await clearDoc("devotional", dateKey, empty);
-      }
-      await clearDoc("devotional", "current", empty);
-      setData(empty);
+      if (dateKey) await clearDoc("devotional", dateKey, EMPTY_DEVOTIONAL);
+      await clearDoc("devotional", "current", EMPTY_DEVOTIONAL);
+      setData(EMPTY_DEVOTIONAL);
     } catch (e) {
       console.error("[useDevotional] clear error:", e);
       toast.error("Gagal mereset renungan. Coba lagi.");
@@ -110,16 +110,21 @@ export function useDevotional(date?: Date) {
 }
 
 // ─── 2. Perikop ───────────────────────────────────────────────────────────────
+export interface PerikopItem { book: string; chapter: number; verses: string; heading: string; }
+export interface SpecialVerse { label: string; reference: string; text: string; date?: string; }
+export interface AyatCategoryVerse { label: string; reference: string; text: string; }
+export interface AyatCategory { category: string; verses: AyatCategoryVerse[]; }
+
 export function usePerikop() {
-  const [data, setData]       = useState(PERIKOP);
+  const [data, setData]       = useState<PerikopItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    readDoc<{ items: typeof PERIKOP }>("perikop", "current", { items: PERIKOP })
-      .then((d) => setData(d.items ?? PERIKOP)).finally(() => setLoading(false));
+    readDoc<{ items: PerikopItem[] }>("perikop", "current", { items: [] })
+      .then((d) => setData(d.items ?? [])).finally(() => setLoading(false));
   }, []);
 
-  const save = useCallback(async (items: typeof PERIKOP) => {
+  const save = useCallback(async (items: PerikopItem[]) => {
     try {
       await writeDoc("perikop", "current", { items });
       setData(items);
@@ -139,16 +144,16 @@ export interface VerseHighlightItem {
 }
 
 export function useVerseHighlights() {
-  const [data, setData]       = useState(VERSE_HIGHLIGHTS);
+  const [data, setData]       = useState<VerseHighlightItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    readDoc<{ items: typeof VERSE_HIGHLIGHTS }>(
-      "verse_highlights", "current", { items: VERSE_HIGHLIGHTS }
-    ).then((d) => setData(d.items ?? VERSE_HIGHLIGHTS)).finally(() => setLoading(false));
+    readDoc<{ items: VerseHighlightItem[] }>(
+      "verse_highlights", "current", { items: [] }
+    ).then((d) => setData(d.items ?? [])).finally(() => setLoading(false));
   }, []);
 
-  const save = useCallback(async (items: typeof VERSE_HIGHLIGHTS) => {
+  const save = useCallback(async (items: VerseHighlightItem[]) => {
     try {
       await writeDoc("verse_highlights", "current", { items });
       setData(items);
@@ -163,41 +168,44 @@ export function useVerseHighlights() {
 
 // ─── 4. Special Verses ────────────────────────────────────────────────────────
 export function useSpecialVerses() {
-  const [data, setData]       = useState(SPECIAL_VERSES);
+  const [data, setData]       = useState<SpecialVerse[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    readDoc<{ items: typeof SPECIAL_VERSES }>(
-      "special_verses", "current", { items: SPECIAL_VERSES }
-    ).then((d) => setData(d.items ?? SPECIAL_VERSES)).finally(() => setLoading(false));
+    readDoc<{ items: SpecialVerse[] }>(
+      "special_verses", "current", { items: [] }
+    ).then((d) => setData(d.items ?? [])).finally(() => setLoading(false));
   }, []);
 
   return { data, loading };
 }
 
 // ─── 5. Prayer Topic ──────────────────────────────────────────────────────────
+const EMPTY_PRAYER_TOPIC: PrayerTopic = { title: "", text: "" };
+
 export function usePrayerTopic() {
-  const [data, setData]       = useState<PrayerTopic>(PRAYER_TOPIC);
+  const [data, setData]       = useState<PrayerTopic>(EMPTY_PRAYER_TOPIC);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    readDoc<PrayerTopic>("prayer_topic", "current", PRAYER_TOPIC)
-      .then(setData).finally(() => setLoading(false));
+    readDoc<PrayerTopic>("prayer_topic", "current", EMPTY_PRAYER_TOPIC)
+      .then((d) => setData(d ?? EMPTY_PRAYER_TOPIC)).finally(() => setLoading(false));
   }, []);
 
   return { data, loading };
 }
 
 // ─── 6. Announcement ─────────────────────────────────────────────────────────
+const EMPTY_ANNOUNCEMENT: Announcement = { text: "", link: "" };
+
 export function useAnnouncement() {
-  const [data, setData]       = useState<Announcement>(ANNOUNCEMENT);
+  const [data, setData]       = useState<Announcement>(EMPTY_ANNOUNCEMENT);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Gunakan subscribeDoc agar realtime — perubahan dari admin langsung terlihat
     const unsub = subscribeDoc<Announcement>(
-      "announcement", "current", ANNOUNCEMENT,
-      (d) => { setData(d ?? ANNOUNCEMENT); setLoading(false); }
+      "announcement", "current", EMPTY_ANNOUNCEMENT,
+      (d) => { setData(d ?? EMPTY_ANNOUNCEMENT); setLoading(false); }
     );
     return () => unsub();
   }, []);
@@ -261,16 +269,16 @@ export function useAuthors() {
 
 // ─── 8. Ayat Categories ───────────────────────────────────────────────────────
 export function useAyatCategories() {
-  const [data, setData]       = useState(AYAT_CATEGORIES);
+  const [data, setData]       = useState<AyatCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    readDoc<{ items: typeof AYAT_CATEGORIES }>(
-      "ayat_categories", "current", { items: AYAT_CATEGORIES }
-    ).then((d) => setData(d.items ?? AYAT_CATEGORIES)).finally(() => setLoading(false));
+    readDoc<{ items: AyatCategory[] }>(
+      "ayat_categories", "current", { items: [] }
+    ).then((d) => setData(d.items ?? [])).finally(() => setLoading(false));
   }, []);
 
-  const save = useCallback(async (items: typeof AYAT_CATEGORIES) => {
+  const save = useCallback(async (items: AyatCategory[]) => {
     try {
       await writeDoc("ayat_categories", "current", { items });
       setData(items);
@@ -296,10 +304,7 @@ export function usePustakaBooks() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const books = await readCollection<PustakaBook>(
-      "pustaka_books",
-      PUSTAKA_BOOKS.map((b) => ({ ...b, id: String(b.id), fileUrl: "", fileStoragePath: "", audioUrl: "" }))
-    );
+    const books = await readCollection<PustakaBook>("pustaka_books", []);
     setData(books);
     setLoading(false);
   }, []);
@@ -361,9 +366,9 @@ export function useMinistries() {
   return { data, loading, add, update, remove, reload: load };
 }
 
-// ─── 11. Daily verse (dari Firestore ayat_khusus.harian date-linked, fallback getDailyVerse) ─
+// ─── 11. Daily verse ──────────────────────────────────────────────────────────
 export function useDailyVerse(dateKey?: string) {
-  const [data, setData] = useState(() => getDailyVerse());
+  const [data, setData] = useState<{ reference: string; text: string }>({ reference: "", text: "" });
 
   useEffect(() => {
     readDoc<AyatKhusus>("ayat_khusus", "current", DEFAULT_AYAT_KHUSUS).then((ak) => {
@@ -388,7 +393,7 @@ export interface BibleReading {
 }
 
 export function useBibleReadings(date?: Date) {
-  const [data, setData]       = useState<BibleReading[]>(BIBLE_READINGS);
+  const [data, setData]       = useState<BibleReading[]>([]);
   const [loading, setLoading] = useState(true);
   const dateKey = date ? formatDateKey(date) : null;
 
@@ -398,21 +403,16 @@ export function useBibleReadings(date?: Date) {
       const loadedRef = { current: false };
       const unsubDate = subscribeDoc<{ items: BibleReading[] }>(
         "bible_readings", dateKey, null as any,
-        (d) => {
-          loadedRef.current = true;
-          setData(d?.items ?? []);
-          setLoading(false);
-        }
+        (d) => { loadedRef.current = true; setData(d?.items ?? []); setLoading(false); }
       );
       const unsubCurrent = subscribeDoc<{ items: BibleReading[] }>(
-        "bible_readings", "current", { items: BIBLE_READINGS },
-        (d) => { if (!loadedRef.current) { setData(d?.items ?? BIBLE_READINGS); setLoading(false); } }
+        "bible_readings", "current", { items: [] },
+        (d) => { if (!loadedRef.current) { setData(d?.items ?? []); setLoading(false); } }
       );
       return () => { unsubDate(); unsubCurrent(); };
     } else {
-      readDoc<{ items: BibleReading[] }>(
-        "bible_readings", "current", { items: BIBLE_READINGS }
-      ).then((d) => setData(d.items ?? BIBLE_READINGS))
+      readDoc<{ items: BibleReading[] }>("bible_readings", "current", { items: [] })
+        .then((d) => setData(d.items ?? []))
         .finally(() => setLoading(false));
     }
   }, [dateKey]);
@@ -446,31 +446,7 @@ export interface AyatKhusus {
   harian?:    Record<string, AyatKhususHarian>;       // key: "YYYY-MM-DD" — date-linked
 }
 
-const DEFAULT_AYAT_KHUSUS: AyatKhusus = {
-  tahun:  { year: 2026, reference: "Wahyu 21:5", text: "Lihatlah, Aku menjadikan segala sesuatu baru!" },
-  minggu: { reference: "2 Korintus 5:17", text: "Siapa yang ada di dalam Kristus, ia adalah ciptaan baru: yang lama sudah berlalu, sesungguhnya yang baru sudah datang.", date: "" },
-  harian: {
-    "2026-05-12": { reference: "Filipi 4:13",   text: "Segala perkara dapat kutanggung di dalam Dia yang memberi kekuatan kepadaku." },
-    "2026-05-13": { reference: "Yohanes 3:16",  text: "Karena begitu besar kasih Allah akan dunia ini, sehingga Ia telah mengaruniakan Anak-Nya yang tunggal." },
-    "2026-05-14": { reference: "Mazmur 23:1",   text: "TUHAN adalah gembalaku, takkan kekurangan aku." },
-    "2026-05-15": { reference: "Yeremia 29:11", text: "Sebab Aku ini mengetahui rancangan-rancangan apa yang ada pada-Ku mengenai kamu, demikianlah firman TUHAN, yaitu rancangan damai sejahtera." },
-    "2026-05-16": { reference: "Yosua 1:9",     text: "Kuatkan dan teguhkanlah hatimu, janganlah kecut dan tawar hati, sebab TUHAN, Allahmu, menyertai engkau ke mana pun engkau pergi." },
-  },
-  bulan: {
-    "1":  { reference: "Ulangan 6:5",     text: "Kasihilah TUHAN, Allahmu, dengan segenap hatimu dan dengan segenap jiwamu dan dengan segenap kekuatanmu." },
-    "2":  { reference: "Ulangan 26:11",   text: "Haruslah engkau bersukaria karena segala yang baik yang diberikan TUHAN, Allahmu, kepadamu dan kepada seisi rumahmu." },
-    "3":  { reference: "Yohanes 11:35",   text: "Maka menangislah Yesus." },
-    "4":  { reference: "Yohanes 20:29",   text: "Berbahagialah mereka yang tidak melihat, namun percaya." },
-    "5":  { reference: "Ibrani 6:19",     text: "Pengharapan itu adalah sauh yang kuat dan aman bagi jiwa kita." },
-    "6":  { reference: "Ibrani 13:3",     text: "Ingatlah akan orang-orang hukuman, karena kamu sendiri juga adalah orang-orang hukuman." },
-    "7":  { reference: "Amos 5:24",       text: "Biarlah keadilan bergulung-gulung seperti air dan kebenaran seperti sungai yang selalu mengalir." },
-    "8":  { reference: "Yohanes 10:10b",  text: "Aku datang, supaya mereka mempunyai hidup, dan mempunyainya dalam segala kelimpahan." },
-    "9":  { reference: "Pengkhotbah 4:6", text: "Segenggam ketenangan lebih baik dari pada dua genggam jerih payah dan usaha menjaring angin." },
-    "10": { reference: "Galatia 5:1",     text: "Kristus telah memerdekakan kita. Karena itu berdirilah teguh dan jangan mau lagi dikenakan kuk perhambaan." },
-    "11": { reference: "Yesaya 2:4",      text: "Bangsa tidak akan lagi mengangkat pedang terhadap bangsa, dan mereka tidak akan lagi belajar perang." },
-    "12": { reference: "Yesaya 11:7",     text: "Lembu dan beruang akan sama-sama makan rumput dan anaknya akan sama-sama berbaring, sedang singa akan makan jerami seperti lembu." },
-  },
-};
+const DEFAULT_AYAT_KHUSUS: AyatKhusus = {};
 
 export function useAyatKhusus() {
   const [data, setData]       = useState<AyatKhusus>(DEFAULT_AYAT_KHUSUS);
@@ -478,7 +454,7 @@ export function useAyatKhusus() {
 
   useEffect(() => {
     readDoc<AyatKhusus>("ayat_khusus", "current", DEFAULT_AYAT_KHUSUS)
-      .then(setData)
+      .then((d) => setData(d ?? DEFAULT_AYAT_KHUSUS))
       .finally(() => setLoading(false));
   }, []);
 
@@ -495,7 +471,6 @@ export function useAyatKhusus() {
   return { data, loading, save };
 }
 // ─── 14. Mazmur Minggu ────────────────────────────────────────────────────────
-import { MAZMUR_MINGGU, BAHAN_KHOTBAH, POKOK_DOA_HARIAN, AYAT_NATS } from "@/lib/mockData";
 
 export interface MazmurMinggu {
   reference:    string;
@@ -515,35 +490,27 @@ function getSundayKey(date: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+const EMPTY_MAZMUR: MazmurMinggu = { reference: "", title: "", verses: [], visible: true };
+
 export function useMazmurMinggu(date?: Date) {
-  const [data, setData]       = useState<MazmurMinggu>(MAZMUR_MINGGU);
+  const [data, setData]       = useState<MazmurMinggu>(EMPTY_MAZMUR);
   const [loading, setLoading] = useState(true);
   const dateKey = getSundayKey(date ?? new Date());
 
   useEffect(() => {
     setLoading(true);
-    // useRef agar flag shared antar dua callback (tidak ada closure stale)
     const weekLoadedRef = { current: false };
     const unsubWeek = subscribeDoc<MazmurMinggu>(
       "mazmur_minggu", dateKey, null as any,
       (d) => {
         weekLoadedRef.current = true;
-        if (d && d.reference) {
-          setData(d);
-        } else {
-          setData({ reference: "", title: "", verses: [], visible: true });
-        }
+        setData(d && d.reference ? d : EMPTY_MAZMUR);
         setLoading(false);
       }
     );
     const unsubCurrent = subscribeDoc<MazmurMinggu>(
-      "mazmur_minggu", "current", MAZMUR_MINGGU,
-      (d) => {
-        if (!weekLoadedRef.current) {
-          setData(d ?? MAZMUR_MINGGU);
-          setLoading(false);
-        }
-      }
+      "mazmur_minggu", "current", EMPTY_MAZMUR,
+      (d) => { if (!weekLoadedRef.current) { setData(d ?? EMPTY_MAZMUR); setLoading(false); } }
     );
     return () => { unsubWeek(); unsubCurrent(); };
   }, [dateKey]);
@@ -562,11 +529,10 @@ export function useMazmurMinggu(date?: Date) {
 
   const clear = useCallback(async (targetDate?: Date) => {
     const key = getSundayKey(targetDate ?? date ?? new Date());
-    const empty: MazmurMinggu = { reference: "", title: "", verses: [] };
     try {
-      await clearDoc("mazmur_minggu", key, empty as any);
-      await clearDoc("mazmur_minggu", "current", empty as any);
-      setData(MAZMUR_MINGGU);
+      await clearDoc("mazmur_minggu", key, EMPTY_MAZMUR as any);
+      await clearDoc("mazmur_minggu", "current", EMPTY_MAZMUR as any);
+      setData(EMPTY_MAZMUR);
     } catch (e) {
       console.error("[useMazmurMinggu] clear error:", e);
       toast.error("Gagal mereset Mazmur Minggu. Coba lagi.");
@@ -667,11 +633,11 @@ export interface PokokDoa {
 }
 
 export function usePokokDoaHarian() {
-  const [data, setData]       = useState<PokokDoa[]>(POKOK_DOA_HARIAN);
+  const [data, setData]       = useState<PokokDoa[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    readDoc<{ items: PokokDoa[] }>("pokok_doa_harian", "current", { items: POKOK_DOA_HARIAN })
-      .then((d) => setData(d.items ?? POKOK_DOA_HARIAN))
+    readDoc<{ items: PokokDoa[] }>("pokok_doa_harian", "current", { items: [] })
+      .then((d) => setData(d.items ?? []))
       .finally(() => setLoading(false));
   }, []);
   const save = useCallback(async (items: PokokDoa[]) => {
@@ -700,11 +666,7 @@ export interface AyatNatsItem {
 }
 export interface AyatNats { items: AyatNatsItem[]; }
 
-const DEFAULT_AYAT_NATS: AyatNats = {
-  items: Array.isArray((AYAT_NATS as any).items)
-    ? (AYAT_NATS as any).items
-    : [{ id: "1", reference: (AYAT_NATS as any).reference ?? "", text: (AYAT_NATS as any).text ?? "" }],
-};
+const DEFAULT_AYAT_NATS: AyatNats = { items: [] };
 
 export function useAyatNats() {
   const [data, setData]       = useState<AyatNats>(DEFAULT_AYAT_NATS);

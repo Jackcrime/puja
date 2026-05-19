@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Heart, BookOpen, Shield, Globe, Mail, Phone, MapPin, ChevronRight, Users, ChevronDown, ChevronUp, Headphones, Cpu, Edit3 } from "lucide-react";
-import { PUBLICATION_INFO, GKPB_INFO } from "@/lib/mockData";
+import { PUBLICATION_INFO, GKPB_INFO } from "@/lib/constants/gkpb";
 import { useAuthors } from "@/lib/hooks/useFirestoreData";
 import { useI18n } from "@/lib/hooks/useI18n";
 

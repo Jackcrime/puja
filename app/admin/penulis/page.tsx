@@ -8,7 +8,7 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { FileUploader } from "@/components/admin/FileUploader";
 import { useAuthors, useMinistries, type Author, type ServiceEntry } from "@/lib/hooks/useFirestoreData";
 import { deleteUploadThingFile } from "@/lib/uploadthing-client";
-import { TITLE_OPTIONS } from "@/lib/mockData";
+import { TITLE_OPTIONS } from "@/lib/constants/authorOptions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, UserCircle, Plus, X, GripVertical } from "lucide-react";
 import { showToast } from "@/lib/utils/toast";

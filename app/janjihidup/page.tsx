@@ -320,7 +320,7 @@ export default function JanjiHidup() {
                     {devotional.title}
                   </h2>
                   <div className="space-y-4">
-                    {devotional.body.split("\n\n").map((para, i) => (
+                    {devotional.body.split("\n\n").map((para: string, i: number) => (
                       <p key={i} className="text-foreground leading-relaxed">{para}</p>
                     ))}
                   </div>
@@ -413,4 +413,4 @@ export default function JanjiHidup() {
       </div>
     </AppLayout>
   );
-}
+} 

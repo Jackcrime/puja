@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar, ChevronDown, ChevronUp, BookOpen } from "lucide-react";
 import { VerseCard } from "@/components/ui/VerseCard";
+import { PerikopModal } from "@/components/ui/PerikopModal";
+import { parseReference } from "@/lib/bible-books";
 import type { AyatKhusus } from "@/lib/hooks/useFirestoreData";
 
 const BULAN = [
@@ -12,6 +14,34 @@ const BULAN = [
 
 interface Props {
   khusus: AyatKhusus;
+}
+
+// ─── Mini perikop link for accordion rows ─────────────────────────────────────
+
+function BulanPerikopLink({ reference }: { reference: string }) {
+  const [open, setOpen] = useState(false);
+  const parsed = parseReference(reference);
+  if (!parsed) return null;
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold transition-colors hover:opacity-80"
+        style={{ color: "var(--brand)" }}
+      >
+        <BookOpen className="h-3 w-3" /> Baca Perikop
+      </button>
+      <PerikopModal
+        open={open}
+        onOpenChange={setOpen}
+        bookSlug={parsed.book.slug}
+        bookName={parsed.book.name}
+        chapter={parsed.chapter}
+        verseFrom={parsed.verseFrom}
+        verseTo={parsed.verseTo}
+      />
+    </>
+  );
 }
 
 export function AyatTuntunanSection({ khusus }: Props) {
@@ -31,7 +61,6 @@ export function AyatTuntunanSection({ khusus }: Props) {
             bookTitle={khusus.tahun.reference.split(" ").slice(0, -1).join(" ")}
             accentColor="brand"
             showPerikop
-            noPerikop
           />
         )}
 
@@ -45,7 +74,6 @@ export function AyatTuntunanSection({ khusus }: Props) {
               bookTitle={ayatBulanIni.reference.split(" ").slice(0, -1).join(" ")}
               accentColor="gold"
               showPerikop
-              noPerikop
             />
           )}
           {khusus.minggu && (
@@ -57,7 +85,6 @@ export function AyatTuntunanSection({ khusus }: Props) {
               date={khusus.minggu.date}
               accentColor="brand"
               showPerikop
-              noPerikop
             />
           )}
         </div>
@@ -107,6 +134,7 @@ export function AyatTuntunanSection({ khusus }: Props) {
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold" style={{ color: "var(--brand)" }}>{b.reference}</p>
                         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{b.text}</p>
+                        <BulanPerikopLink reference={b.reference} />
                       </div>
                     ) : (
                       <p className="text-xs text-muted-foreground italic">—</p>
