@@ -34,16 +34,7 @@ export function AyatTuntunanSection({ khusus }: Props) {
         )}
 
         {/* Ayat Bulan + Minggu berdampingan */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {ayatBulanIni && (
-            <VerseCard
-              reference={ayatBulanIni.reference}
-              text={ayatBulanIni.text}
-              label={`AYAT BULAN ${BULAN[currentMonth - 1].toUpperCase()}`}
-              bookTitle={ayatBulanIni.reference.split(" ").slice(0, -1).join(" ")}
-              accentColor="gold"
-            />
-          )}
+        <div className="grid grid-cols-1">
           {(() => {
             // Gunakan mingguan (baru) — bukan legacy `minggu`
             const d = new Date(); d.setDate(d.getDate() - d.getDay());

@@ -56,27 +56,33 @@ export function useDevotional(date?: Date) {
 
   useEffect(() => {
     setLoading(true);
-    setData(EMPTY_DEVOTIONAL);          // clear saat tanggal ganti
-    if (dateKey) {
-      const loadedRef = { current: false };
-      const unsubDate = subscribeDoc<Devotional>(
-        "devotional", dateKey, null as any,
-        (d) => {
-          loadedRef.current = true;
-          setData(d && (d.title || d.body) ? d : EMPTY_DEVOTIONAL);
-          setLoading(false);
+    setData(EMPTY_DEVOTIONAL);
+    let cancelled = false;
+
+    (async () => {
+      try {
+        if (dateKey) {
+          // Coba ambil konten spesifik tanggal dulu
+          const byDate = await readDoc<Devotional>("devotional", dateKey, EMPTY_DEVOTIONAL);
+          if (cancelled) return;
+          if (byDate.title || byDate.body) {
+            setData(byDate);
+          } else {
+            // Fallback ke "current" jika tidak ada konten khusus tanggal ini
+            const current = await readDoc<Devotional>("devotional", "current", EMPTY_DEVOTIONAL);
+            if (!cancelled) setData(current ?? EMPTY_DEVOTIONAL);
+          }
+        } else {
+          const current = await readDoc<Devotional>("devotional", "current", EMPTY_DEVOTIONAL);
+          if (!cancelled) setData(current ?? EMPTY_DEVOTIONAL);
         }
-      );
-      const unsubCurrent = subscribeDoc<Devotional>(
-        "devotional", "current", EMPTY_DEVOTIONAL,
-        (d) => { if (!loadedRef.current) { setData(d ?? EMPTY_DEVOTIONAL); setLoading(false); } }
-      );
-      return () => { unsubDate(); unsubCurrent(); };
-    } else {
-      readDoc<Devotional>("devotional", "current", EMPTY_DEVOTIONAL)
-        .then((d) => setData(d ?? EMPTY_DEVOTIONAL))
-        .finally(() => setLoading(false));
-    }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    // Cleanup: batalkan state update jika komponen unmount sebelum fetch selesai
+    return () => { cancelled = true; };
   }, [dateKey]);
 
   const update = useCallback(async (changes: Partial<Devotional>) => {
@@ -371,17 +377,17 @@ export function useDailyVerse(dateKey?: string) {
   const [data, setData] = useState<{ reference: string; text: string }>({ reference: "", text: "" });
 
   useEffect(() => {
-    const unsub = subscribeDoc<AyatKhusus>(
-      "ayat_khusus", "current", DEFAULT_AYAT_KHUSUS,
-      (ak) => {
+    let cancelled = false;
+    readDoc<AyatKhusus>("ayat_khusus", "current", DEFAULT_AYAT_KHUSUS)
+      .then((ak) => {
+        if (cancelled) return;
         const harian = ak?.harian;
         if (!harian) return;
         const today = dateKey ?? new Date().toISOString().split("T")[0];
         const verse = harian[today];
         if (verse) setData(verse);
-      }
-    );
-    return () => unsub();
+      });
+    return () => { cancelled = true; };
   }, [dateKey]);
 
   return { data };
@@ -402,22 +408,29 @@ export function useBibleReadings(date?: Date) {
 
   useEffect(() => {
     setLoading(true);
-    if (dateKey) {
-      const loadedRef = { current: false };
-      const unsubDate = subscribeDoc<{ items: BibleReading[] }>(
-        "bible_readings", dateKey, null as any,
-        (d) => { loadedRef.current = true; setData(d?.items ?? []); setLoading(false); }
-      );
-      const unsubCurrent = subscribeDoc<{ items: BibleReading[] }>(
-        "bible_readings", "current", { items: [] },
-        (d) => { if (!loadedRef.current) { setData(d?.items ?? []); setLoading(false); } }
-      );
-      return () => { unsubDate(); unsubCurrent(); };
-    } else {
-      readDoc<{ items: BibleReading[] }>("bible_readings", "current", { items: [] })
-        .then((d) => setData(d.items ?? []))
-        .finally(() => setLoading(false));
-    }
+    let cancelled = false;
+
+    (async () => {
+      try {
+        if (dateKey) {
+          const byDate = await readDoc<{ items: BibleReading[] }>("bible_readings", dateKey, { items: [] });
+          if (cancelled) return;
+          if (byDate.items && byDate.items.length > 0) {
+            setData(byDate.items);
+          } else {
+            const current = await readDoc<{ items: BibleReading[] }>("bible_readings", "current", { items: [] });
+            if (!cancelled) setData(current.items ?? []);
+          }
+        } else {
+          const current = await readDoc<{ items: BibleReading[] }>("bible_readings", "current", { items: [] });
+          if (!cancelled) setData(current.items ?? []);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, [dateKey]);
 
   const save = useCallback(async (items: BibleReading[]) => {
@@ -456,15 +469,11 @@ export function useAyatKhusus() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Pakai subscribeDoc agar realtime — langsung update saat data Firestore berubah/dihapus
-    const unsub = subscribeDoc<AyatKhusus>(
-      "ayat_khusus", "current", DEFAULT_AYAT_KHUSUS,
-      (d) => {
-        setData(d ?? DEFAULT_AYAT_KHUSUS);
-        setLoading(false);
-      }
-    );
-    return () => unsub();
+    let cancelled = false;
+    readDoc<AyatKhusus>("ayat_khusus", "current", DEFAULT_AYAT_KHUSUS)
+      .then((d) => { if (!cancelled) setData(d ?? DEFAULT_AYAT_KHUSUS); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   const save = useCallback(async (next: AyatKhusus) => {
@@ -508,20 +517,24 @@ export function useMazmurMinggu(date?: Date) {
 
   useEffect(() => {
     setLoading(true);
-    const weekLoadedRef = { current: false };
-    const unsubWeek = subscribeDoc<MazmurMinggu>(
-      "mazmur_minggu", dateKey, null as any,
-      (d) => {
-        weekLoadedRef.current = true;
-        setData(d && d.reference ? d : EMPTY_MAZMUR);
-        setLoading(false);
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const byWeek = await readDoc<MazmurMinggu>("mazmur_minggu", dateKey, EMPTY_MAZMUR);
+        if (cancelled) return;
+        if (byWeek.reference) {
+          setData(byWeek);
+        } else {
+          const current = await readDoc<MazmurMinggu>("mazmur_minggu", "current", EMPTY_MAZMUR);
+          if (!cancelled) setData(current ?? EMPTY_MAZMUR);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    );
-    const unsubCurrent = subscribeDoc<MazmurMinggu>(
-      "mazmur_minggu", "current", EMPTY_MAZMUR,
-      (d) => { if (!weekLoadedRef.current) { setData(d ?? EMPTY_MAZMUR); setLoading(false); } }
-    );
-    return () => { unsubWeek(); unsubCurrent(); };
+    })();
+
+    return () => { cancelled = true; };
   }, [dateKey]);
 
   const save = useCallback(async (next: MazmurMinggu, targetDate?: Date) => {
@@ -581,30 +594,24 @@ export function useBahanKhotbah(date?: Date) {
 
   useEffect(() => {
     setLoading(true);
-    // useRef agar flag shared antar dua callback (tidak ada closure stale)
-    const weekLoadedRef = { current: false };
-    const unsubWeek = subscribeDoc<BahanKhotbah>(
-      "bahan_khotbah", dateKey, null as any,
-      (d) => {
-        weekLoadedRef.current = true;
-        if (d && d.bookSlug) {
-          setData(d);
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const byWeek = await readDoc<BahanKhotbah>("bahan_khotbah", dateKey, EMPTY_BAHAN_KHOTBAH);
+        if (cancelled) return;
+        if (byWeek.bookSlug) {
+          setData(byWeek);
         } else {
-          setData(EMPTY_BAHAN_KHOTBAH);
+          const current = await readDoc<BahanKhotbah>("bahan_khotbah", "current", EMPTY_BAHAN_KHOTBAH);
+          if (!cancelled) setData(current ?? EMPTY_BAHAN_KHOTBAH);
         }
-        setLoading(false);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    );
-    const unsubCurrent = subscribeDoc<BahanKhotbah>(
-      "bahan_khotbah", "current", EMPTY_BAHAN_KHOTBAH,
-      (d) => {
-        if (!weekLoadedRef.current) {
-          setData(d ?? EMPTY_BAHAN_KHOTBAH);
-          setLoading(false);
-        }
-      }
-    );
-    return () => { unsubWeek(); unsubCurrent(); };
+    })();
+
+    return () => { cancelled = true; };
   }, [dateKey]);
 
   const save = useCallback(async (next: BahanKhotbah, targetDate?: Date) => {

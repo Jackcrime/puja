@@ -21,10 +21,18 @@ export function BahanKhotbahSection({ date }: { date?: Date }) {
   if (data.visible === false) return null;
   if (!data.bookSlug) return null;
 
-  // Cek jadwal tampil berdasarkan date range (jika diset)
-  const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  if (data.visibleFrom && todayStr < data.visibleFrom) return null;
-  if (data.visibleUntil && todayStr > data.visibleUntil) return null;
+  // Cek hari tampil berdasarkan visibleDays (utama) — fallback ke legacy date range
+  const dayOfWeek     = d.getDay();
+  const effectiveDays = data.visibleDays;
+  if (effectiveDays && effectiveDays.length > 0) {
+    // Admin sudah set → ikuti setting
+    if (!effectiveDays.includes(dayOfWeek)) return null;
+  } else {
+    // Legacy fallback: visibleFrom/visibleUntil date range
+    const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    if (data.visibleFrom  && todayStr < data.visibleFrom)  return null;
+    if (data.visibleUntil && todayStr > data.visibleUntil) return null;
+  }
 
   const handleOpen = async () => {
     const next = !open;

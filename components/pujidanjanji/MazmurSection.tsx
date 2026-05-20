@@ -12,14 +12,22 @@ export function MazmurSection({ date }: { date?: Date }) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied]     = useState(false);
 
-  // Hanya tampil pada hari Minggu atau hari raya liturgi penting
-  const isSunday   = d.getDay() === 0;
-  const isHoliday  = getLiturgicalEvents(d).length > 0;
-  if (!isSunday && !isHoliday) return null;
-
   if (loading) return null;
   if (data.visible === false) return null;
   if (!data.reference || !data.verses || data.verses.length === 0) return null;
+
+  // Cek hari tampil:
+  // — Kalau admin sudah set visibleDays → patuhi itu
+  // — Kalau tidak ada (data lama) → default: Minggu atau hari raya liturgi
+  const dayOfWeek     = d.getDay();
+  const effectiveDays = data.visibleDays;
+  if (effectiveDays && effectiveDays.length > 0) {
+    if (!effectiveDays.includes(dayOfWeek)) return null;
+  } else {
+    const isSunday  = dayOfWeek === 0;
+    const isHoliday = getLiturgicalEvents(d).length > 0;
+    if (!isSunday && !isHoliday) return null;
+  }
 
   const copy = () => {
     const all = data.verses.map((v) => `${v.number} ${v.text}`).join("\n");
