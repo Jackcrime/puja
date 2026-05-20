@@ -99,7 +99,6 @@ export default function AyatEmas() {
                   bookTitle={v.reference.split(" ").slice(0, -1).join(" ")}
                   date={v.date}
                   accentColor={i % 2 === 0 ? "gold" : "brand"}
-                  showPerikop
                 />
               ))
             )}

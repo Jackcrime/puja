@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { AppLayout }    from "@/components/layout/AppLayout";
 import { VerseCard }    from "@/components/ui/VerseCard";
-import { Calendar }     from "@/components/ui/calendar";
+import { DatePickerCalendar } from "@/components/ui/DatePickerCalendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { MazmurSection }       from "@/components/pujidanjanji/MazmurSection";
 import { BahanKhotbahSection } from "@/components/pujidanjanji/BahanKhotbahSection";
@@ -101,18 +101,16 @@ export default function PujiDanJanji() {
                   <span className="hidden sm:inline">{t("pujidanjanji.chooseDate")}</span>
                 </button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="sm:max-w-sm">
                 <DialogHeader>
                   <DialogTitle className="font-serif" style={{ color: "var(--brand)" }}>
                     {t("pujidanjanji.chooseDate")}
                   </DialogTitle>
                 </DialogHeader>
-                <div className="flex justify-center p-4">
-                  <Calendar
-                    mode="single"
+                <div className="px-2 pb-4 pt-1">
+                  <DatePickerCalendar
                     selected={date}
-                    onSelect={(d) => { if (d) { setDate(d); } setCalOpen(false); }}
-                    className="rounded-lg border"
+                    onSelect={(d) => { setDate(d); setCalOpen(false); }}
                   />
                 </div>
               </DialogContent>

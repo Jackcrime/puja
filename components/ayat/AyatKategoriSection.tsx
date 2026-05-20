@@ -63,7 +63,6 @@ export function AyatKategoriSection({ categories, loading }: Props) {
               label={v.label}
               bookTitle={v.reference.split(" ").slice(0, -1).join(" ")}
               accentColor={i % 2 === 0 ? "gold" : "brand"}
-              showPerikop
             />
           ))}
         </div>

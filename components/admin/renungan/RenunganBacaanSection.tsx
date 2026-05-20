@@ -1,10 +1,4 @@
 "use client";
-
-/**
- * RenunganBacaanSection — Renungan Harian + Bacaan Alkitab dalam satu section
- * dengan date picker harian yang dipakai bersama.
- */
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   useDevotional, useAuthors, useBibleReadings,
@@ -23,6 +17,7 @@ import {
   GripVertical,
 } from "lucide-react";
 import { INPUT_CLS, FieldLabel, SectionCard, SaveButton } from "./shared";
+import { AuthorPicker } from "./AuthorPicker";
 import { format, addDays, subDays, isSameDay } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { useDate } from "@/lib/context/DateContext";
@@ -242,14 +237,6 @@ function RenunganPart({ date }: { date: Date }) {
 
   const current = form ?? data;
 
-  const authorOptions = useMemo(() => {
-    if (authLoading) return [];
-    return Object.entries(authorsDict as Record<string, any>).map(([code, a]) => ({
-      value: code,
-      label: `${a.title ? a.title + " " : ""}${a.name} (${code})`,
-    }));
-  }, [authorsDict, authLoading]);
-
   const set = (key: string, value: string) =>
     setForm((f: Devotional | null) => ({ ...(f ?? data), [key]: value }));
 
@@ -295,15 +282,12 @@ function RenunganPart({ date }: { date: Date }) {
         {/* Penulis */}
         <div>
           <FieldLabel>Penulis</FieldLabel>
-          {authLoading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Memuat...</div>
-          ) : (
-            <select value={String((current as any).authorCode ?? "")}
-              onChange={(e) => set("authorCode", e.target.value)} className={INPUT_CLS}>
-              <option value="">— Pilih penulis —</option>
-              {authorOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-            </select>
-          )}
+          <AuthorPicker
+            value={String((current as any).authorCode ?? "")}
+            authors={authorsDict as any}
+            loading={authLoading}
+            onChange={(code) => set("authorCode", code)}
+          />
         </div>
 
         {/* Audio */}
