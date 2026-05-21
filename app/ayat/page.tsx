@@ -10,7 +10,7 @@ import { AyatKategoriSection } from "@/components/ayat/AyatKategoriSection";
 import { SectionDivider } from "@/components/shared/SectionDivider";
 import { Star, BookOpen } from "lucide-react";
 
-export default function AyatEmas() {
+export default function Ayat() {
   const { t } = useI18n();
   const { data: khusus,     loading: loadKhusus }  = useAyatKhusus();
   const { data: categories, loading: loadCat }     = useAyatCategories();

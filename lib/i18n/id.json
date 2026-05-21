@@ -3,7 +3,7 @@
     "pujidanjanji": "Puji dan Janji",
     "janjihidup": "Janji Hidup",
     "pustaka": "Pustaka Digital",
-    "ayat": "Ayat Emas",
+    "ayat": "Ayat",
     "tentang": "Tentang",
     "beranda": "Beranda",
     "pengaturan": "Pengaturan",
@@ -60,7 +60,7 @@
     "shareText": "Renungan hari ini dari Puji dan Janji GKPB"
   },
   "ayat": {
-    "title": "Ayat Emas",
+    "title": "Ayat",
     "subtitle": "Kumpulan ayat hafalan dan tuntunan Sinode GKPB",
     "search": "Cari ayat, kitab, atau kata kunci...",
     "notFound": "Tidak ditemukan",
@@ -131,7 +131,7 @@
       "Audio renungan harian",
       "Mode fokus untuk membaca",
       "Simpan & salin ayat favorit",
-      "Ayat Emas per kategori",
+      "Ayat per kategori",
       "Pustaka Digital 12+ dokumen",
       "Pratinjau dokumen sebelum unduh",
       "Pengaturan ukuran teks",

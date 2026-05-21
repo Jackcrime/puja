@@ -3,7 +3,7 @@
     "pujidanjanji": "Daily Readings",
     "janjihidup": "Devotional",
     "pustaka": "Digital Library",
-    "ayat": "Golden Verses",
+    "ayat": "Verses",
     "tentang": "About",
     "beranda": "Home",
     "pengaturan": "Settings",
@@ -60,7 +60,7 @@
     "shareText": "Today's devotional from Puji dan Janji GKPB"
   },
   "ayat": {
-    "title": "Golden Verses",
+    "title": "Verses",
     "subtitle": "A collection of GKPB guiding and memory verses",
     "search": "Search verses, books, or keywords...",
     "notFound": "Not found",
@@ -131,7 +131,7 @@
       "Daily devotional audio",
       "Focus mode for reading",
       "Save & copy favourite verses",
-      "Golden Verses by category",
+      "Verses by category",
       "Digital Library with 12+ documents",
       "Document preview before download",
       "Text size settings",
