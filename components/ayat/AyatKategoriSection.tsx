@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { VerseCard } from "@/components/ui/VerseCard";
 
 interface Category {
@@ -17,11 +17,11 @@ export function AyatKategoriSection({ categories, loading }: Props) {
   const [activeTheme, setActiveTheme] = useState<string | null>(null);
 
   // Set default after first load
-  useMemo(() => {
+  useEffect(() => {
     if (!loading && categories.length > 0 && !activeTheme) {
       setActiveTheme(categories[0].category);
     }
-  }, [loading, categories]);
+  }, [loading, categories, activeTheme]);
 
   const activeVerses = useMemo(
     () => categories.find((c) => c.category === activeTheme)?.verses ?? [],

@@ -519,7 +519,7 @@ function BacaanPart({ date }: { date: Date }) {
         <div className="space-y-3">
           {drafts.length === 0 ? (
             <div className="text-center py-6 text-muted-foreground text-sm border border-dashed border-border rounded-xl">
-              Belum ada bacaan. Klik "+ Tambah Bacaan" untuk mulai.
+              Belum ada bacaan. Klik &quot;+ Tambah Bacaan&quot; untuk mulai.
             </div>
           ) : (
             drafts.map((draft, index) => (
@@ -568,7 +568,7 @@ export function RenunganBacaanSection({ onDateChange }: RenunganBacaanSectionPro
   const [selectedDate, setSelectedDate] = useState<Date>(globalDate ?? new Date());
 
   // Sync with global date on first mount
-  useEffect(() => { if (globalDate) setSelectedDate(globalDate); }, []);
+  useEffect(() => { if (globalDate) setSelectedDate(globalDate); }, [globalDate]);
 
   const handleDateChange = (d: Date) => {
     setSelectedDate(d);

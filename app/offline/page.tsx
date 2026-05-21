@@ -30,7 +30,7 @@ export default function OfflinePage() {
   useEffect(() => {
     const idx = Math.floor((Date.now() / 86400000) % verses.length);
     setVerse(verses[idx]);
-  }, [lang]);
+  }, [lang, verses]);
 
   const retry = () => {
     setRetrying(true);

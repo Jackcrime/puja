@@ -257,7 +257,7 @@ function HarianPanel() {
         <div className="p-5 space-y-4">
           {newEntries.length === 0 ? (
             <div className="text-center py-6 text-xs text-muted-foreground border border-dashed border-border rounded-xl">
-              Klik "Tambah Tanggal" untuk menambah, atau gunakan Import JSON untuk batch.
+              Klik &quot;Tambah Tanggal&quot; untuk menambah, atau gunakan Import JSON untuk batch.
             </div>
           ) : (
             newEntries.map(({ date, sel }, i) => (
@@ -457,7 +457,7 @@ function MingguanPanel() {
         <div className="p-5 space-y-4">
           {newEntries.length === 0 ? (
             <div className="text-center py-6 text-xs text-muted-foreground border border-dashed border-border rounded-xl">
-              Klik "Tambah Minggu" untuk menambah, atau gunakan Import JSON untuk batch.
+              Klik &quot;Tambah Minggu&quot; untuk menambah, atau gunakan Import JSON untuk batch.
             </div>
           ) : (
             newEntries.map(({ date, sel }, i) => (

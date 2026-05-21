@@ -20,6 +20,7 @@ import {
   type UploadTask,
 } from "firebase/storage";
 import { storage } from "@/lib/firebase";
+import type { StorageFolder } from "@/lib/file-utils";
 // Shared utilities — satu sumber kebenaran untuk format & validasi
 export { formatFileSize, validateStorageFile as validateFile, type StorageFolder } from "@/lib/file-utils";
 

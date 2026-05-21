@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   format, startOfMonth, getDaysInMonth, getDay,
   isSameDay, isToday, addMonths, subMonths, setMonth, setYear, getMonth, getYear,
 } from "date-fns";
 import { id as localeId } from "date-fns/locale";
-import { getEventsForMonth } from "@/lib/utils/liturgicalCalendar";
+import { getEventsForMonth, type LiturgicalEvent } from "@/lib/utils/liturgicalCalendar";
 
 type View = "day" | "month" | "year";
 
@@ -18,7 +18,6 @@ const MONTHS_FULL = [
 ];
 const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Ags","Sep","Okt","Nov","Des"];
 
-// Generate year range: 10 years before/after selected
 function getYearRange(centerYear: number) {
   const start = centerYear - 12;
   const end   = centerYear + 12;
@@ -31,22 +30,18 @@ interface Props {
 }
 
 export function DatePickerCalendar({ selected, onSelect }: Props) {
-  const [view,   setView]   = useState<View>("day");
-  const [cursor, setCursor] = useState(() => startOfMonth(selected));
+  const [view,          setView]         = useState<View>("day");
+  const [cursor,        setCursor]        = useState(() => startOfMonth(selected));
+  const [hoveredEvent,  setHoveredEvent]  = useState<{ events: LiturgicalEvent[]; day: number } | null>(null);
   const yearScrollRef = useRef<HTMLDivElement>(null);
-  const [hoveredEvents, setHoveredEvents] = useState<{ day: number; names: string[] } | null>(null);
 
   const cursorYear  = getYear(cursor);
   const cursorMonth = getMonth(cursor);
-  const years = getYearRange(cursorYear);
+  const years       = getYearRange(cursorYear);
 
-  // Hitung hari raya di bulan yang sedang ditampilkan
-  const eventMap = useMemo(
-    () => getEventsForMonth(cursorYear, cursorMonth),
-    [cursorYear, cursorMonth]
-  );
+  // Pre-compute events for the whole month (cheap, no re-fetch)
+  const monthEvents = getEventsForMonth(cursorYear, cursorMonth);
 
-  // Scroll active year into view when year panel opens
   useEffect(() => {
     if (view === "year" && yearScrollRef.current) {
       const activeEl = yearScrollRef.current.querySelector("[data-active='true']") as HTMLElement;
@@ -55,7 +50,7 @@ export function DatePickerCalendar({ selected, onSelect }: Props) {
   }, [view]);
 
   // ── Day grid helpers ──────────────────────────────────────────────────────
-  const firstDayOfWeek = getDay(cursor);           // 0=Sun
+  const firstDayOfWeek = getDay(cursor);
   const daysInMonth    = getDaysInMonth(cursor);
   const totalCells     = Math.ceil((firstDayOfWeek + daysInMonth) / 7) * 7;
 
@@ -64,8 +59,8 @@ export function DatePickerCalendar({ selected, onSelect }: Props) {
     onSelect(picked);
   }
 
-  function handlePrevMonth() { setCursor((c) => subMonths(c, 1)); }
-  function handleNextMonth() { setCursor((c) => addMonths(c, 1)); }
+  function handlePrevMonth() { setCursor((c) => subMonths(c, 1)); setHoveredEvent(null); }
+  function handleNextMonth() { setCursor((c) => addMonths(c, 1)); setHoveredEvent(null); }
 
   function handleMonthSelect(monthIdx: number) {
     setCursor((c) => startOfMonth(setMonth(c, monthIdx)));
@@ -77,13 +72,11 @@ export function DatePickerCalendar({ selected, onSelect }: Props) {
     setView("month");
   }
 
-  // ── Shared token ─────────────────────────────────────────────────────────
   const brand      = "var(--brand)";
   const brandMuted = "var(--brand-muted)";
-  const gold       = "var(--gold)";
 
   return (
-    <div className="w-full select-none" style={{ fontFamily: "inherit" }}>
+    <div className="w-full select-none relative" style={{ fontFamily: "inherit" }}>
 
       {/* ── Navigation header ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between px-1 mb-4">
@@ -96,8 +89,7 @@ export function DatePickerCalendar({ selected, onSelect }: Props) {
           </button>
         )}
 
-        <div className={`flex items-center gap-1.5 ${view === "day" ? "mx-auto" : "mx-auto"}`}>
-          {/* Month button */}
+        <div className="flex items-center gap-1.5 mx-auto">
           <button
             onClick={() => setView(view === "month" ? "day" : "month")}
             className="flex items-center gap-1 px-3 py-1 rounded-lg text-sm font-bold transition-colors hover:bg-muted"
@@ -105,8 +97,6 @@ export function DatePickerCalendar({ selected, onSelect }: Props) {
           >
             {MONTHS_FULL[cursorMonth]}
           </button>
-
-          {/* Year button */}
           <button
             onClick={() => setView(view === "year" ? "day" : "year")}
             className="flex items-center gap-1 px-3 py-1 rounded-lg text-sm font-bold transition-colors hover:bg-muted"
@@ -129,93 +119,111 @@ export function DatePickerCalendar({ selected, onSelect }: Props) {
       {/* ── Day view ──────────────────────────────────────────────────────── */}
       {view === "day" && (
         <>
-           {/* Day-of-week headers */}
-            <div className="grid grid-cols-7 mb-1">
-                {DAYS_SHORT.map((d, i) => (
+          {/* Day-of-week headers */}
+          <div className="grid grid-cols-7 mb-1">
+            {DAYS_SHORT.map((d, i) => (
+              <div
+                key={d}
+                className="text-center text-[10px] font-bold uppercase tracking-wider py-1"
+                style={{ color: i === 0 ? brand : "var(--muted-foreground)" }}
+              >
+                {d}
+              </div>
+            ))}
+          </div>
+
+          {/* Event tooltip — rendered OUTSIDE the grid to avoid clip */}
+          <div className="relative">
+            {hoveredEvent && (
+              <div
+                className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full z-50 pointer-events-none mb-1"
+                style={{ marginTop: "-4px" }}
+              >
                 <div
-                    key={d}
-                    className="text-center text-[10px] font-bold uppercase tracking-wider py-1"
-                    style={{ color: i === 0 ? brand : "var(--muted-foreground)" }}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold text-white whitespace-nowrap shadow-lg"
+                  style={{ backgroundColor: hoveredEvent.events[0].color }}
                 >
-                    {d}
+                  <span>{hoveredEvent.events[0].emoji}</span>
+                  <span>{hoveredEvent.events[0].name}</span>
                 </div>
-                ))}
-            </div>
+              </div>
+            )}
 
             {/* Day cells */}
             <div className="grid grid-cols-7 gap-y-0.5">
-                {Array.from({ length: totalCells }, (_, i) => {
-                    const dayNum = i - firstDayOfWeek + 1;
-                    const isValid = dayNum >= 1 && dayNum <= daysInMonth;
-                    const thisDate = isValid ? new Date(cursorYear, cursorMonth, dayNum) : null;
-                    const isSel = thisDate ? isSameDay(thisDate, selected) : false;
-                    const isTdy = thisDate ? isToday(thisDate) : false;
-                    const isSun = i % 7 === 0;
+              {Array.from({ length: totalCells }, (_, i) => {
+                const dayNum   = i - firstDayOfWeek + 1;
+                const isValid  = dayNum >= 1 && dayNum <= daysInMonth;
+                const thisDate = isValid ? new Date(cursorYear, cursorMonth, dayNum) : null;
+                const isSel    = thisDate ? isSameDay(thisDate, selected) : false;
+                const isTdy    = thisDate ? isToday(thisDate) : false;
+                const isSun    = i % 7 === 0;
+                const events   = isValid ? (monthEvents.get(dayNum) ?? []) : [];
+                const hasEvent = events.length > 0;
 
-                    const dayEvents = isValid ? (eventMap.get(dayNum) ?? []) : [];
-                    const hasGlobal = dayEvents.some(e => e.category === "global" || !e.category);
-                    const hasGKPB = dayEvents.some(e => e.category === "gkpb");
+                return (
+                  <button
+                    key={i}
+                    disabled={!isValid}
+                    onClick={() => isValid && handleDayClick(dayNum)}
+                    onMouseEnter={() => {
+                      if (hasEvent) setHoveredEvent({ events, day: dayNum });
+                    }}
+                    onMouseLeave={() => setHoveredEvent(null)}
+                    className="relative flex flex-col items-center justify-center h-9 w-full rounded-lg text-sm font-medium transition-all disabled:pointer-events-none"
+                    style={
+                      isSel
+                        ? { backgroundColor: brand, color: "#fff", fontWeight: 700 }
+                        : isTdy
+                        ? { backgroundColor: brandMuted, color: brand, fontWeight: 700 }
+                        : {}
+                    }
+                    onMouseOver={(e) => {
+                      if (!isSel && isValid) (e.currentTarget as HTMLElement).style.backgroundColor = "var(--muted)";
+                    }}
+                    onMouseOut={(e) => {
+                      if (!isSel && isValid) {
+                        (e.currentTarget as HTMLElement).style.backgroundColor = isTdy ? brandMuted : "";
+                      }
+                    }}
+                  >
+                    {isValid && (
+                      <span style={{ color: isSel ? "#fff" : isSun && !isTdy ? brand : undefined }}>
+                        {dayNum}
+                      </span>
+                    )}
 
-                    return (
-                    <div key={i} className="relative flex flex-col items-center group">
-                        <button
-                        disabled={!isValid}
-                        onClick={() => isValid && handleDayClick(dayNum)}
-                        onMouseEnter={() => {
-                            if (isValid && dayEvents.length > 0) {
-                            setHoveredEvents({
-                                day: dayNum,
-                                names: dayEvents.map(e => `${e.emoji} ${e.name}`),
-                            });
-                            }
-                        }}
-                        onMouseLeave={() => setHoveredEvents(null)}
-                        className={`
-                            relative h-9 w-full rounded-lg text-sm font-medium 
-                            flex items-center justify-center disabled:pointer-events-none
-                            transition-all border border-transparent
-                            ${isSel 
-                            ? "bg-[var(--brand)] text-white font-bold shadow-md" 
-                            : isTdy 
-                            ? "bg-[var(--brand-muted)] text-[var(--brand)] font-bold" 
-                            : "hover:bg-[#2a2a2a] dark:hover:bg-[#363636] hover:border-zinc-600"
-                            }
-                        `}
-                        >
-                        {isValid && (
-                            <span className={isSun && !isTdy && !isSel ? "text-[var(--brand)]" : ""}>
-                            {dayNum}
-                            </span>
-                        )}
-
-                        {/* Today dot */}
+                    {/* Dot indicators */}
+                    {isValid && (
+                      <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5">
                         {isTdy && !isSel && (
-                            <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[var(--brand)]" />
+                          <span className="w-1 h-1 rounded-full" style={{ backgroundColor: brand }} />
                         )}
-
-                        {/* Event dots */}
-                        {isValid && dayEvents.length > 0 && (
-                            <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5">
-                            {hasGlobal && <span className="w-1 h-1 rounded-full bg-violet-500" />}
-                            {hasGKPB && <span className="w-1 h-1 rounded-full bg-teal-600" />}
-                            </span>
+                        {hasEvent && (
+                          <span
+                            className="w-1 h-1 rounded-full"
+                            style={{ backgroundColor: isSel ? "rgba(255,255,255,0.8)" : events[0].color }}
+                          />
                         )}
-                        </button>
-
-                        {/* Tooltip */}
-                        {hoveredEvents?.day === dayNum && dayEvents.length > 0 && (
-                        <div className="absolute z-50 bottom-full mb-2 left-1/2 -translate-x-1/2 
-                                        w-max max-w-[200px] rounded-lg px-3 py-2 text-[11px] 
-                                        leading-tight shadow-xl border text-left pointer-events-none">
-                            {hoveredEvents.names.map((n, idx) => (
-                            <div key={idx} className="py-0.5">{n}</div>
-                            ))}
-                        </div>
-                        )}
-                    </div>
-                    );
-                })}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 pt-3 border-t border-border flex items-center justify-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: brand }} />
+              <span className="text-[10px] text-muted-foreground font-medium">Hari Raya Kristen</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              <span className="text-[10px] text-muted-foreground font-medium">Kalender GKPB</span>
+            </div>
+          </div>
         </>
       )}
 
@@ -287,24 +295,6 @@ export function DatePickerCalendar({ selected, onSelect }: Props) {
               </button>
             );
           })}
-        </div>
-      )}
-
-      {/* ── Legend hari raya ──────────────────────────────────────────────── */}
-      {view === "day" && (
-        <div className="mt-3 pt-3 border-t border-border flex items-center justify-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "#7c3aed" }} />
-            <span className="text-[10px] font-semibold" style={{ color: "var(--muted-foreground)" }}>
-              Hari Raya Kristen
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "#0f766e" }} />
-            <span className="text-[10px] font-semibold" style={{ color: "var(--muted-foreground)" }}>
-              Kalender GKPB
-            </span>
-          </div>
         </div>
       )}
 

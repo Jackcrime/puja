@@ -2,6 +2,7 @@
 
 import React, { useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import Image from "next/image";
 import { Church } from "lucide-react";
 import { useAuthors, useMinistries } from "@/lib/hooks/useFirestoreData";
 import { useI18n } from "@/lib/hooks/useI18n";
@@ -79,9 +80,11 @@ export function AuthorModal({ code, open, onOpenChange }: AuthorModalProps) {
               style={{ backgroundColor: "var(--brand)" }}
             >
               {author.photoUrl ? (
-                <img
+                <Image
                   src={author.photoUrl}
                   alt={author.name}
+                  width={56}
+                  height={56}
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     // fallback ke inisial kalau gambar gagal load

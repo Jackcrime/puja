@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import Image from "next/image";
 import { AdminGuard } from "@/components/admin/AdminGuard";
 import { DataTable } from "@/components/admin/DataTable";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
@@ -261,7 +262,7 @@ export default function AdminPenulis() {
               {
                 key: "photoUrl", label: "Foto", width: "56px",
                 render: (a) => a.photoUrl
-                  ? <img src={a.photoUrl} alt={a.name} className="w-8 h-8 rounded-full object-cover border border-border" />
+                  ? <Image src={a.photoUrl} alt={a.name} width={32} height={32} className="w-8 h-8 rounded-full object-cover border border-border" />
                   : <UserCircle className="w-8 h-8 text-muted-foreground" />,
               },
               {

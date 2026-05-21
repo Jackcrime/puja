@@ -349,7 +349,7 @@ function AyatNatsSection() {
         <div className="space-y-3">
           {drafts.length === 0 && (
             <div className="text-center py-6 text-xs text-muted-foreground border border-dashed border-border rounded-xl">
-              Belum ada Ayat Nats. Klik "+ Tambah Nats" untuk mulai, atau import JSON.
+              Belum ada Ayat Nats. Klik &quot;+ Tambah Nats&quot; untuk mulai, atau import JSON.
             </div>
           )}
           {drafts.map((draft, index) => (

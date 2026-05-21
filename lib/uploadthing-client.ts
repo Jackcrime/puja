@@ -19,7 +19,7 @@ export interface UploadResult {
   size: number;
 }
 
-export type UploadEndpoint = keyof OurFileRouter;
+// UploadEndpoint type sudah di-export dari @/lib/file-utils (di atas)
 
 // ─── Ambil token Firebase untuk dikirim ke middleware Uploadthing ─────────────
 export async function getUploadHeaders(): Promise<Record<string, string>> {

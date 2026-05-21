@@ -297,7 +297,7 @@ export function BibleVerseSelector({
 
                   {filteredPL.length === 0 && filteredPB.length === 0 && (
                     <p className="text-center py-4 text-sm text-muted-foreground">
-                      Kitab "<span className="font-medium">{bookSearch}</span>" tidak ditemukan.
+                      Kitab &quot;<span className="font-medium">{bookSearch}</span>&quot; tidak ditemukan.
                     </p>
                   )}
                 </div>
