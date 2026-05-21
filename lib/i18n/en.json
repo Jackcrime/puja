@@ -6,7 +6,10 @@
     "ayat": "Golden Verses",
     "tentang": "About",
     "beranda": "Home",
-    "pengaturan": "Settings"
+    "pengaturan": "Settings",
+    "lainnya": "More",
+    "menuLainnya": "More Options",
+    "bacaan": "Readings"
   },
   "home": {
     "welcome": "Welcome to",
@@ -235,5 +238,11 @@
     "delete": "Delete",
     "add": "Add",
     "reset": "Reset"
+  },
+  "footer": {
+    "copyright": "© {year} GKPB Synod. All rights reserved.",
+    "about": "About",
+    "privacy": "Privacy Policy",
+    "contact": "Contact"
   }
 }

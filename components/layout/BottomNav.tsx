@@ -21,16 +21,16 @@ export function BottomNav() {
   const { t } = useI18n();
 
   const mainTabs = [
-    { href: "/",              label: "Beranda",    icon: Home },
-    { href: "/pujidanjanji",  label: "Bacaan",     icon: BookOpenText },
-    { href: "/janjihidup",    label: t("nav.janjihidup"), icon: ScrollText },
-    { href: "/ayat",          label: "Ayat",       icon: Star },
+    { href: "/",             label: t("nav.beranda"),      icon: Home },
+    { href: "/pujidanjanji", label: t("nav.bacaan"),       icon: BookOpenText },
+    { href: "/janjihidup",   label: t("nav.janjihidup"),   icon: ScrollText },
+    { href: "/ayat",         label: t("nav.ayat"),         icon: Star },
   ];
   
   const moreItems = [
-    { href: "/pustaka-digital",   label: "Pustaka",    icon: Library },
-    { href: "/tentang",           label: "Tentang",    icon: Info },
-    { href: "/pengaturan",        label: "Pengaturan", icon: Settings },
+    { href: "/pustaka-digital", label: t("nav.pustaka"),    icon: Library },
+    { href: "/tentang",         label: t("nav.tentang"),    icon: Info },
+    { href: "/pengaturan",      label: t("nav.pengaturan"), icon: Settings },
   ];
 
   const isMainActive = (href: string) => pathname === href;
@@ -78,13 +78,13 @@ export function BottomNav() {
               `}
             >
               <Menu className={`h-5 w-5 transition-all ${isMoreActive ? "stroke-[2.8] scale-110" : "stroke-[1.6]"}`} />
-              <span className="text-[10px] font-semibold leading-none">Lainnya</span>
+              <span className="text-[10px] font-semibold leading-none">{t("nav.lainnya")}</span>
             </button>
           </SheetTrigger>
 
           <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] pb-8">
             <SheetHeader className="mb-6">
-              <SheetTitle className="text-xl">Menu Lainnya</SheetTitle>
+              <SheetTitle className="text-xl">{t("nav.menuLainnya")}</SheetTitle>
             </SheetHeader>
 
             <div className="grid gap-3 px-2">

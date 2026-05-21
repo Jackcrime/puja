@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from "react";
 import { BookOpen, ChevronDown, ChevronUp, Loader2, Check } from "lucide-react";
 import { parseReference } from "@/lib/bible-books";
+import { useI18n } from "@/lib/hooks/useI18n";
 
 interface VerseRow { number: string; text: string; }
 
@@ -19,6 +20,7 @@ export function ReadingCollapse({ reading, index, trackRead = false }: Props) {
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState(false);
   const [read,    setRead]    = useState(false);
+  const { lang }              = useI18n();
 
   const fetchVerses = useCallback(async () => {
     if (verses !== null || loading) return;
@@ -27,7 +29,7 @@ export function ReadingCollapse({ reading, index, trackRead = false }: Props) {
     setLoading(true); setError(false);
     try {
       const res  = await fetch(
-        `/api/bible?book=${parsed.book.slug}&chapter=${parsed.chapter}&from=${parsed.verseFrom}&to=${parsed.verseTo}`
+        `/api/bible?book=${parsed.book.slug}&chapter=${parsed.chapter}&from=${parsed.verseFrom}&to=${parsed.verseTo}&lang=${lang}`
       );
       const json = await res.json();
       setVerses(res.ok && Array.isArray(json.verses)

@@ -6,7 +6,10 @@
     "ayat": "Ayat Emas",
     "tentang": "Tentang",
     "beranda": "Beranda",
-    "pengaturan": "Pengaturan"
+    "pengaturan": "Pengaturan",
+    "lainnya": "Lainnya",
+    "menuLainnya": "Menu Lainnya",
+    "bacaan": "Bacaan"
   },
   "home": {
     "welcome": "Selamat datang di",
@@ -235,5 +238,11 @@
     "delete": "Hapus",
     "add": "Tambah",
     "reset": "Reset"
+  },
+  "footer": {
+    "copyright": "© {year} Sinode GKPB. Hak cipta dilindungi.",
+    "about": "Tentang",
+    "privacy": "Kebijakan Privasi",
+    "contact": "Kontak"
   }
 }

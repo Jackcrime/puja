@@ -13,10 +13,18 @@ interface Props {
 }
 
 export function AuthorPicker({ value, authors, loading, onChange }: Props) {
-  const [open,   setOpen]   = useState(false);
-  const [query,  setQuery]  = useState("");
-  const inputRef            = useRef<HTMLInputElement>(null);
-  const modalRef            = useRef<HTMLDivElement>(null);
+  const [open,         setOpen]        = useState(false);
+  const [query,        setQuery]       = useState("");
+  const [debouncedQ,   setDebouncedQ]  = useState("");
+  const inputRef                       = useRef<HTMLInputElement>(null);
+  const modalRef                       = useRef<HTMLDivElement>(null);
+  const debounceTimer                  = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleQueryChange = (val: string) => {
+    setQuery(val);
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => setDebouncedQ(val), 120);
+  };
 
   // Fokus ke search saat modal buka
   useEffect(() => {
@@ -46,7 +54,7 @@ export function AuthorPicker({ value, authors, loading, onChange }: Props) {
   , [authors]);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = debouncedQ.trim().toLowerCase();
     if (!q) return entries;
     return entries.filter((a) => {
       const fullName  = `${a.title ?? ""} ${a.name}`.toLowerCase();
@@ -54,13 +62,14 @@ export function AuthorPicker({ value, authors, loading, onChange }: Props) {
       const nameMatch = fullName.includes(q);
       return codeMatch || nameMatch;
     });
-  }, [entries, query]);
+  }, [entries, debouncedQ]);
 
   const selected = value ? authors[value] : null;
 
   const handleSelect = (code: string) => {
     onChange(code);
     setQuery("");
+    setDebouncedQ("");
     setOpen(false);
   };
 
@@ -85,7 +94,7 @@ export function AuthorPicker({ value, authors, loading, onChange }: Props) {
         <div className="relative w-8 h-8 rounded-lg shrink-0 overflow-hidden flex items-center justify-center text-xs font-bold text-white"
           style={{ backgroundColor: "var(--brand)" }}>
           {selected?.photoUrl ? (
-            <Image src={selected.photoUrl} alt={selected.name} fill sizes="32px" className="object-cover" />
+            <Image src={selected.photoUrl} alt={selected.name} fill sizes="32px" className="object-cover" loading="lazy" />
           ) : selected ? (
             value.charAt(0)
           ) : (
@@ -115,7 +124,7 @@ export function AuthorPicker({ value, authors, loading, onChange }: Props) {
 
       {/* ── Modal ──────────────────────────────────────────────── */}
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/50">
           <div
             ref={modalRef}
             className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden"
@@ -140,14 +149,14 @@ export function AuthorPicker({ value, authors, loading, onChange }: Props) {
                   ref={inputRef}
                   type="text"
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e) => handleQueryChange(e.target.value)}
                   placeholder="Cari nama atau inisial..."
                   className="w-full pl-9 pr-9 py-2 text-sm rounded-xl border border-border bg-background focus:outline-none focus:ring-2 transition-shadow"
                   style={{ "--tw-ring-color": "var(--brand)" } as any}
                 />
                 {query && (
                   <button
-                    onClick={() => setQuery("")}
+                    onClick={() => { setQuery(""); setDebouncedQ(""); }}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground hover:text-foreground"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -199,7 +208,7 @@ export function AuthorPicker({ value, authors, loading, onChange }: Props) {
                         }}
                       >
                         {a.photoUrl ? (
-                          <Image src={a.photoUrl} alt={a.name} fill sizes="36px" className="object-cover" />
+                          <Image src={a.photoUrl} alt={a.name} fill sizes="36px" className="object-cover" loading="lazy" />
                         ) : (
                           a.code.charAt(0)
                         )}

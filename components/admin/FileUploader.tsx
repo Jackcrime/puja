@@ -55,12 +55,6 @@ export function FileUploader({
     e.target.value = "";
   };
 
-  // Hidden input — shared antara mode "ada file" dan "belum ada"
-  const hiddenInput = (
-    <input ref={inputRef} type="file" accept={accept}
-      className="hidden" onChange={handleChange} disabled={isUploading} />
-  );
-
   // ── Sudah ada file ──────────────────────────────────────────────────────────
   if (currentUrl) {
     return (
@@ -146,7 +140,8 @@ export function FileUploader({
         )}
 
         {error && <p className="text-xs text-red-500 mt-1.5">{error}</p>}
-        {hiddenInput}
+        <input ref={inputRef} type="file" accept={accept}
+          className="hidden" onChange={handleChange} disabled={isUploading} />
       </div>
     );
   }
@@ -195,6 +190,8 @@ export function FileUploader({
       </div>
 
       {error && <p className="text-xs text-red-500 mt-1.5">{error}</p>}
+      <input ref={inputRef} type="file" accept={accept}
+        className="hidden" onChange={handleChange} disabled={isUploading} />
     </div>
   );
 }

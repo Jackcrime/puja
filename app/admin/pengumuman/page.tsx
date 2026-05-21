@@ -212,13 +212,13 @@ export default function AdminPengumuman() {
   return (
     <AdminGuard>
       <AdminLayout title="Pengumuman">
-        <div className="max-w-2xl space-y-6">
+        <div className="max-w-5xl">
           {loading ? (
             <div className="flex items-center gap-3 text-muted-foreground py-8">
               <Loader2 className="h-5 w-5 animate-spin" /> Memuat dari Firestore...
             </div>
           ) : (
-            <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               {/* ── Form Banner ─────────────────────────────────────────── */}
               <div className="bg-card border border-border rounded-xl overflow-hidden">
                 <div className="h-0.5 w-full" style={{ backgroundColor: "var(--brand)" }} />
@@ -299,7 +299,7 @@ export default function AdminPengumuman() {
 
               {/* ── Kalender Liturgi ───────────────────────────────────── */}
               <LiturgicalCalendarPanel onSelectGreeting={handleAutoGreeting} />
-            </>
+            </div>
           )}
         </div>
       </AdminLayout>

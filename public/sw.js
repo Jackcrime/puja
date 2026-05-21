@@ -1,1 +1,89 @@
-if(!self.define){let e,t={};const s=(s,a)=>(s=new URL(s+".js",a).href,t[s]||new Promise(t=>{if("document"in self){const e=document.createElement("script");e.src=s,e.onload=t,document.head.appendChild(e)}else e=s,importScripts(s),t()}).then(()=>{let e=t[s];if(!e)throw new Error(`Module ${s} didn’t register its module`);return e}));self.define=(a,i)=>{const n=e||("document"in self?document.currentScript.src:"")||location.href;if(t[n])return;let c={};const r=e=>s(e,n),d={module:{uri:n},exports:c,require:r};t[n]=Promise.all(a.map(e=>d[e]||r(e))).then(e=>(i(...e),c))}}define(["./workbox-a63b4fcd"],function(e){"use strict";importScripts("/worker-e49e4447eaeb8025.js"),self.skipWaiting(),e.clientsClaim(),e.precacheAndRoute([{url:"/_next/static/chunks/1036-193f66adbc61cb0c.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/1576-738f60f048013861.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/1752-ff0b310b4a519fe1.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/251-af938d8a038fdb86.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/2791-5cf0bcd2e2164d2e.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/2826-44e05485e9613d6a.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/305-7cfea45f17186947.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/3145-b737e87685a9da20.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/3319-c990e957fda86f1f.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/3333-f967853539705a1f.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/3888-e4ad9190a5be3239.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/4ea34a6d-de1598c8bc3d77ec.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/5405-abeb46b9ace5b054.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/5489-3162f673e95dd417.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/6399-a0b49ffa8dd6f44e.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/6609-77600667d30fa13b.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/6997-9fc61fa58f7c2df9.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/7431-66e4d4a517d9e17c.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/8106-aca73808d5b6016e.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/8365-dd01571710dd744b.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/8823-df8b238838e09e02.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/8951-f3deb66205cd4272.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/9523-99a163618097e7ea.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/app/_not-found/page-1586b1eff6be0a4a.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/app/admin/ayat/page-a1ca1ee1164c66ea.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/app/admin/dashboard/page-3b0140f254bfdd8a.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/app/admin/login/page-145db245f94e0f8a.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/app/admin/ministries/page-8c87a9782e26d03f.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/app/admin/page-6f090c8b3f3cb043.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/app/admin/pengumuman/page-3ad5ead1583fbb49.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/app/admin/penulis/page-540a07e3a3074384.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/app/admin/pustaka/page-0f2d3cdd6d08bd0d.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/app/admin/renungan/page-cbbba1a299eeeeb7.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/app/ayat/page-0ba52f9525bb826d.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/app/janjihidup/page-e6453c98b4d943b8.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/app/layout-1b8815e6ea3a0202.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/app/offline/page-ecfad06007036995.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/app/page-904caea28bcb6f2d.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/app/pengaturan/page-a8fe87ebc51dde9c.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/app/pujidanjanji/page-b79393348f191577.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/app/pustaka-digital/page-1a53409f139c58f8.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/app/tentang/page-ad502d1015b23e4e.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/ef7830f0-e4c70c26ed1f87eb.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/fd9d1056-7fcc4424d12a9807.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/framework-a63c59c368572696.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/main-app-e0faf1a94238f06b.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/main-f45208230dfecdab.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/pages/_app-78ddf957b9a9b996.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/pages/_error-7ce03bcf1df914ce.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/chunks/polyfills-42372ed130431b0a.js",revision:"846118c33b2c0e922d7b3a7676f81f6f"},{url:"/_next/static/chunks/webpack-d47550f7c5407fa4.js",revision:"jdFqCeB_FNROWj2lttrwH"},{url:"/_next/static/css/0a546d68a213b749.css",revision:"0a546d68a213b749"},{url:"/_next/static/jdFqCeB_FNROWj2lttrwH/_buildManifest.js",revision:"0ea7e7088aabf697ba3d8aa8c7b54a89"},{url:"/_next/static/jdFqCeB_FNROWj2lttrwH/_ssgManifest.js",revision:"b6652df95db52feb4daf4eca35380933"},{url:"/_next/static/media/000030d1699f2fb3-s.woff2",revision:"e41ec7df921e34a4c7daa6cf309f5b5d"},{url:"/_next/static/media/19150647d2c2f572-s.woff2",revision:"308f59257caf03f3fc3082a203fda6ff"},{url:"/_next/static/media/1926da171a0ba1a5-s.woff2",revision:"ca5b518e31977b8c1f6a81fe5c2b9a73"},{url:"/_next/static/media/19cfc7226ec3afaa-s.woff2",revision:"9dda5cfc9a46f256d0e131bb535e46f8"},{url:"/_next/static/media/21350d82a1f187e9-s.woff2",revision:"4e2553027f1d60eff32898367dd4d541"},{url:"/_next/static/media/28a2004cf8372660-s.woff2",revision:"a81e6c6c3493caf3463c36f633996e92"},{url:"/_next/static/media/47f136985ef5b5cb-s.woff2",revision:"62f762afb90d7743f6916ea0cce473af"},{url:"/_next/static/media/4ead58c4dcc3f285-s.woff2",revision:"774586d4bcb09cb42f38fc490d25b01b"},{url:"/_next/static/media/78d0dd042ac6d54d-s.p.woff2",revision:"f5051d38185e951dfa27454a87b267a7"},{url:"/_next/static/media/8e9860b6e62d6359-s.woff2",revision:"01ba6c2a184b8cba08b0d57167664d75"},{url:"/_next/static/media/ba9851c3c22cd980-s.woff2",revision:"9e494903d6b0ffec1a1e14d34427d44d"},{url:"/_next/static/media/c5fe6dc8356a8c31-s.woff2",revision:"027a89e9ab733a145db70f09b8a18b42"},{url:"/_next/static/media/df0a9ae256c0569c-s.woff2",revision:"d54db44de5ccb18886ece2fda72bdfe0"},{url:"/_next/static/media/e4af272ccee01ff0-s.p.woff2",revision:"65850a373e258f1c897a2b3d75eb74de"},{url:"/_next/static/media/eaead17c7dbfcd5d-s.p.woff2",revision:"6da252de0cbc8a69b5d5c2e0e3f67722"},{url:"/gkpb-logo.png",revision:"f4688b454747caefb2ed8ba0a14d8549"},{url:"/manifest.json",revision:"a8c47a1c2fd70c4eb3551cce6e9922cc"},{url:"/swe-worker-5c72df51bb1f6ee0.js",revision:"5a47d90db13bb1309b25bdf7b363570e"},{url:"/worker-e49e4447eaeb8025.js",revision:"af9bd7d89d488adcb7d42d2d55815910"}],{ignoreURLParametersMatching:[/^utm_/,/^fbclid$/]}),e.cleanupOutdatedCaches(),e.registerRoute("/",new e.NetworkFirst({cacheName:"start-url",plugins:[{cacheWillUpdate:async({response:e})=>e&&"opaqueredirect"===e.type?new Response(e.body,{status:200,statusText:"OK",headers:e.headers}):e}]}),"GET"),e.registerRoute(/^https:\/\/.*\.(?:html)$/i,new e.NetworkFirst({cacheName:"html-cache",plugins:[new e.ExpirationPlugin({maxEntries:32,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(/^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,new e.CacheFirst({cacheName:"google-fonts",plugins:[new e.ExpirationPlugin({maxEntries:8,maxAgeSeconds:31536e3})]}),"GET"),e.registerRoute(/\.(?:mp3|wav|ogg)$/i,new e.CacheFirst({cacheName:"audio-cache",plugins:[new e.ExpirationPlugin({maxEntries:16,maxAgeSeconds:604800}),new e.RangeRequestsPlugin]}),"GET"),self.__WB_DISABLE_DEV_LOGS=!0});
+// ─── Service Worker — Puji dan Janji GKPB ────────────────────────────────────
+// Handles: scheduled daily notification via setTimeout message
+
+const NOTIF_TAG = "pnj-harian";
+
+// ─── Install & Activate ──────────────────────────────────────────────────────
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
+
+// ─── Timer storage (in-memory, reset on SW restart) ──────────────────────────
+let scheduledTimer = null;
+
+// ─── Message handler dari app ─────────────────────────────────────────────────
+self.addEventListener("message", (event) => {
+  const data = event.data;
+  if (!data || data.type !== "SCHEDULE_NOTIFICATION") return;
+
+  const { title, body, url, delayMs } = data;
+
+  // Batalkan jadwal lama kalau ada
+  if (scheduledTimer !== null) {
+    clearTimeout(scheduledTimer);
+    scheduledTimer = null;
+  }
+
+  if (!delayMs || delayMs <= 0) return;
+
+  scheduledTimer = setTimeout(async () => {
+    scheduledTimer = null;
+    try {
+      await self.registration.showNotification(title || "Puji dan Janji", {
+        body: body || "Renungan harian sudah tersedia. Selamat bersekutu dengan Tuhan!",
+        icon: "/gkpb-logo.png",
+        badge: "/gkpb-logo.png",
+        tag: NOTIF_TAG,
+        renotify: true,
+        requireInteraction: false,
+        data: { url: url || "/janjihidup" },
+        vibrate: [200, 100, 200],
+      });
+    } catch (err) {
+      console.error("[SW] Gagal tampilkan notifikasi:", err);
+    }
+  }, delayMs);
+});
+
+// ─── Klik notifikasi → buka app ──────────────────────────────────────────────
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || "/janjihidup";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      // Kalau app sudah terbuka, fokus ke sana
+      for (const client of clientList) {
+        if ("focus" in client) {
+          client.navigate(targetUrl);
+          return client.focus();
+        }
+      }
+      // Kalau belum terbuka, buka tab baru
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+
+// ─── Push event (untuk future push server integration) ───────────────────────
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch {
+    payload = { title: "Puji dan Janji", body: event.data.text() };
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title || "Puji dan Janji", {
+      body: payload.body || "",
+      icon: "/gkpb-logo.png",
+      badge: "/gkpb-logo.png",
+      tag: NOTIF_TAG,
+      data: { url: payload.url || "/janjihidup" },
+      vibrate: [200, 100, 200],
+    })
+  );
+});

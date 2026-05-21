@@ -18,6 +18,7 @@ import {
 import { useI18n } from "@/lib/hooks/useI18n";
 import { useDate } from "@/lib/context/DateContext";
 import { getLiturgicalEvents, getLiturgicalSeason } from "@/lib/utils/liturgicalCalendar";
+import { useTheme } from "next-themes";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 
@@ -50,6 +51,9 @@ export default function PujiDanJanji() {
   // Liturgical season & events for selected date
   const liturgicalSeason = getLiturgicalSeason(date);
   const liturgicalEvents = getLiturgicalEvents(date);
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+  const seasonColor = isDark ? (liturgicalSeason.darkColor ?? liturgicalSeason.color) : liturgicalSeason.color;
 
   // Ayat Harian dari date-linked record
   const dateKey    = format(date, "yyyy-MM-dd");
@@ -79,13 +83,13 @@ export default function PujiDanJanji() {
             {/* Liturgical season badge */}
             <div className="flex items-center gap-1.5 mt-1.5">
               <span className="text-sm">{liturgicalSeason.emoji}</span>
-              <span className="text-xs font-semibold" style={{ color: liturgicalSeason.color }}>
+              <span className="text-xs font-semibold" style={{ color: seasonColor }}>
                 {liturgicalSeason.name}
               </span>
               {liturgicalEvents.length > 0 && (
                 <span
                   className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white"
-                  style={{ backgroundColor: liturgicalEvents[0].color }}
+                  style={{ backgroundColor: isDark ? (liturgicalEvents[0].darkColor ?? liturgicalEvents[0].color) : liturgicalEvents[0].color }}
                 >
                   {liturgicalEvents[0].name}
                 </span>

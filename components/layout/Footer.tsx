@@ -1,8 +1,14 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import { Youtube, Facebook, Instagram, Phone } from "lucide-react";
+import { useI18n } from "@/lib/hooks/useI18n";
 
 export function Footer() {
+  const { t } = useI18n();
+  const year = new Date().getFullYear();
+
   return (
     <footer className="w-full border-t bg-card mt-auto py-10 no-print">
       <div className="max-w-5xl mx-auto px-4">
@@ -20,7 +26,6 @@ export function Footer() {
             ].map(({ icon: Icon, label, href }) => (
               <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
                 className="w-9 h-9 rounded-lg border border-border flex items-center justify-center text-muted-foreground transition-colors hover:text-white"
-                style={{ '--hover-bg': 'var(--brand)' } as any}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--brand)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--brand)'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = ''; (e.currentTarget as HTMLElement).style.borderColor = ''; }}
               >
@@ -30,11 +35,11 @@ export function Footer() {
           </div>
         </div>
         <div className="border-t mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Sinode GKPB. Hak cipta dilindungi.</p>
+          <p>{t("footer.copyright").replace("{year}", String(year))}</p>
           <div className="flex items-center gap-4">
-            <Link href="/tentang" className="hover:text-foreground transition-colors">Tentang</Link>
-            <a href="https://pujidanjanji.balichurchsynod.org/kebijakan-privasi" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Kebijakan Privasi</a>
-            <a href="https://wa.me/628213141064" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Kontak</a>
+            <Link href="/tentang" className="hover:text-foreground transition-colors">{t("footer.about")}</Link>
+            <a href="https://pujidanjanji.balichurchsynod.org/kebijakan-privasi" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">{t("footer.privacy")}</a>
+            <a href="https://wa.me/628213141064" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">{t("footer.contact")}</a>
           </div>
         </div>
       </div>

@@ -4,11 +4,13 @@ import React, { useState, useEffect } from "react";
 import { BookMarked, ChevronDown, ChevronUp, Loader2, Copy, Check, BookOpen } from "lucide-react";
 import { useBahanKhotbah } from "@/lib/hooks/useFirestoreData";
 import { SectionDivider } from "@/components/shared/SectionDivider";
+import { useI18n } from "@/lib/hooks/useI18n";
 import type { BiblePassageResponse } from "@/app/api/bible/route";
 
 export function BahanKhotbahSection({ date }: { date?: Date }) {
   const d = date ?? new Date();
   const { data, loading } = useBahanKhotbah(d);
+  const { lang } = useI18n();
   const [open,     setOpen]     = useState(false);
   const [verses,   setVerses]   = useState<BiblePassageResponse | null>(null);
   const [fetching, setFetching] = useState(false);
@@ -40,7 +42,7 @@ export function BahanKhotbahSection({ date }: { date?: Date }) {
     if (next && !verses && !fetching) {
       setFetching(true);
       try {
-        const url = `/api/bible?book=${data.bookSlug}&chapter=${data.chapter}&from=${data.verseFrom}&to=${data.verseTo}`;
+        const url = `/api/bible?book=${data.bookSlug}&chapter=${data.chapter}&from=${data.verseFrom}&to=${data.verseTo}&lang=${lang}`;
         const res = await fetch(url);
         if (res.ok) setVerses(await res.json());
       } catch { /* silent — tampilkan referensi saja */ }

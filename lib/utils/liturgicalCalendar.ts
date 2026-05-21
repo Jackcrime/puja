@@ -140,76 +140,76 @@ export function getLiturgicalEvents(date: Date): LiturgicalEvent[] {
   // ═══════════════════════════════════════════════════════════════════════════
 
   if (sameDay(date, newYear))
-    events.push({ name: "Tahun Baru", emoji: "🎊", greeting: "Selamat Tahun Baru! Kiranya tahun yang baru ini penuh berkat Tuhan.", color: "#7c3aed", category: "global" });
+    events.push({ name: "Tahun Baru", emoji: "🎊", greeting: "Selamat Tahun Baru! Kiranya tahun yang baru ini penuh berkat Tuhan.", color: "#7c3aed", darkColor: "#a78bfa", category: "global" });
 
   if (sameDay(date, epiphany))
-    events.push({ name: "Epifani / Hari Natal Raja-Raja", emoji: "⭐", greeting: "Selamat merayakan Epifani — nyatanya Kristus bagi segala bangsa!", color: "#d97706", season: "Natal", category: "global" });
+    events.push({ name: "Epifani / Hari Natal Raja-Raja", emoji: "⭐", greeting: "Selamat merayakan Epifani — nyatanya Kristus bagi segala bangsa!", color: "#d97706", darkColor: "#fbbf24", season: "Natal", category: "global" });
 
   if (sameDay(date, ashWednesday))
-    events.push({ name: "Rabu Abu", emoji: "✝️", greeting: "Selamat memasuki masa Pra-Paskah. Mari berdoa dan bertobat.", color: "#6b7280", season: "Pra-Paskah", category: "global" });
+    events.push({ name: "Rabu Abu", emoji: "✝️", greeting: "Selamat memasuki masa Pra-Paskah. Mari berdoa dan bertobat.", color: "#6b7280", darkColor: "#9ca3af", season: "Pra-Paskah", category: "global" });
 
   if (sameDay(date, palmSunday))
-    events.push({ name: "Minggu Palma", emoji: "🌿", greeting: "Hosana! Selamat merayakan Minggu Palma.", color: "#16a34a", season: "Pekan Suci", category: "global" });
+    events.push({ name: "Minggu Palma", emoji: "🌿", greeting: "Hosana! Selamat merayakan Minggu Palma.", color: "#16a34a", darkColor: "#4ade80", season: "Pekan Suci", category: "global" });
 
   if (sameDay(date, holyThursday))
-    events.push({ name: "Kamis Putih", emoji: "🍞", greeting: "Selamat merenungkan Perjamuan Kudus terakhir Tuhan Yesus.", color: "#7c3aed", season: "Pekan Suci", category: "global" });
+    events.push({ name: "Kamis Putih", emoji: "🍞", greeting: "Selamat merenungkan Perjamuan Kudus terakhir Tuhan Yesus.", color: "#7c3aed", darkColor: "#a78bfa", season: "Pekan Suci", category: "global" });
 
   if (sameDay(date, goodFriday))
-    events.push({ name: "Jumat Agung", emoji: "✝️", greeting: "Selamat merenungkan pengorbanan Kristus di kayu salib.", color: "#1f2937", season: "Pekan Suci", category: "global" });
+    events.push({ name: "Jumat Agung", emoji: "✝️", greeting: "Selamat merenungkan pengorbanan Kristus di kayu salib.", color: "#1f2937", darkColor: "#6b7280", season: "Pekan Suci", category: "global" });
 
   if (sameDay(date, holySaturday))
-    events.push({ name: "Sabtu Sunyi", emoji: "🕯️", greeting: "Menanti dalam doa dan pengharapan kebangkitan.", color: "#374151", season: "Pekan Suci", category: "global" });
+    events.push({ name: "Sabtu Sunyi", emoji: "🕯️", greeting: "Menanti dalam doa dan pengharapan kebangkitan.", color: "#374151", darkColor: "#9ca3af", season: "Pekan Suci", category: "global" });
 
   if (sameDay(date, easter))
-    events.push({ name: "Hari Paskah", emoji: "🌅", greeting: "Kristus Telah Bangkit! Haleluya! Selamat Paskah.", color: "#f59e0b", darkColor: "#b45309", season: "Paskah", category: "global" });
+    events.push({ name: "Hari Paskah", emoji: "🌅", greeting: "Kristus Telah Bangkit! Haleluya! Selamat Paskah.", color: "#f59e0b", darkColor: "#fbbf24", season: "Paskah", category: "global" });
 
   if (sameDay(date, addDays(easter, 1)))
-    events.push({ name: "Senin Paskah", emoji: "🌅", greeting: "Kristus Telah Bangkit! Selamat Paskah.", color: "#f59e0b", darkColor: "#b45309", season: "Paskah", category: "global" });
+    events.push({ name: "Senin Paskah", emoji: "🌅", greeting: "Kristus Telah Bangkit! Selamat Paskah.", color: "#f59e0b", darkColor: "#fbbf24", season: "Paskah", category: "global" });
 
   if (sameDay(date, ascension))
-    events.push({ name: "Kenaikan Tuhan Yesus Kristus", emoji: "☁️", greeting: "Selamat merayakan Kenaikan Tuhan Yesus ke surga!", color: "#7c3aed", season: "Paskah", category: "global" });
+    events.push({ name: "Kenaikan Tuhan Yesus Kristus", emoji: "☁️", greeting: "Selamat merayakan Kenaikan Tuhan Yesus ke surga!", color: "#7c3aed", darkColor: "#a78bfa", season: "Paskah", category: "global" });
 
   if (sameDay(date, pentecost))
-    events.push({ name: "Hari Pentakosta", emoji: "🔥", greeting: "Selamat Pentakosta! Roh Kudus dicurahkan atas kita.", color: "#dc2626", season: "Pentakosta", category: "global" });
+    events.push({ name: "Hari Pentakosta", emoji: "🔥", greeting: "Selamat Pentakosta! Roh Kudus dicurahkan atas kita.", color: "#dc2626", darkColor: "#f87171", season: "Pentakosta", category: "global" });
 
   if (sameDay(date, addDays(pentecost, 1)))
-    events.push({ name: "Senin Pentakosta", emoji: "🔥", greeting: "Selamat Pentakosta! Roh Kudus menyertai kita.", color: "#dc2626", season: "Pentakosta", category: "global" });
+    events.push({ name: "Senin Pentakosta", emoji: "🔥", greeting: "Selamat Pentakosta! Roh Kudus menyertai kita.", color: "#dc2626", darkColor: "#f87171", season: "Pentakosta", category: "global" });
 
   if (sameDay(date, trinitySun))
-    events.push({ name: "Hari Trinitas", emoji: "🔺", greeting: "Selamat merayakan Hari Tritunggal Mahakudus.", color: "#7c3aed", category: "global" });
+    events.push({ name: "Hari Trinitas", emoji: "🔺", greeting: "Selamat merayakan Hari Tritunggal Mahakudus.", color: "#7c3aed", darkColor: "#a78bfa", category: "global" });
 
   if (sameDay(date, worldCommunion))
-    events.push({ name: "Minggu Komuni Sedunia", emoji: "🍷", greeting: "Selamat merayakan Perjamuan Kudus bersama seluruh Tubuh Kristus di dunia.", color: "#7c3aed", category: "global" });
+    events.push({ name: "Minggu Komuni Sedunia", emoji: "🍷", greeting: "Selamat merayakan Perjamuan Kudus bersama seluruh Tubuh Kristus di dunia.", color: "#7c3aed", darkColor: "#a78bfa", category: "global" });
 
   if (sameDay(date, allSaints))
-    events.push({ name: "Hari Semua Orang Kudus", emoji: "👑", greeting: "Mengenang para saksi iman yang telah mendahului kita.", color: "#7c3aed", category: "global" });
+    events.push({ name: "Hari Semua Orang Kudus", emoji: "👑", greeting: "Mengenang para saksi iman yang telah mendahului kita.", color: "#7c3aed", darkColor: "#a78bfa", category: "global" });
 
   if (sameDay(date, reformation))
-    events.push({ name: "Hari Reformasi", emoji: "📖", greeting: "Selamat Hari Reformasi! Sola Gratia, Sola Fide, Sola Scriptura.", color: "#dc2626", category: "global" });
+    events.push({ name: "Hari Reformasi", emoji: "📖", greeting: "Selamat Hari Reformasi! Sola Gratia, Sola Fide, Sola Scriptura.", color: "#dc2626", darkColor: "#f87171", category: "global" });
 
   if (sameDay(date, christTheKing))
-    events.push({ name: "Minggu Kristus Raja", emoji: "👑", greeting: "Kristus adalah Raja atas segala raja dan Tuhan atas segala tuhan.", color: "#7c3aed", category: "global" });
+    events.push({ name: "Minggu Kristus Raja", emoji: "👑", greeting: "Kristus adalah Raja atas segala raja dan Tuhan atas segala tuhan.", color: "#7c3aed", darkColor: "#a78bfa", category: "global" });
 
   if (sameDay(date, advent))
-    events.push({ name: "Adven I — Minggu Pertama Adven", emoji: "🕯️", greeting: "Selamat memasuki Masa Adven. Mari menyambut kedatangan Sang Terang!", color: "#7c3aed", season: "Adven", category: "global" });
+    events.push({ name: "Adven I — Minggu Pertama Adven", emoji: "🕯️", greeting: "Selamat memasuki Masa Adven. Mari menyambut kedatangan Sang Terang!", color: "#7c3aed", darkColor: "#a78bfa", season: "Adven", category: "global" });
 
   if (sameDay(date, advent2))
-    events.push({ name: "Adven II — Minggu Kedua Adven", emoji: "🕯️", greeting: "Damai Kristus datang membawa pengharapan bagi dunia.", color: "#7c3aed", season: "Adven", category: "global" });
+    events.push({ name: "Adven II — Minggu Kedua Adven", emoji: "🕯️", greeting: "Damai Kristus datang membawa pengharapan bagi dunia.", color: "#7c3aed", darkColor: "#a78bfa", season: "Adven", category: "global" });
 
   if (sameDay(date, advent3))
-    events.push({ name: "Adven III — Minggu Ketiga Adven (Gaudete)", emoji: "🌸", greeting: "Bersukacitalah! Tuhan sudah dekat.", color: "#db2777", season: "Adven", category: "global" });
+    events.push({ name: "Adven III — Minggu Ketiga Adven (Gaudete)", emoji: "🌸", greeting: "Bersukacitalah! Tuhan sudah dekat.", color: "#db2777", darkColor: "#f472b6", season: "Adven", category: "global" });
 
   if (sameDay(date, advent4))
-    events.push({ name: "Adven IV — Minggu Keempat Adven", emoji: "🕯️", greeting: "Kasih Allah nyata dalam kehadiran Imanuel, Allah beserta kita.", color: "#7c3aed", season: "Adven", category: "global" });
+    events.push({ name: "Adven IV — Minggu Keempat Adven", emoji: "🕯️", greeting: "Kasih Allah nyata dalam kehadiran Imanuel, Allah beserta kita.", color: "#7c3aed", darkColor: "#a78bfa", season: "Adven", category: "global" });
 
   if (sameDay(date, christmas))
-    events.push({ name: "Hari Natal", emoji: "🎄", greeting: "Selamat Natal! Firman itu telah menjadi manusia dan diam di antara kita.", color: "#16a34a", season: "Natal", category: "global" });
+    events.push({ name: "Hari Natal", emoji: "🎄", greeting: "Selamat Natal! Firman itu telah menjadi manusia dan diam di antara kita.", color: "#16a34a", darkColor: "#4ade80", season: "Natal", category: "global" });
 
   if (sameDay(date, christmas2))
-    events.push({ name: "Natal Kedua", emoji: "🎄", greeting: "Selamat Natal! Kiranya damai Kristus menyertai kita semua.", color: "#16a34a", season: "Natal", category: "global" });
+    events.push({ name: "Natal Kedua", emoji: "🎄", greeting: "Selamat Natal! Kiranya damai Kristus menyertai kita semua.", color: "#16a34a", darkColor: "#4ade80", season: "Natal", category: "global" });
 
   if (sameDay(date, watchNight))
-    events.push({ name: "Ibadah Tutup Tahun", emoji: "🙏", greeting: "Syukur kepada Tuhan atas segala pemeliharaan-Nya sepanjang tahun ini.", color: "#6b7280", category: "global" });
+    events.push({ name: "Ibadah Tutup Tahun", emoji: "🙏", greeting: "Syukur kepada Tuhan atas segala pemeliharaan-Nya sepanjang tahun ini.", color: "#6b7280", darkColor: "#9ca3af", category: "global" });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Hari Raya GKPB (Gereja Kristen Protestan di Bali)
@@ -225,16 +225,16 @@ export function getLiturgicalEvents(date: Date): LiturgicalEvent[] {
     });
 
   if (sameDay(date, doaPuasaGKPB))
-    events.push({ name: "Minggu Doa & Puasa GKPB", emoji: "🙏", greeting: "Selamat berdoa dan berpuasa bersama seluruh keluarga GKPB.", color: "#0f766e", category: "gkpb" });
+    events.push({ name: "Minggu Doa & Puasa GKPB", emoji: "🙏", greeting: "Selamat berdoa dan berpuasa bersama seluruh keluarga GKPB.", color: "#0f766e", darkColor: "#2dd4bf", category: "gkpb" });
 
   if (sameDay(date, hariMisiGKPB))
-    events.push({ name: "Hari Zending & Misi GKPB", emoji: "🌏", greeting: "Selamat Hari Misi! Mari ikut serta dalam mandat Amanat Agung Tuhan Yesus.", color: "#0f766e", category: "gkpb" });
+    events.push({ name: "Hari Zending & Misi GKPB", emoji: "🌏", greeting: "Selamat Hari Misi! Mari ikut serta dalam mandat Amanat Agung Tuhan Yesus.", color: "#0f766e", darkColor: "#2dd4bf", category: "gkpb" });
 
   if (sameDay(date, hariPemudaGKPB))
-    events.push({ name: "Hari Pemuda GKPB", emoji: "✨", greeting: "Selamat Hari Pemuda GKPB! Jadilah terang dan garam di tengah dunia.", color: "#0369a1", category: "gkpb" });
+    events.push({ name: "Hari Pemuda GKPB", emoji: "✨", greeting: "Selamat Hari Pemuda GKPB! Jadilah terang dan garam di tengah dunia.", color: "#0369a1", darkColor: "#38bdf8", category: "gkpb" });
 
   if (sameDay(date, hariWanitaGKPB))
-    events.push({ name: "Hari Wanita Gereja GKPB", emoji: "🌸", greeting: "Selamat Hari Wanita Gereja! Kiranya kasih Tuhan memampukan setiap wanita menjadi berkat.", color: "#be185d", category: "gkpb" });
+    events.push({ name: "Hari Wanita Gereja GKPB", emoji: "🌸", greeting: "Selamat Hari Wanita Gereja! Kiranya kasih Tuhan memampukan setiap wanita menjadi berkat.", color: "#be185d", darkColor: "#f472b6", category: "gkpb" });
 
   return events;
 }
@@ -243,6 +243,7 @@ export function getLiturgicalEvents(date: Date): LiturgicalEvent[] {
 export interface LiturgicalSeason {
   name: string;
   color: string;
+  darkColor?: string;
   emoji: string;
 }
 
@@ -259,29 +260,29 @@ export function getLiturgicalSeason(date: Date): LiturgicalSeason {
 
   // Natal (25 Des - 5 Jan)
   if (inRange(date, christmasStart, christmasEnd))
-    return { name: "Masa Natal", color: "#16a34a", emoji: "🎄" };
+    return { name: "Masa Natal", color: "#16a34a", darkColor: "#4ade80", emoji: "🎄" };
 
   // Epifani (6 Jan - sebelum Rabu Abu)
   if (inRange(date, epiphany, addDays(ashWednesday, -1)))
-    return { name: "Masa Epifani", color: "#d97706", emoji: "⭐" };
+    return { name: "Masa Epifani", color: "#d97706", darkColor: "#fbbf24", emoji: "⭐" };
 
   // Pra-Paskah / Puasa (Rabu Abu - Sabtu sebelum Paskah)
   if (inRange(date, ashWednesday, addDays(easter, -1)))
-    return { name: "Masa Pra-Paskah", color: "#6b7280", emoji: "✝️" };
+    return { name: "Masa Pra-Paskah", color: "#6b7280", darkColor: "#9ca3af", emoji: "✝️" };
 
   // Paskah (Paskah - Pentakosta)
   if (inRange(date, easter, addDays(pentecost, -1)))
-    return { name: "Masa Paskah", color: "#f59e0b", emoji: "🌅" };
+    return { name: "Masa Paskah", color: "#f59e0b", darkColor: "#fbbf24", emoji: "🌅" };
 
   // Pentakosta sampai Advent
   if (inRange(date, pentecost, addDays(advent, -1)))
-    return { name: "Masa Pentakosta", color: "#16a34a", emoji: "🔥" };
+    return { name: "Masa Pentakosta", color: "#16a34a", darkColor: "#4ade80", emoji: "🔥" };
 
   // Advent
   if (inRange(date, advent, new Date(year, 11, 24)))
-    return { name: "Masa Adven", color: "#7c3aed", emoji: "🕯️" };
+    return { name: "Masa Adven", color: "#7c3aed", darkColor: "#a78bfa", emoji: "🕯️" };
 
-  return { name: "Masa Biasa", color: "#16a34a", emoji: "📖" };
+  return { name: "Masa Biasa", color: "#16a34a", darkColor: "#4ade80", emoji: "📖" };
 }
 
 // ─── Daftar Hari Raya Bulan Tertentu (untuk kalender) ─────────────────────
@@ -293,4 +294,4 @@ export function getEventsForMonth(year: number, month: number): Map<number, Litu
     if (events.length > 0) map.set(d, events);
   }
   return map;
-}   
+}

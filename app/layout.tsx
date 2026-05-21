@@ -1,10 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
 import { Providers } from "./providers";
+import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
 import "./globals.css";
 
-// ── Self-hosted via next/font — tidak blocking, tidak butuh DNS lookup ─────────
-// Trim ke weights yang benar-benar dipakai (hemat ~40% ukuran font)
 const playfair = Playfair_Display({
   subsets:  ["latin"],
   variable: "--font-playfair",
@@ -50,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/gkpb-logo.png" />
       </head>
       <body className="font-sans antialiased">
+        <ServiceWorkerRegistrar />
         <Providers>{children}</Providers>
       </body>
     </html>
