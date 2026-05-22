@@ -5,11 +5,12 @@ import { DataTable }      from "@/components/admin/DataTable";
 import { FormModal }      from "@/components/admin/FormModal";
 import { ConfirmDialog }  from "@/components/admin/ConfirmDialog";
 import { useAyatCategories, useAyatNats, type AyatNatsItem } from "@/lib/hooks/useFirestoreData";
-import { BibleVerseSelector, emptySelection, type VerseSelection } from "@/components/admin/ayat/BibleVerseSelector";
-import { selToRef } from "@/lib/utils/adminAyat";
+import { BibleVerseSelector, type VerseSelection, emptySelection, effectiveVerses, refLabel } from "@/components/admin/ayat/BibleVerseSelector";
+import { parseReference } from "@/lib/bible-books";
+
 import {
   Loader2, Flame, Plus, Trash2, Save, Check,
-  Upload, Download, FileJson, AlertCircle, X, GripVertical, BookOpen, ChevronDown, ChevronUp,
+  Upload, Download, FileJson, AlertCircle, X, GripVertical, ChevronDown, ChevronUp, BookOpen,
 } from "lucide-react";
 import { showToast } from "@/lib/utils/toast";
 
@@ -59,40 +60,43 @@ function flatToCategories(verses: Verse[]) {
     .filter((c) => c.verses.length > 0);
 }
 
-// ─── Nats Item Card (expandable with BibleVerseSelector) ─────────────────────
+// ─── Nats Item Card ───────────────────────────────────────────────────────────
 
 interface NatsDraft {
-  id:        string;
-  reference: string;
-  text:      string;
-  bookSlug:  string;
-  bookName:  string;
-  chapter:   number;
-  verseFrom: number;
-  verseTo:   number;
-  sel:       VerseSelection;
-  expanded:  boolean;
+  id:           string;
+  reference:    string;
+  text:         string;
+  sel:          VerseSelection;
   loadingVerse: boolean;
+  expanded:     boolean;
 }
 
 function emptyNatsDraft(): NatsDraft {
   return {
     id: crypto.randomUUID(), reference: "", text: "",
-    bookSlug: "", bookName: "", chapter: 1, verseFrom: 1, verseTo: 1,
-    sel: emptySelection(), expanded: true, loadingVerse: false,
+    sel: emptySelection(), loadingVerse: false, expanded: true,
   };
 }
 
 function natsDraftFromItem(it: AyatNatsItem): NatsDraft {
   return {
     id: it.id, reference: it.reference, text: it.text,
-    bookSlug:  it.bookSlug  ?? "",
-    bookName:  it.bookName  ?? "",
-    chapter:   it.chapter   ?? 1,
-    verseFrom: it.verseFrom ?? 1,
-    verseTo:   it.verseTo   ?? 1,
-    sel: emptySelection(), expanded: false, loadingVerse: false,
+    sel: emptySelection(), loadingVerse: false, expanded: false,
   };
+}
+
+/** Fetch ayat verseFrom–verseTo lalu gabung sebagai "ch:v teks ch:v+1 teks..." */
+async function fetchVerseText(
+  bookSlug: string, chapter: number, verseFrom: number, verseTo: number
+): Promise<string | null> {
+  try {
+    const res  = await fetch(`/api/bible?book=${bookSlug}&chapter=${chapter}&from=${verseFrom}&to=${verseTo}`);
+    const json = await res.json();
+    if (!res.ok || json.error || !json.verses?.length) return null;
+    return (json.verses as { verse: number; text: string }[])
+      .map((v) => `${chapter}:${v.verse} ${v.text}`)
+      .join(" ");
+  } catch { return null; }
 }
 
 function NatsItemCard({
@@ -108,38 +112,39 @@ function NatsItemCard({
   onMoveDown: () => void;
 }) {
   const hasContent = draft.reference.trim() !== "";
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Saat BibleVerseSelector berubah → auto-fetch teks semua ayat
   const handleSelChange = useCallback(async (sel: VerseSelection) => {
-    const ref = selToRef(sel);
-    onChange({ ...draft, sel, reference: ref, loadingVerse: !!sel.bookSlug });
-    if (!sel.bookSlug || !sel.chapter || !sel.verseFrom) return;
-    try {
-      const res  = await fetch(`/api/bible?book=${sel.bookSlug}&chapter=${sel.chapter}&from=${sel.verseFrom}&to=${sel.verseTo}`);
-      const json = await res.json();
-      if (res.ok && !json.error && json.verses?.length > 0) {
-        // Untuk nats: ambil teks ayat pertama sebagai default, admin bisa edit
-        const firstVerse = json.verses[0];
-        onChange({
-          ...draft, sel, reference: ref,
-          bookSlug:  sel.bookSlug, bookName: sel.bookName,
-          chapter:   sel.chapter,
-          verseFrom: sel.verseFrom, verseTo: sel.verseTo,
-          text: draft.text || firstVerse.text,  // hanya isi otomatis jika teks kosong
-          loadingVerse: false,
-        });
-      } else {
-        onChange({
-          ...draft, sel, reference: ref,
-          bookSlug: sel.bookSlug, bookName: sel.bookName,
-          chapter: sel.chapter, verseFrom: sel.verseFrom, verseTo: sel.verseTo,
-          loadingVerse: false,
-        });
-      }
-    } catch {
-      onChange({ ...draft, sel, reference: ref, loadingVerse: false });
-    }
+    if (!sel.bookSlug) { onChange({ ...draft, sel }); return; }
+    const ref = refLabel(sel);
+    const { from, to } = effectiveVerses(sel);
+    onChange({ ...draft, sel, reference: ref, loadingVerse: true });
+    const text = await fetchVerseText(sel.bookSlug, sel.chapter, from, to);
+    onChange({ ...draft, sel, reference: ref, loadingVerse: false, text: text ?? draft.text });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft]);
+
+  // Saat referensi diketik manual → debounce parse → update sel + re-fetch
+  const handleReferenceChange = (raw: string) => {
+    onChange({ ...draft, reference: raw });
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      const parsed = parseReference(raw);
+      if (!parsed) return;
+      const sel: VerseSelection = {
+        bookSlug:  parsed.book.slug,
+        bookName:  parsed.book.name,
+        chapter:   parsed.chapter,
+        verseFrom: parsed.verseFrom,
+        verseTo:   parsed.verseTo,
+      };
+      onChange({ ...draft, reference: raw, sel, loadingVerse: true });
+      const { from, to } = effectiveVerses(sel);
+      const text = await fetchVerseText(sel.bookSlug, sel.chapter, from, to);
+      onChange({ ...draft, reference: raw, sel, loadingVerse: false, text: text ?? draft.text });
+    }, 800);
+  };
 
   return (
     <div className="border border-border rounded-xl overflow-hidden bg-card">
@@ -162,6 +167,7 @@ function NatsItemCard({
             : <p className="text-xs text-muted-foreground italic">Nats baru (belum dipilih)</p>}
         </div>
         <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+          {draft.loadingVerse && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
           <button onClick={onMoveUp} disabled={index === 0} className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted disabled:opacity-30"><ChevronUp className="h-3.5 w-3.5" /></button>
           <button onClick={onMoveDown} disabled={index === total - 1} className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted disabled:opacity-30"><ChevronDown className="h-3.5 w-3.5" /></button>
           <button onClick={onDelete} className="w-6 h-6 flex items-center justify-center rounded hover:bg-red-50 text-muted-foreground hover:text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
@@ -172,33 +178,38 @@ function NatsItemCard({
       {/* Expanded form */}
       {draft.expanded && (
         <div className="p-4 space-y-4 border-t border-border">
-          {/* Perikop selector */}
+          {/* BibleVerseSelector */}
           <div>
-            <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
-              Pilih Perikop Nats
+            <label className="text-xs font-bold uppercase tracking-wider block mb-2" style={{ color: "var(--gold)" }}>
+              Pilih Ayat Nats
             </label>
-            <BibleVerseSelector value={draft.sel} onChange={handleSelChange} showPreview={false} compact />
-            {draft.reference && (
-              <div className="flex items-center gap-2 mt-2 text-xs">
-                <BookOpen className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--brand)" }} />
-                <span className="font-semibold" style={{ color: "var(--brand)" }}>{draft.reference}</span>
-                {draft.loadingVerse && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
-              </div>
-            )}
+            <BibleVerseSelector
+              value={draft.sel}
+              onChange={handleSelChange}
+              showPreview={false}
+            />
           </div>
 
-          {/* Referensi manual override */}
+          {/* Referensi (bisa diedit manual, auto-sync ke selector & teks) */}
           <div>
             <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
-              Referensi (otomatis terisi, bisa diedit)
+              Referensi
             </label>
-            <input
-              value={draft.reference}
-              onChange={(e) => onChange({ ...draft, reference: e.target.value })}
-              placeholder="mis. Lukas 24:48"
-              className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-1 font-semibold"
-              style={{ color: "var(--brand)" }}
-            />
+            <div className="relative">
+              <input
+                value={draft.reference}
+                onChange={(e) => handleReferenceChange(e.target.value)}
+                placeholder="mis. Ulangan 14:28–29"
+                className="w-full px-3 py-2 pr-8 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-1 font-semibold"
+                style={{ color: "var(--brand)" }}
+              />
+              {draft.loadingVerse && (
+                <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground" />
+              )}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Otomatis terisi dari selector. Bisa diedit manual — ayat akan diambil ulang.
+            </p>
           </div>
 
           {/* Teks ayat nats */}
@@ -207,14 +218,15 @@ function NatsItemCard({
               Teks Ayat Nats
             </label>
             <textarea
-              rows={3}
+              rows={4}
               value={draft.text}
               onChange={(e) => onChange({ ...draft, text: e.target.value })}
-              placeholder="Teks ayat nats yang ditampilkan..."
-              className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-1 resize-none"
+              placeholder="Teks ayat nats otomatis terisi saat referensi dipilih..."
+              className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-1 resize-none font-serif leading-relaxed"
             />
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Otomatis terisi dari ayat pertama yang dipilih. Bisa diedit sesuai kebutuhan.
+            <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+              <BookOpen className="h-3 w-3" />
+              Terisi otomatis dari API · format: <code className="bg-muted px-1 rounded">14:28 teks... 14:29 teks...</code>
             </p>
           </div>
         </div>
@@ -261,7 +273,6 @@ function AyatNatsSection() {
         id:        d.id,
         reference: d.reference,
         text:      d.text,
-        ...(d.bookSlug ? { bookSlug: d.bookSlug, bookName: d.bookName, chapter: d.chapter, verseFrom: d.verseFrom, verseTo: d.verseTo } : {}),
       }));
       await save({ items });
       showToast.success(`${valid.length} Ayat Nats berhasil disimpan.`);
@@ -301,8 +312,7 @@ function AyatNatsSection() {
   };
 
   const handleExport = () => {
-    const items = drafts.map(({ id, reference, text, bookSlug, bookName, chapter, verseFrom, verseTo }) =>
-      ({ id, reference, text, ...(bookSlug ? { bookSlug, bookName, chapter, verseFrom, verseTo } : {}) }));
+    const items = drafts.map(({ id, reference, text }) => ({ id, reference, text }));
     const blob = new Blob([JSON.stringify(items, null, 2)], { type: "application/json" });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a"); a.href = url; a.download = "ayat-nats.json"; a.click();
@@ -349,7 +359,7 @@ function AyatNatsSection() {
         <div className="space-y-3">
           {drafts.length === 0 && (
             <div className="text-center py-6 text-xs text-muted-foreground border border-dashed border-border rounded-xl">
-              Belum ada Ayat Nats. Klik &quot;+ Tambah Nats&quot; untuk mulai, atau import JSON.
+              Belum ada Ayat Nats. Klik "+ Tambah Nats" untuk mulai, atau import JSON.
             </div>
           )}
           {drafts.map((draft, index) => (

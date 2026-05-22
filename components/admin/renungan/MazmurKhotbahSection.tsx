@@ -413,7 +413,8 @@ function MazmurSubSection({ date }: { date: Date }) {
 // ─── Sub-section: Bahan Khotbah ───────────────────────────────────────────────
 function BahanKhotbahSubSection({ date }: { date: Date }) {
   const { data, loading, save, clear } = useBahanKhotbah(date);
-  const [sel,       setSel]       = useState<VerseSelection | null>(null);
+  const [sel,       setSel]       = useState<VerseSelection>(emptySelection());
+  const [synced,    setSynced]    = useState(false);
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -421,10 +422,27 @@ function BahanKhotbahSubSection({ date }: { date: Date }) {
   const isVisible   = data.visible !== false;
   const visibleDays: number[] = data.visibleDays ?? [0];
 
-  const current: VerseSelection = sel ?? (data.reference
-    ? { bookSlug: "", bookName: "", chapter: 0, verseFrom: 0, verseTo: 0 }
-    : emptySelection()
-  );
+  // Reset synced state when date changes (ganti minggu)
+  React.useEffect(() => {
+    setSynced(false);
+    setSel(emptySelection());
+  }, [date.toISOString().slice(0, 10)]);
+
+  // Sync dari Firestore ke sel saat data pertama kali load
+  React.useEffect(() => {
+    if (!loading && !synced) {
+      setSynced(true);
+      if (data.bookSlug) {
+        setSel({
+          bookSlug:  data.bookSlug,
+          bookName:  data.bookName,
+          chapter:   data.chapter,
+          verseFrom: data.verseFrom,
+          verseTo:   data.verseTo,
+        });
+      }
+    }
+  }, [loading, synced, data]);
 
   const handleDayToggle = async (days: number[]) => {
     setSaving(true);
@@ -439,14 +457,14 @@ function BahanKhotbahSubSection({ date }: { date: Date }) {
     setResetting(true);
     try {
       await clear(date);
-      setSel(null);
+      setSel(emptySelection());
       showToast.success("Bahan Khotbah berhasil direset.");
     } catch { showToast.error("Gagal mereset. Coba lagi."); }
     setResetting(false);
   };
 
   const handleSave = async () => {
-    if (!sel?.bookSlug) { showToast.error("Pilih ayat Bahan Khotbah terlebih dahulu."); return; }
+    if (!sel.bookSlug) { showToast.error("Pilih ayat Bahan Khotbah terlebih dahulu."); return; }
     setSaving(true);
     try {
       const next: BahanKhotbah = {
@@ -476,72 +494,104 @@ function BahanKhotbahSubSection({ date }: { date: Date }) {
     setSaving(false);
   };
 
-  if (loading) return <div className="flex items-center gap-2 text-muted-foreground text-sm py-3"><Loader2 className="h-4 w-4 animate-spin" /> Memuat Bahan Khotbah...</div>;
+  if (loading) return (
+    <div className="bg-card border border-border rounded-xl p-5 flex items-center gap-3 text-muted-foreground text-sm">
+      <Loader2 className="h-4 w-4 animate-spin" style={{ color: "var(--brand)" }} />
+      Memuat Bahan Khotbah...
+    </div>
+  );
 
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3 border-b border-border" style={{ backgroundColor: "var(--brand-muted)" }}>
+
+      {/* ── Header ── */}
+      <div
+        className="flex items-center justify-between px-5 py-3 border-b border-border"
+        style={{ backgroundColor: "var(--brand-muted)" }}
+      >
         <div className="flex items-center gap-2">
           <BookOpen className="h-4 w-4" style={{ color: "var(--brand)" }} />
-          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--brand)" }}>Bahan Khotbah</p>
+          <div>
+            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--brand)" }}>
+              Bahan Khotbah
+            </p>
+            {data.reference && (
+              <p className="text-[10px] text-muted-foreground font-medium leading-none mt-0.5">
+                {data.reference}
+              </p>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={handleToggleVisible} disabled={saving}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all disabled:opacity-60 ${
+
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={handleToggleVisible}
+            disabled={saving}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all disabled:opacity-60 ${
               isVisible
                 ? "border-green-300 text-green-700 bg-green-50 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
                 : "border-border text-muted-foreground hover:bg-muted"
             }`}
           >
-            {isVisible ? <><Eye className="h-3 w-3" /> Tampil</> : <><EyeOff className="h-3 w-3" /> Disembunyikan</>}
+            {isVisible ? <><Eye className="h-3 w-3" /> Tampil</> : <><EyeOff className="h-3 w-3" /> Hidden</>}
           </button>
-          <button onClick={handleReset} disabled={saving || resetting}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 disabled:opacity-60 transition-all"
+          <button
+            onClick={handleReset}
+            disabled={saving || resetting}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-red-200 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 dark:border-red-800 dark:text-red-400 disabled:opacity-60 transition-all"
           >
             {resetting ? <><Loader2 className="h-3 w-3 animate-spin" /> Reset...</> : <><RotateCcw className="h-3 w-3" /> Reset</>}
           </button>
-          <button onClick={handleSave} disabled={saving}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60 transition-all"
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all disabled:opacity-60 hover:opacity-90"
             style={{ backgroundColor: saved ? "#16a34a" : "var(--brand)" }}
           >
-            {saving ? <><Loader2 className="h-3 w-3 animate-spin" /> Menyimpan...</>
-              : saved ? <><Check className="h-3 w-3" /> Tersimpan ✓</>
+            {saving
+              ? <><Loader2 className="h-3 w-3 animate-spin" /> Menyimpan...</>
+              : saved
+              ? <><Check className="h-3 w-3" /> Tersimpan ✓</>
               : <><Save className="h-3 w-3" /> Simpan</>}
           </button>
         </div>
       </div>
 
-      <div className="p-5 space-y-4">
+      {/* ── Body ── */}
+      <div className="p-5 space-y-5">
+
+        {/* Warning: hidden */}
         {!isVisible && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-            <EyeOff className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-            <p className="text-xs text-amber-700 dark:text-amber-400">Section ini <strong>disembunyikan</strong> di halaman Puji &amp; Janji.</p>
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+            <EyeOff className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              Section ini <strong>disembunyikan</strong> dari halaman publik.
+            </p>
           </div>
         )}
 
-        {data.reference && (
-          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border bg-muted/30">
+        {/* Pilih Ayat */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 pb-2 border-b border-border">
             <BookOpen className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--brand)" }} />
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-0.5">Aktif minggu ini</p>
-              <p className="text-sm font-semibold truncate" style={{ color: "var(--brand)" }}>{data.reference}</p>
-            </div>
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--brand)" }}>
+              Pilih Ayat
+            </p>
           </div>
-        )}
+          <BibleVerseSelector value={sel} onChange={(v) => setSel(v)} showPreview />
+        </div>
 
         {/* Hari Tampil */}
-        <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <CalendarDays className="h-3.5 w-3.5" style={{ color: "var(--brand)" }} />
-            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--brand)" }}>Hari Tampil di Halaman Publik</p>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 pb-2 border-b border-border">
+            <CalendarDays className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--brand)" }} />
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--brand)" }}>
+              Hari Tampil
+            </p>
           </div>
           <DayOfWeekPicker visibleDays={visibleDays} onChange={handleDayToggle} disabled={saving} />
         </div>
 
-        <div>
-          <FieldLabel>Pilih Ayat Bahan Khotbah</FieldLabel>
-          <BibleVerseSelector value={current} onChange={(v) => setSel(v)} showPreview />
-        </div>
       </div>
     </div>
   );

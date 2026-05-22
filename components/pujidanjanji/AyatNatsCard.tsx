@@ -5,6 +5,7 @@ import { Flame, Copy, Check, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, 
 import { useAyatNats } from "@/lib/hooks/useFirestoreData";
 import { parseReference } from "@/lib/bible-books";
 import { PerikopModal } from "@/components/ui/PerikopModal";
+import { getVerseCount } from "@/lib/bible-verse-counts";
 
 export function AyatNatsCard() {
   const { data, loading } = useAyatNats();
@@ -21,7 +22,7 @@ export function AyatNatsCard() {
   const item = items[index];
   const hasMulti = items.length > 1;
 
-  // Resolve verse location — prefer stored fields, fall back to parsing reference
+  // Parse referensi untuk mendapat info buku & pasal
   const parsed = (() => {
     if (item.bookSlug && item.chapter && item.verseFrom) {
       return {
@@ -33,6 +34,11 @@ export function AyatNatsCard() {
     }
     return parseReference(item.reference);
   })();
+
+  // Untuk modal perikop: tampilkan FULL pasal (verseFrom=1, verseTo=max)
+  const fullChapterVerseTo = parsed
+    ? getVerseCount(parsed.book.slug, parsed.chapter)
+    : 999;
 
   const prev = () => { setIndex((i) => (i - 1 + items.length) % items.length); setPerikopOpen(false); };
   const next = () => { setIndex((i) => (i + 1) % items.length); setPerikopOpen(false); };
@@ -46,7 +52,7 @@ export function AyatNatsCard() {
   return (
     <>
       <div className="bg-card border border-border rounded-xl overflow-hidden transition-all">
-        {/* ── Garis Aksen atas seperti di Renungan ── */}
+        {/* ── Garis Aksen atas ── */}
         <div className="h-1 w-full" style={{ backgroundColor: "var(--brand)" }} />
 
         {/* ── Header / Collapsed row ── */}
@@ -67,7 +73,7 @@ export function AyatNatsCard() {
           </div>
 
           <div className="flex items-center gap-2.5">
-            {/* Reference always visible */}
+            {/* Referensi selalu terlihat */}
             <p className="font-serif font-bold text-sm" style={{ color: "var(--brand)" }}>
               {item.reference}
             </p>
@@ -84,7 +90,6 @@ export function AyatNatsCard() {
               </div>
             )}
 
-            {/* Expand/collapse chevron */}
             <span className="text-muted-foreground">
               {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </span>
@@ -94,12 +99,12 @@ export function AyatNatsCard() {
         {/* ── Expanded body ── */}
         {expanded && (
           <div className="px-5 pb-5 animate-accordion-down">
-            {/* Verse text */}
+            {/* Teks ayat */}
             <p className="font-serif text-foreground leading-relaxed italic text-lg mb-4 mt-1">
               &ldquo;{item.text}&rdquo;
             </p>
 
-            {/* Footer */}
+            {/* Footer row */}
             <div className="flex items-center justify-between gap-2 mt-4">
               <div className="flex items-center gap-1">
                 {hasMulti && (
@@ -118,7 +123,7 @@ export function AyatNatsCard() {
               </button>
             </div>
 
-            {/* Perikop button */}
+            {/* Tombol Perikop — tampilkan full pasal */}
             {parsed && (
               <div className="mt-4 pt-4 border-t border-border">
                 <button
@@ -153,7 +158,7 @@ export function AyatNatsCard() {
         )}
       </div>
 
-      {/* Perikop Modal */}
+      {/* Perikop Modal — full pasal (verseFrom=1, verseTo=max) */}
       {parsed && (
         <PerikopModal
           open={perikopOpen}
@@ -161,8 +166,8 @@ export function AyatNatsCard() {
           bookSlug={parsed.book.slug}
           bookName={parsed.book.name}
           chapter={parsed.chapter}
-          verseFrom={parsed.verseFrom}
-          verseTo={parsed.verseTo}
+          verseFrom={1}
+          verseTo={fullChapterVerseTo}
         />
       )}
     </>
