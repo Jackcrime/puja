@@ -243,8 +243,7 @@ function HarianPanel() {
                 <Download className="h-3.5 w-3.5" /> Export
               </button>
               <button onClick={() => setSelectMode(true)}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
-                style={{ color: "#dc2626", borderColor: "#fca5a5" }}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border rounded-xl hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors border-red-300 dark:border-red-800 text-red-600 dark:text-red-400"
               >
                 <Trash2 className="h-3.5 w-3.5" /> Hapus Massal
               </button>
@@ -389,14 +388,13 @@ function HarianPanel() {
 
         {/* Sticky bulk-delete action bar */}
         {selectMode && selected.size > 0 && (
-          <div className="sticky bottom-0 flex items-center justify-between gap-3 px-5 py-3 border-t border-red-200 dark:border-red-900"
-            style={{ backgroundColor: "#fef2f2" }}>
-            <p className="text-xs font-semibold text-red-700">
+          <div className="sticky bottom-0 flex items-center justify-between gap-3 px-5 py-3 border-t border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20">
+            <p className="text-xs font-semibold text-red-700 dark:text-red-400">
               {selected.size} ayat dipilih
             </p>
             <div className="flex items-center gap-2">
               <button onClick={exitSelect}
-                className="px-3 py-1.5 text-xs rounded-lg border border-border hover:bg-white transition-colors text-muted-foreground"
+                className="px-3 py-1.5 text-xs rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground"
               >
                 Batal
               </button>

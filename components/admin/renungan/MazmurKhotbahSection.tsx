@@ -573,17 +573,6 @@ function BahanKhotbahSubSection({ date }: { date: Date }) {
           </div>
         )}
 
-        {/* Pilih Ayat */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 pb-2 border-b border-border">
-            <BookOpen className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--brand)" }} />
-            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--brand)" }}>
-              Pilih Ayat
-            </p>
-          </div>
-          <BibleVerseSelector value={sel} onChange={(v) => setSel(v)} showPreview />
-        </div>
-
         {/* Hari Tampil */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 pb-2 border-b border-border">
@@ -595,6 +584,16 @@ function BahanKhotbahSubSection({ date }: { date: Date }) {
           <DayOfWeekPicker visibleDays={visibleDays} onChange={handleDayToggle} disabled={saving} />
         </div>
 
+        {/* Pilih Ayat */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 pb-2 border-b border-border">
+            <BookOpen className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--brand)" }} />
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--brand)" }}>
+              Pilih Ayat
+            </p>
+          </div>
+          <BibleVerseSelector value={sel} onChange={(v) => setSel(v)} showPreview />
+        </div>
       </div>
     </div>
   );
