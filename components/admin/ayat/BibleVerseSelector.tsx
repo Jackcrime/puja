@@ -182,7 +182,7 @@ export function BibleVerseSelector({
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand/10 text-muted-foreground font-bold uppercase tracking-wider ml-auto">Fixed</span>
           </div>
         ) : (
-          <div className="relative" ref={bookPanelRef}>
+          <div ref={bookPanelRef}>
             <button
               type="button"
               onClick={() => setBookOpen((o) => !o)}
@@ -206,8 +206,8 @@ export function BibleVerseSelector({
             </button>
 
             {bookOpen && (
-              <div className="absolute z-50 top-full mt-1.5 left-0 right-0 rounded-2xl border border-border bg-background shadow-xl overflow-hidden"
-                style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
+              <div className="mt-1.5 rounded-2xl border border-border bg-background overflow-hidden"
+                style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}>
                 <div className="p-2 border-b border-border bg-muted/30">
                   <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg border border-border bg-background">
                     <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -222,7 +222,7 @@ export function BibleVerseSelector({
                   </div>
                 </div>
 
-                <div className="max-h-64 overflow-y-auto p-2 space-y-2">
+                <div className="max-h-72 overflow-y-auto p-2 space-y-2">
                   {filteredPL.length > 0 && (
                     <div>
                       <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">Perjanjian Lama</p>
@@ -255,7 +255,7 @@ export function BibleVerseSelector({
                   )}
                   {filteredPL.length === 0 && filteredPB.length === 0 && (
                     <p className="text-center py-4 text-sm text-muted-foreground">
-                      Kitab "<span className="font-medium">{bookSearch}</span>" tidak ditemukan.
+                      Kitab &quot;<span className="font-medium">{bookSearch}</span>&quot; tidak ditemukan.
                     </p>
                   )}
                 </div>

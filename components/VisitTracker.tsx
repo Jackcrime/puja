@@ -10,7 +10,7 @@ export function VisitTracker() {
   useEffect(() => {
     if (pathname.startsWith("/admin")) return;
     trackPageVisit();
-  }, []);
+  }, [pathname]);
 
   return null;
 }

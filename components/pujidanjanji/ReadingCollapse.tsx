@@ -41,7 +41,7 @@ export function ReadingCollapse({ reading, index, trackRead = false }: Props) {
       setVerses([]);
     }
     setLoading(false);
-  }, [reading.reference, verses, loading]);
+  }, [reading.reference, verses, loading, lang]);
 
   const toggle = () => {
     if (!open) {

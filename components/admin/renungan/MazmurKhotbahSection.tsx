@@ -425,10 +425,11 @@ function BahanKhotbahSubSection({ date }: { date: Date }) {
   const visibleDays: number[] = data.visibleDays ?? [0];
 
   // Reset synced state when date changes (ganti minggu)
+  const dateKey = date.toISOString().slice(0, 10);
   React.useEffect(() => {
     setSynced(false);
     setSel(emptySelection());
-  }, [date.toISOString().slice(0, 10)]);
+  }, [dateKey]);
 
   // Sync dari Firestore ke sel saat data pertama kali load
   React.useEffect(() => {
