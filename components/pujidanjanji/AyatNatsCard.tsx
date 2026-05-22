@@ -1,28 +1,38 @@
 "use client";
 
 import React, { useState } from "react";
-import { Flame, Copy, Check, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, BookOpen } from "lucide-react";
-import { useAyatNats } from "@/lib/hooks/useFirestoreData";
+import {
+  Flame, Copy, Check, ChevronLeft, ChevronRight,
+  ChevronDown, ChevronUp, BookOpen, CalendarDays, RefreshCw,
+} from "lucide-react";
+import { useAyatNatsHarian } from "@/lib/hooks/useFirestoreData";
 import { parseReference } from "@/lib/bible-books";
 import { PerikopModal } from "@/components/ui/PerikopModal";
 import { getVerseCount } from "@/lib/bible-verse-counts";
 
+const HARI_ID  = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+const BULAN_ID = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+
+function formatTanggalHari(date: Date) {
+  return `${HARI_ID[date.getDay()]}, ${date.getDate()} ${BULAN_ID[date.getMonth()]} ${date.getFullYear()}`;
+}
+
 export function AyatNatsCard() {
-  const { data, loading } = useAyatNats();
-  const [copied, setCopied] = useState(false);
-  const [index, setIndex] = useState(0);
-  const [expanded, setExpanded] = useState(true);
+  const today = new Date();
+  const { items, pool, loading } = useAyatNatsHarian(today);
+
+  const [index,       setIndex]       = useState(0);
+  const [copied,      setCopied]      = useState(false);
+  const [expanded,    setExpanded]    = useState(true);
   const [perikopOpen, setPerikopOpen] = useState(false);
 
   if (loading) return null;
-
-  const items = data.items ?? [];
   if (items.length === 0) return null;
 
-  const item = items[index];
-  const hasMulti = items.length > 1;
+  const safeIndex = Math.min(index, items.length - 1);
+  const item      = items[safeIndex];
+  const hasMulti  = items.length > 1;
 
-  // Parse referensi untuk mendapat info buku & pasal
   const parsed = (() => {
     if (item.bookSlug && item.chapter && item.verseFrom) {
       return {
@@ -35,7 +45,6 @@ export function AyatNatsCard() {
     return parseReference(item.reference);
   })();
 
-  // Untuk modal perikop: tampilkan FULL pasal (verseFrom=1, verseTo=max)
   const fullChapterVerseTo = parsed
     ? getVerseCount(parsed.book.slug, parsed.chapter)
     : 999;
@@ -49,13 +58,15 @@ export function AyatNatsCard() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const totalPool = pool.items?.length ?? 0;
+
   return (
     <>
       <div className="bg-card border border-border rounded-xl overflow-hidden transition-all">
-        {/* ── Garis Aksen atas ── */}
+        {/* Garis aksen */}
         <div className="h-1 w-full" style={{ backgroundColor: "var(--brand)" }} />
 
-        {/* ── Header / Collapsed row ── */}
+        {/* Header */}
         <button
           onClick={() => setExpanded((e) => !e)}
           className="w-full flex items-center justify-between px-5 pt-4 pb-4 text-left transition-colors hover:bg-muted/30"
@@ -63,22 +74,21 @@ export function AyatNatsCard() {
           <div className="flex items-center gap-2">
             <Flame className="h-4 w-4 shrink-0" style={{ color: "var(--brand)" }} />
             <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--gold)" }}>
-              Ayat Nats
+              Ayat Nats Hari Ini
             </p>
             {hasMulti && (
-              <span className="text-[10px] font-semibold text-muted-foreground tabular-nums ml-1">
-                {index + 1}/{items.length}
+              <span className="text-[10px] font-semibold text-muted-foreground tabular-nums ml-0.5">
+                {safeIndex + 1}/{items.length}
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-2.5">
-            {/* Referensi selalu terlihat */}
             <p className="font-serif font-bold text-sm" style={{ color: "var(--brand)" }}>
               {item.reference}
             </p>
 
-            {/* Multi nav when collapsed */}
+            {/* Inline nav when collapsed */}
             {hasMulti && !expanded && (
               <div className="flex items-center gap-0.5 mr-1" onClick={(e) => e.stopPropagation()}>
                 <div onClick={prev} className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
@@ -96,15 +106,22 @@ export function AyatNatsCard() {
           </div>
         </button>
 
-        {/* ── Expanded body ── */}
+        {/* Tanggal + info badge */}
+        <div className="px-5 pb-2 flex items-center gap-1.5">
+          <CalendarDays className="h-3 w-3 text-muted-foreground" />
+          <span className="text-[11px] text-muted-foreground font-medium">
+            {formatTanggalHari(today)}
+          </span>
+        </div>
+
+        {/* Expanded body */}
         {expanded && (
           <div className="px-5 pb-5 animate-accordion-down">
-            {/* Teks ayat */}
-            <p className="font-serif text-foreground leading-relaxed italic text-lg mb-4 mt-1">
+            <p className="font-serif text-foreground leading-relaxed italic text-lg mb-4 mt-2">
               &ldquo;{item.text}&rdquo;
             </p>
 
-            {/* Footer row */}
+            {/* Footer: nav + copy */}
             <div className="flex items-center justify-between gap-2 mt-4">
               <div className="flex items-center gap-1">
                 {hasMulti && (
@@ -123,7 +140,7 @@ export function AyatNatsCard() {
               </button>
             </div>
 
-            {/* Tombol Perikop — tampilkan full pasal */}
+            {/* Perikop button */}
             {parsed && (
               <div className="mt-4 pt-4 border-t border-border">
                 <button
@@ -145,9 +162,9 @@ export function AyatNatsCard() {
                     onClick={() => setIndex(i)}
                     className="rounded-full transition-all"
                     style={{
-                      width: i === index ? "1.25rem" : "0.375rem",
+                      width:  i === safeIndex ? "1.25rem" : "0.375rem",
                       height: "0.375rem",
-                      backgroundColor: i === index ? "var(--brand)" : "var(--brand-muted)",
+                      backgroundColor: i === safeIndex ? "var(--brand)" : "var(--brand-muted)",
                     }}
                     aria-label={`Ayat ${i + 1}`}
                   />
@@ -158,7 +175,6 @@ export function AyatNatsCard() {
         )}
       </div>
 
-      {/* Perikop Modal — full pasal (verseFrom=1, verseTo=max) */}
       {parsed && (
         <PerikopModal
           open={perikopOpen}

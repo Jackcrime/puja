@@ -711,3 +711,137 @@ export function useAyatNats() {
   }, []);
   return { data, loading, save };
 }
+
+// ─── 18. Ayat Nats — Daily Schedule ───────────────────────────────────────────
+// Firestore doc: ayat_nats/daily_schedule
+// Shape: { schedule: { "YYYY-MM-DD": string[] } }  ← array of item ids per day
+
+export interface AyatNatsDailySchedule {
+  schedule: Record<string, string[]>; // date → array of item ids
+}
+
+const DEFAULT_SCHEDULE: AyatNatsDailySchedule = { schedule: {} };
+
+/** Auto-pick item indices for a given day (returns 1 item by default, rotates through pool) */
+function autoPickIndices(items: AyatNatsItem[], date: Date): number[] {
+  if (items.length === 0) return [];
+  const epoch      = new Date(2025, 0, 1).getTime();
+  const daysSince  = Math.floor((date.getTime() - epoch) / (1000 * 60 * 60 * 24));
+  const idx        = ((daysSince % items.length) + items.length) % items.length;
+  return [idx];
+}
+
+/** Returns today's (or a given date's) ayat nats — may be multiple items */
+export function useAyatNatsHarian(date?: Date) {
+  const targetDate = date ?? new Date();
+  const dateKey    = formatDateKey(targetDate);
+
+  const [pool,     setPool]     = useState<AyatNats>(DEFAULT_AYAT_NATS);
+  const [schedule, setSchedule] = useState<AyatNatsDailySchedule>(DEFAULT_SCHEDULE);
+  const [loading,  setLoading]  = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      readDoc<AyatNats>("ayat_nats", "current", DEFAULT_AYAT_NATS),
+      readDoc<AyatNatsDailySchedule>("ayat_nats", "daily_schedule", DEFAULT_SCHEDULE),
+    ])
+      .then(([poolData, schedData]) => {
+        if (!poolData.items) {
+          const old = poolData as any;
+          setPool({ items: [{ id: "1", reference: old.reference ?? "", text: old.text ?? "" }] });
+        } else {
+          setPool(poolData);
+        }
+        // backward-compat: old schedule had string values, new has string[]
+        const rawSched = schedData?.schedule ?? {};
+        const normalised: Record<string, string[]> = {};
+        for (const [k, v] of Object.entries(rawSched)) {
+          normalised[k] = Array.isArray(v) ? v : [v as any];
+        }
+        setSchedule({ schedule: normalised });
+      })
+      .finally(() => setLoading(false));
+  }, [dateKey]);
+
+  const items = (() => {
+    const allItems = pool.items ?? [];
+    if (allItems.length === 0) return [];
+
+    const scheduledIds = schedule.schedule?.[dateKey];
+    if (scheduledIds && scheduledIds.length > 0) {
+      const found = scheduledIds
+        .map((id) => allItems.find((i) => i.id === id))
+        .filter(Boolean) as AyatNatsItem[];
+      if (found.length > 0) return found;
+    }
+
+    // Auto-rotate fallback
+    return autoPickIndices(allItems, targetDate).map((i) => allItems[i]);
+  })();
+
+  return { items, pool, schedule, loading };
+}
+
+/** Hook for admin to read & write the daily schedule */
+export function useAyatNatsSchedule() {
+  const [data,    setData]    = useState<AyatNatsDailySchedule>(DEFAULT_SCHEDULE);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    readDoc<AyatNatsDailySchedule>("ayat_nats", "daily_schedule", DEFAULT_SCHEDULE)
+      .then((raw) => {
+        // backward-compat: normalise string → string[]
+        const rawSched = raw?.schedule ?? {};
+        const normalised: Record<string, string[]> = {};
+        for (const [k, v] of Object.entries(rawSched)) {
+          normalised[k] = Array.isArray(v) ? v : [v as any];
+        }
+        setData({ schedule: normalised });
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const save = useCallback(async (next: AyatNatsDailySchedule) => {
+    try {
+      await writeDoc("ayat_nats", "daily_schedule", next);
+      setData(next);
+    } catch (e) {
+      console.error("[useAyatNatsSchedule] save error:", e);
+      toast.error("Gagal menyimpan jadwal harian. Coba lagi.");
+    }
+  }, []);
+
+  /** Toggle an item id in/out of a date's list. Pass null to clear the whole date (reset to auto). */
+  const toggleItemForDate = useCallback(
+    async (dateKey: string, itemId: string | null) => {
+      setData((prev) => {
+        const next = { schedule: { ...(prev.schedule ?? {}) } };
+
+        if (itemId === null) {
+          // reset to auto-rotate
+          delete next.schedule[dateKey];
+        } else {
+          const current = next.schedule[dateKey] ?? [];
+          if (current.includes(itemId)) {
+            // deselect
+            const updated = current.filter((id) => id !== itemId);
+            if (updated.length === 0) {
+              delete next.schedule[dateKey]; // back to auto
+            } else {
+              next.schedule[dateKey] = updated;
+            }
+          } else {
+            // add
+            next.schedule[dateKey] = [...current, itemId];
+          }
+        }
+
+        writeDoc("ayat_nats", "daily_schedule", next).catch(console.error);
+        return next;
+      });
+    },
+    []
+  );
+
+  return { data, loading, save, toggleItemForDate };
+}

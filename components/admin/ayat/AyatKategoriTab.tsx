@@ -6,6 +6,7 @@ import { FormModal }      from "@/components/admin/FormModal";
 import { ConfirmDialog }  from "@/components/admin/ConfirmDialog";
 import { useAyatCategories, useAyatNats, type AyatNatsItem } from "@/lib/hooks/useFirestoreData";
 import { BibleVerseSelector, type VerseSelection, emptySelection, effectiveVerses, refLabel } from "@/components/admin/ayat/BibleVerseSelector";
+import { AyatNatsScheduleSection } from "@/components/admin/ayat/AyatNatsScheduleSection";
 import { parseReference } from "@/lib/bible-books";
 
 import {
@@ -355,6 +356,7 @@ function AyatNatsSection() {
       </div>
 
       <div className="p-5 space-y-4">
+        <AyatNatsScheduleSection /> 
         {/* Nats cards */}
         <div className="space-y-3">
           {drafts.length === 0 && (

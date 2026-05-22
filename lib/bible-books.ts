@@ -95,6 +95,8 @@ export function findBook(nameOrSlug: string): BibleBook | undefined {
 
 /** Format referensi untuk display: "1 Samuel 2:1-36" */
 export function formatRef(bookName: string, chapter: number, verseFrom: number, verseTo: number): string {
+  // 0 = full pasal (tidak spesifik ayat)
+  if (!verseFrom || !verseTo) return `${bookName} ${chapter}`;
   if (verseFrom === verseTo) return `${bookName} ${chapter}:${verseFrom}`;
   return `${bookName} ${chapter}:${verseFrom}–${verseTo}`;
 }

@@ -6,7 +6,7 @@ import {
   type MazmurMinggu, type BahanKhotbah,
 } from "@/lib/hooks/useFirestoreData";
 import {
-  BibleVerseSelector, emptySelection, refLabel,
+  BibleVerseSelector, emptySelection, refLabel, effectiveVerses,
   type VerseSelection,
 } from "@/components/admin/ayat/BibleVerseSelector";
 import { selToRef } from "@/lib/utils/adminAyat";
@@ -259,10 +259,11 @@ function MazmurSubSection({ date }: { date: Date }) {
   const handleSelChange = async (newSel: VerseSelection) => {
     setSel(newSel);
     setPreviewVerses([]);
-    if (!newSel.bookSlug || !newSel.chapter || !newSel.verseFrom) return;
+    if (!newSel.bookSlug || !newSel.chapter) return;
     setLoadingVerses(true);
     try {
-      const res  = await fetch(`/api/bible?book=${newSel.bookSlug}&chapter=${newSel.chapter}&from=${newSel.verseFrom}&to=${newSel.verseTo}`);
+      const { from, to } = effectiveVerses(newSel);
+      const res  = await fetch(`/api/bible?book=${newSel.bookSlug}&chapter=${newSel.chapter}&from=${from}&to=${to}`);
       const json = await res.json();
       if (res.ok && !json.error) {
         setPreviewVerses((json.verses as { verse: number; text: string }[]).map((v) => ({
@@ -298,7 +299,8 @@ function MazmurSubSection({ date }: { date: Date }) {
     if (!sel.bookSlug) { showToast.error("Pilih ayat Mazmur terlebih dahulu."); return; }
     setSaving(true);
     try {
-      const res    = await fetch(`/api/bible?book=${sel.bookSlug}&chapter=${sel.chapter}&from=${sel.verseFrom}&to=${sel.verseTo}`);
+      const { from, to } = effectiveVerses(sel);
+      const res    = await fetch(`/api/bible?book=${sel.bookSlug}&chapter=${sel.chapter}&from=${from}&to=${to}`);
       const json   = await res.json();
       const verses: MazmurMinggu["verses"] = res.ok && !json.error
         ? (json.verses as { verse: number; text: string }[]).map((v) => ({ number: `${sel.chapter}:${v.verse}`, text: v.text }))
