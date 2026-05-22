@@ -32,7 +32,8 @@ export type CollectionName =
   | "mazmur_minggu"
   | "bahan_khotbah"
   | "pokok_doa_harian"
-  | "ayat_nats";
+  | "ayat_nats"
+  | "page_visits";
 
 // ─── Read single document ──────────────────────────────────────────────────────
 export async function readDoc<T>(

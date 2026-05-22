@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
 import { Providers } from "./providers";
 import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
+import { VisitTracker } from "@/components/VisitTracker";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/gkpb-logo.png" />
       </head>
       <body className="font-sans antialiased">
+        <VisitTracker />
         <ServiceWorkerRegistrar />
         <Providers>{children}</Providers>
       </body>
