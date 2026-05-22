@@ -21,8 +21,131 @@ import { AuthorPicker } from "./AuthorPicker";
 import { format, addDays, subDays, isSameDay } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { useDate } from "@/lib/context/DateContext";
+import { RenunganImportExport } from "./RenunganImportExport";
 
 // ─── Daily Date Picker ────────────────────────────────────────────────────────
+
+const HARI_MINI  = ["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
+const BULAN_FULL = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+
+function CalendarPopup({
+  selected,
+  onSelect,
+  onClose,
+}: {
+  selected: Date;
+  onSelect: (d: Date) => void;
+  onClose:  () => void;
+}) {
+  const today = new Date();
+  const [viewYear,  setViewYear]  = React.useState(selected.getFullYear());
+  const [viewMonth, setViewMonth] = React.useState(selected.getMonth());
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
+    else setViewMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); }
+    else setViewMonth(m => m + 1);
+  };
+
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const firstDay    = new Date(viewYear, viewMonth, 1).getDay();
+  const cells: (number | null)[] = Array(firstDay).fill(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const isSelected = (d: number) =>
+    d === selected.getDate() && viewMonth === selected.getMonth() && viewYear === selected.getFullYear();
+  const isToday = (d: number) =>
+    d === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
+
+  return (
+    <div
+      className="absolute top-full left-0 mt-2 z-50 bg-card border border-border rounded-2xl shadow-2xl p-4 w-72"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Month nav */}
+      <div className="flex items-center justify-between mb-3">
+        <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+
+        <div className="flex items-center gap-1.5">
+          {/* Month select */}
+          <select
+            value={viewMonth}
+            onChange={(e) => setViewMonth(Number(e.target.value))}
+            className="text-xs font-bold bg-transparent border-none outline-none cursor-pointer appearance-none text-center"
+            style={{ color: "var(--brand)" }}
+          >
+            {BULAN_FULL.map((b, i) => <option key={i} value={i}>{b}</option>)}
+          </select>
+          {/* Year select */}
+          <select
+            value={viewYear}
+            onChange={(e) => setViewYear(Number(e.target.value))}
+            className="text-xs font-bold bg-transparent border-none outline-none cursor-pointer appearance-none text-center"
+            style={{ color: "var(--brand)" }}
+          >
+            {Array.from({ length: 10 }, (_, i) => today.getFullYear() - 2 + i).map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
+
+        <button onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Day headers */}
+      <div className="grid grid-cols-7 mb-1">
+        {HARI_MINI.map(h => (
+          <div key={h} className="text-center text-[10px] font-bold text-muted-foreground py-1">{h}</div>
+        ))}
+      </div>
+
+      {/* Day grid */}
+      <div className="grid grid-cols-7 gap-0.5">
+        {cells.map((d, i) => {
+          if (!d) return <div key={`e-${i}`} />;
+          const sel  = isSelected(d);
+          const tod  = isToday(d);
+          return (
+            <button
+              key={d}
+              onClick={() => {
+                onSelect(new Date(viewYear, viewMonth, d));
+                onClose();
+              }}
+              className="aspect-square flex items-center justify-center rounded-lg text-xs font-semibold transition-all hover:scale-105"
+              style={{
+                backgroundColor: sel ? "var(--brand)" : tod ? "var(--brand-muted)" : "transparent",
+                color:           sel ? "white" : tod ? "var(--brand)" : "inherit",
+                fontWeight:      tod || sel ? 700 : 500,
+                outline:         tod && !sel ? "1.5px solid var(--brand)" : "none",
+              }}
+            >
+              {d}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Footer: jump to today */}
+      <div className="mt-3 pt-3 border-t border-border flex justify-center">
+        <button
+          onClick={() => { onSelect(new Date()); onClose(); }}
+          className="text-xs font-bold px-3 py-1.5 rounded-lg transition-colors hover:bg-muted"
+          style={{ color: "var(--brand)" }}
+        >
+          Ke Hari Ini
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function DayPicker({
   date,
@@ -31,12 +154,28 @@ function DayPicker({
   date:     Date;
   onChange: (d: Date) => void;
 }) {
-  const today      = new Date();
-  const isToday    = isSameDay(date, today);
-  const dateLabel  = format(date, "EEEE, d MMMM yyyy", { locale: localeId });
+  const today    = new Date();
+  const isToday  = isSameDay(date, today);
+  const dateLabel = format(date, "EEEE, d MMMM yyyy", { locale: localeId });
+
+  const [calOpen, setCalOpen] = React.useState(false);
+  const wrapperRef            = React.useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  React.useEffect(() => {
+    if (!calOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setCalOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [calOpen]);
 
   return (
-    <div className="flex items-center gap-1 p-1 bg-muted/40 rounded-xl border border-border w-fit">
+    <div className="flex items-center gap-1 p-1 bg-muted/40 rounded-xl border border-border w-fit relative" ref={wrapperRef}>
+      {/* Prev day */}
       <button
         onClick={() => onChange(subDays(date, 1))}
         className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background hover:shadow-sm transition-all text-muted-foreground hover:text-foreground"
@@ -45,6 +184,7 @@ function DayPicker({
         <ChevronLeft className="h-4 w-4" />
       </button>
 
+      {/* Date label */}
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-background border border-border min-w-[220px] justify-center">
         <CalendarDays className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--brand)" }} />
         <span className="text-xs font-semibold" style={{ color: "var(--brand)" }}>
@@ -57,6 +197,7 @@ function DayPicker({
         )}
       </div>
 
+      {/* Next day */}
       <button
         onClick={() => onChange(addDays(date, 1))}
         className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background hover:shadow-sm transition-all text-muted-foreground hover:text-foreground"
@@ -65,16 +206,7 @@ function DayPicker({
         <ChevronRight className="h-4 w-4" />
       </button>
 
-      <input
-        type="date"
-        value={formatDateKey(date)}
-        onChange={(e) => {
-          if (e.target.value) onChange(new Date(e.target.value + "T00:00:00"));
-        }}
-        className="w-8 h-8 opacity-0 absolute"
-        style={{ pointerEvents: "none" }}
-      />
-
+      {/* Tombol "Sekarang" */}
       {!isToday && (
         <button
           onClick={() => onChange(new Date())}
@@ -86,20 +218,27 @@ function DayPicker({
         </button>
       )}
 
-      <label
-        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background transition-all text-muted-foreground hover:text-foreground cursor-pointer ml-0.5"
-        title="Pilih tanggal"
+      {/* Calendar icon — buka popup */}
+      <button
+        onClick={() => setCalOpen((o) => !o)}
+        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background transition-all ml-0.5"
+        style={{
+          color:           calOpen ? "white" : "var(--muted-foreground)",
+          backgroundColor: calOpen ? "var(--brand)" : "transparent",
+        }}
+        title="Pilih tanggal dari kalender"
       >
         <CalendarDays className="h-3.5 w-3.5" />
-        <input
-          type="date"
-          value={formatDateKey(date)}
-          onChange={(e) => {
-            if (e.target.value) onChange(new Date(e.target.value + "T00:00:00"));
-          }}
-          className="sr-only"
+      </button>
+
+      {/* Calendar popup */}
+      {calOpen && (
+        <CalendarPopup
+          selected={date}
+          onSelect={onChange}
+          onClose={() => setCalOpen(false)}
         />
-      </label>
+      )}
     </div>
   );
 }
@@ -224,31 +363,42 @@ function AudioUploadZone({ currentUrl, onUploaded, onRemove }: AudioUploadZonePr
 // ─── Renungan Sub-section ─────────────────────────────────────────────────────
 
 function RenunganPart({ date }: { date: Date }) {
-  const { data, loading, update }                   = useDevotional(date);
+  // noFallback=true: admin selalu dapat form kosong untuk hari yang belum ada renungannya
+  // (tidak bocor ke "current" dari hari lain)
+  const { data, exists, loading, update } = useDevotional(date, { noFallback: true });
   const { data: authorsDict, loading: authLoading } = useAuthors();
 
-  const [form,    setForm]  = useState<typeof data | null>(null);
+  const [form,    setForm]   = useState<Devotional | null>(null);
+  const [dirty,   setDirty]  = useState(false);   // ada perubahan yang belum disimpan
   const [saving,  setSaving] = useState(false);
   const [saved,   setSaved]  = useState(false);
   const [preview, setPreview] = useState(false);
 
-  // Reset form when date changes
-  useEffect(() => { setForm(null); }, [date]);
+  // Reset form setiap kali tanggal berganti
+  useEffect(() => { setForm(null); setDirty(false); setPreview(false); }, [date]);
 
+  // form != null → pakai draft; null → pakai data dari Firestore
   const current = form ?? data;
 
-  const set = (key: string, value: string) =>
-    setForm((f: Devotional | null) => ({ ...(f ?? data), [key]: value }));
+  const set = (key: string, value: string) => {
+    setForm((f) => ({ ...(f ?? data), [key]: value }));
+    setDirty(true);
+  };
 
+  // Reset ke state TERSIMPAN terakhir (bukan ke sebelum save)
   const handleReset = () => {
     setForm(null);
-    showToast.success("Form direset ke data terakhir.");
+    setDirty(false);
+    showToast.success("Perubahan dibatalkan, form kembali ke data tersimpan.");
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
       await update(current);
+      // Setelah save: sinkronkan form ke data terbaru, hapus dirty flag
+      setForm(null);   // update() sudah memanggil setData(updated) di dalam hook-nya
+      setDirty(false);
       showToast.success("Renungan harian berhasil disimpan.");
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
@@ -258,19 +408,44 @@ function RenunganPart({ date }: { date: Date }) {
 
   if (loading) return <div className="flex items-center gap-2 text-muted-foreground py-4"><Loader2 className="h-4 w-4 animate-spin" /> Memuat renungan...</div>;
 
+  const isEmpty = !exists && !dirty;
+
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
       <div className="h-0.5 w-full" style={{ backgroundColor: "var(--brand)" }} />
       <div className="p-5 space-y-5">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <BookOpen className="h-4 w-4" style={{ color: "var(--brand)" }} />
             <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--gold)" }}>Edit Renungan</p>
           </div>
-          <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 px-2 py-0.5 rounded-full font-semibold">
-            Live Firestore
-          </span>
+          <div className="flex items-center gap-2">
+            {dirty && (
+              <span className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 px-2 py-0.5 rounded-full font-semibold">
+                Belum disimpan
+              </span>
+            )}
+            <span className={[
+              "text-xs px-2 py-0.5 rounded-full font-semibold",
+              exists || dirty
+                ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                : "bg-muted text-muted-foreground",
+            ].join(" ")}>
+              {exists ? "Tersimpan" : isEmpty ? "Belum ada renungan" : "Draft baru"}
+            </span>
+          </div>
         </div>
+
+        {/* Banner kosong — hanya tampil kalau belum ada data dan belum mulai ngetik */}
+        {isEmpty && (
+          <div className="flex items-start gap-3 p-3.5 rounded-xl border border-dashed border-border bg-muted/30">
+            <BookOpen className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+            <p className="text-sm text-muted-foreground leading-snug">
+              Belum ada renungan untuk tanggal ini. Isi form di bawah lalu klik{" "}
+              <strong className="font-semibold text-foreground">Simpan</strong>.
+            </p>
+          </div>
+        )}
 
         {/* Judul */}
         <div>
@@ -301,6 +476,8 @@ function RenunganPart({ date }: { date: Date }) {
               set("audioUrl", "");
               try {
                 await update({ ...(form ?? data), audioUrl: "" });
+                setForm(null);
+                setDirty(false);
                 if (url) await deleteUploadThingFile(url).catch(() => {});
                 showToast.success("Audio berhasil dihapus.");
               } catch {
@@ -326,11 +503,11 @@ function RenunganPart({ date }: { date: Date }) {
             onChange={(e) => set("prayer", e.target.value)} className={INPUT_CLS} />
         </div>
 
-        <div className="flex gap-2 pt-1">
+        <div className="flex gap-2 pt-1 flex-wrap">
           <SaveButton saving={saving} saved={saved} onClick={handleSave} label="Simpan ke Firestore" />
           <button onClick={handleReset}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-border hover:bg-muted transition-colors text-muted-foreground">
-            Reset Form
+            <RotateCcw className="h-4 w-4" /> Reset Form
           </button>
           <button onClick={() => setPreview(!preview)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-border hover:bg-muted transition-colors">
@@ -577,12 +754,17 @@ export function RenunganBacaanSection({ onDateChange }: RenunganBacaanSectionPro
 
   return (
     <div className="space-y-5">
-      {/* Date Picker */}
+      {/* Date Picker + Import/Export */}
       <div>
-        <p className="text-xs font-bold uppercase tracking-wider mb-2.5" style={{ color: "var(--gold)" }}>
-          Pilih Tanggal
-        </p>
-        <DayPicker date={selectedDate} onChange={handleDateChange} />
+        <div className="flex items-center justify-between mb-2.5">
+          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--gold)" }}>
+            Pilih Tanggal
+          </p>
+        </div>
+        <div className="flex items-center justify-between gap-4 flex-wrap w-full">
+          <DayPicker date={selectedDate} onChange={handleDateChange} />
+          <RenunganImportExport onImported={() => setSelectedDate((d) => new Date(d))} />
+        </div>
         <p className="text-[10px] text-muted-foreground mt-1.5">
           Renungan dan bacaan disimpan per tanggal. Gunakan panah atau ikon kalender untuk berpindah hari.
         </p>

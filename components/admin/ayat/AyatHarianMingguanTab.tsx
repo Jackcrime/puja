@@ -17,11 +17,24 @@ function fmtDate(d: string) {
   return `${day} ${months[Number(m) - 1]} ${y}`;
 }
 
-function nearestSunday(): string {
-  const d   = new Date();
-  const day = d.getDay();
-  if (day !== 0) d.setDate(d.getDate() + (7 - day));
+/** Minggu dari minggu berjalan (mundur ke hari Minggu terdekat yg sudah lewat/hari ini) */
+function thisSundayISO(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - d.getDay()); // selalu mundur ke Minggu (getDay()=0 → tidak bergerak)
   return d.toISOString().split("T")[0];
+}
+
+/** Generate daftar tanggal Minggu: pastWeeks minggu ke belakang + futureWeeks ke depan */
+function generateSundays(pastWeeks = 3, futureWeeks = 8): string[] {
+  const sundays: string[] = [];
+  const base = new Date();
+  base.setDate(base.getDate() - base.getDay());
+  for (let i = -pastWeeks; i <= futureWeeks; i++) {
+    const d = new Date(base);
+    d.setDate(base.getDate() + i * 7);
+    sundays.push(d.toISOString().split("T")[0]);
+  }
+  return sundays;
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -223,17 +236,17 @@ function HarianPanel() {
         <div className="flex items-center gap-2 flex-wrap">
           {harianSorted.length > 0 && !selectMode && (
             <>
-              <button onClick={() => setSelectMode(true)}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
-                style={{ color: "var(--danger)", borderColor: "#fca5a5" }}
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Hapus Massal
-              </button>
               <button onClick={() => exportJSON(data.harian!, `ayat-harian-${today}.json`)}
                 className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-muted transition-colors"
                 style={{ color: "var(--brand)" }}
               >
                 <Download className="h-3.5 w-3.5" /> Export
+              </button>
+              <button onClick={() => setSelectMode(true)}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                style={{ color: "#dc2626", borderColor: "#fca5a5" }}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Hapus Massal
               </button>
             </>
           )}
@@ -522,7 +535,8 @@ function MingguanPanel() {
   const [showImport, setShowImport] = useState(false);
 
   const today      = todayISO();
-  const thisSunday = nearestSunday();
+  const thisSunday = thisSundayISO();
+  const sundays    = generateSundays(3, 8); // 3 lalu + minggu ini + 8 mendatang
 
   const addEntry    = () => setNewEntries((e) => [...e, { date: thisSunday, sel: emptySelection() }]);
   const removeEntry = (i: number) => setNewEntries((e) => e.filter((_, idx) => idx !== i));
@@ -617,7 +631,7 @@ function MingguanPanel() {
           <div className="divide-y divide-border">
             {mingguanSorted.map(([dateKey, val]) => {
               const isThis   = dateKey === thisSunday;
-              const isFuture = dateKey > today;
+              const isFuture = dateKey > thisSunday;
               return (
                 <div key={dateKey} className={`flex items-start gap-3 px-4 py-3 ${isThis ? "bg-brand-muted/30" : ""}`}>
                   <div className="shrink-0 w-28">
@@ -670,19 +684,51 @@ function MingguanPanel() {
               <div key={i} className="border border-border rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-3.5 w-3.5" style={{ color: "var(--gold, #b8860b)" }} />
-                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--gold, #b8860b)" }}>Tanggal Minggu</span>
+                    <Sun className="h-3.5 w-3.5" style={{ color: "var(--gold, #b8860b)" }} />
+                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--gold, #b8860b)" }}>Pilih Tanggal Minggu</span>
                     {date === thisSunday && <span className="text-[10px] px-1.5 py-0.5 rounded text-white font-bold" style={{ backgroundColor: "var(--brand)" }}>Minggu Ini</span>}
                   </div>
                   <button onClick={() => removeEntry(i)} className="text-xs text-red-500 hover:text-red-700 transition-colors">Hapus</button>
                 </div>
+                {/* Sunday-only picker — hanya hari Minggu yang bisa dipilih */}
                 <div>
-                  <input type="date" value={date}
-                    onChange={(e) => setNewEntries((ent) => ent.map((x, idx) => idx === i ? { ...x, date: e.target.value } : x))}
-                    className="w-full px-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none"
-                  />
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Pilih tanggal hari Minggu (Senin–Sabtu juga diterima sebagai referensi mingguan)
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                    Tanggal Minggu
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {sundays.map((sun) => {
+                      const isActive  = sun === date;
+                      const isThis    = sun === thisSunday;
+                      const isPast    = sun < thisSunday;
+                      const [,, dd]   = sun.split("-");
+                      const months    = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+                      const [sy, sm]  = sun.split("-");
+                      const label     = `${parseInt(dd)} ${months[parseInt(sm)-1]}`;
+                      return (
+                        <button
+                          key={sun}
+                          type="button"
+                          onClick={() => setNewEntries((ent) => ent.map((x, idx) => idx === i ? { ...x, date: sun } : x))}
+                          className="flex flex-col items-center px-2.5 py-1.5 rounded-lg border text-[10px] font-semibold transition-all hover:shadow-sm"
+                          style={{
+                            borderColor:     isActive ? "var(--brand)" : "var(--border)",
+                            backgroundColor: isActive ? "var(--brand)" : isThis ? "var(--brand-muted)" : "transparent",
+                            color:           isActive ? "white" : isThis ? "var(--brand)" : isPast ? "hsl(var(--muted-foreground))" : "hsl(var(--foreground))",
+                            opacity:         isPast && !isActive ? 0.6 : 1,
+                          }}
+                        >
+                          <span>{label}</span>
+                          {isThis && !isActive && <span className="text-[8px] font-bold leading-tight" style={{ color: "var(--brand)" }}>Ini</span>}
+                          {isActive && <span className="text-[8px] font-bold leading-tight text-white/80">✓</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1.5">
+                    Dipilih: <span className="font-semibold">{fmtDate(date)}</span>
+                    {date !== thisSunday && date < thisSunday && " · Minggu lalu"}
+                    {date !== thisSunday && date > thisSunday && " · Minggu mendatang"}
+                    {date === thisSunday && " · Minggu ini"}
                   </p>
                 </div>
                 <BibleVerseSelector value={sel}

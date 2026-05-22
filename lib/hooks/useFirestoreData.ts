@@ -49,52 +49,56 @@ export const EMPTY_DEVOTIONAL: Devotional = {
   prayer:     "",
 };
 
-export function useDevotional(date?: Date) {
-  const [data, setData]       = useState<Devotional>(EMPTY_DEVOTIONAL);
+export function useDevotional(date?: Date, { noFallback = false }: { noFallback?: boolean } = {}) {
+  const [data,    setData]    = useState<Devotional>(EMPTY_DEVOTIONAL);
+  const [exists,  setExists]  = useState(false);   // true = doc untuk tanggal ini ada di Firestore
   const [loading, setLoading] = useState(true);
   const dateKey = date ? formatDateKey(date) : null;
 
   useEffect(() => {
     setLoading(true);
     setData(EMPTY_DEVOTIONAL);
+    setExists(false);
     let cancelled = false;
 
     (async () => {
       try {
         if (dateKey) {
-          // Coba ambil konten spesifik tanggal dulu
           const byDate = await readDoc<Devotional>("devotional", dateKey, EMPTY_DEVOTIONAL);
           if (cancelled) return;
           if (byDate.title || byDate.body) {
             setData(byDate);
-          } else {
-            // Fallback ke "current" jika tidak ada konten khusus tanggal ini
+            setExists(true);
+          } else if (!noFallback) {
+            // Public display only: fallback ke "current" supaya backward-compat
             const current = await readDoc<Devotional>("devotional", "current", EMPTY_DEVOTIONAL);
             if (!cancelled) setData(current ?? EMPTY_DEVOTIONAL);
           }
+          // noFallback=true (admin): biarkan form kosong kalau belum ada doc untuk hari ini
         } else {
           const current = await readDoc<Devotional>("devotional", "current", EMPTY_DEVOTIONAL);
-          if (!cancelled) setData(current ?? EMPTY_DEVOTIONAL);
+          if (!cancelled) { setData(current ?? EMPTY_DEVOTIONAL); setExists(true); }
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
 
-    // Cleanup: batalkan state update jika komponen unmount sebelum fetch selesai
     return () => { cancelled = true; };
-  }, [dateKey]);
+  }, [dateKey, noFallback]);
 
   const update = useCallback(async (changes: Partial<Devotional>) => {
     const updated = { ...data, ...changes };
     try {
       if (dateKey) {
+        // Simpan HANYA ke doc tanggal — tidak overwrite "current"
+        // supaya hari lain tidak kena fallback dari hari yang salah
         await writeDoc("devotional", dateKey, updated);
-        await writeDoc("devotional", "current", updated);
       } else {
         await writeDoc("devotional", "current", updated);
       }
       setData(updated);
+      setExists(true);
     } catch (e) {
       console.error("[useDevotional] update error:", e);
       toast.error("Gagal menyimpan renungan. Coba lagi.");
@@ -103,16 +107,20 @@ export function useDevotional(date?: Date) {
 
   const clear = useCallback(async () => {
     try {
-      if (dateKey) await clearDoc("devotional", dateKey, EMPTY_DEVOTIONAL);
-      await clearDoc("devotional", "current", EMPTY_DEVOTIONAL);
+      if (dateKey) {
+        await clearDoc("devotional", dateKey, EMPTY_DEVOTIONAL);
+      } else {
+        await clearDoc("devotional", "current", EMPTY_DEVOTIONAL);
+      }
       setData(EMPTY_DEVOTIONAL);
+      setExists(false);
     } catch (e) {
       console.error("[useDevotional] clear error:", e);
       toast.error("Gagal mereset renungan. Coba lagi.");
     }
   }, [dateKey]);
 
-  return { data, loading, update, clear };
+  return { data, exists, loading, update, clear };
 }
 
 // ─── 2. Perikop ───────────────────────────────────────────────────────────────
