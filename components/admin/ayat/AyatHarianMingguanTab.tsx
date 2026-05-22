@@ -123,13 +123,21 @@ function ImportModal({ title, onClose, onImport, example }: ImportModalProps) {
 
 function HarianPanel() {
   const { data, loading, save } = useAyatKhusus();
-  const [newEntries, setNewEntries] = useState<NewEntry[]>([]);
-  const [saving,     setSaving]     = useState(false);
-  const [showImport, setShowImport] = useState(false);
+  const [newEntries,  setNewEntries]  = useState<NewEntry[]>([]);
+  const [saving,      setSaving]      = useState(false);
+  const [showImport,  setShowImport]  = useState(false);
+  // Bulk-select state
+  const [selectMode,  setSelectMode]  = useState(false);
+  const [selected,    setSelected]    = useState<Set<string>>(new Set());
+  const [confirmBulk, setConfirmBulk] = useState(false);
+  const [bulkDeleting,setBulkDeleting]= useState(false);
   const today = todayISO();
 
   const addEntry    = () => setNewEntries((e) => [...e, { date: today, sel: emptySelection() }]);
   const removeEntry = (i: number) => setNewEntries((e) => e.filter((_, idx) => idx !== i));
+
+  // exit select mode and clear selection
+  const exitSelect = () => { setSelectMode(false); setSelected(new Set()); };
 
   const handleSave = async () => {
     if (newEntries.length === 0) { showToast.info("Tidak ada entry baru."); return; }
@@ -154,6 +162,20 @@ function HarianPanel() {
     catch { showToast.error("Gagal menghapus."); }
   };
 
+  const handleBulkDelete = async () => {
+    if (selected.size === 0) return;
+    setBulkDeleting(true);
+    const next = { ...(data.harian ?? {}) };
+    selected.forEach((k) => delete next[k]);
+    try {
+      await save({ ...data, harian: next });
+      showToast.success(`${selected.size} ayat berhasil dihapus.`);
+      exitSelect();
+    } catch { showToast.error("Gagal menghapus."); }
+    setBulkDeleting(false);
+    setConfirmBulk(false);
+  };
+
   const handleImport = async (entries: Record<string, { reference: string; text: string }>) => {
     setSaving(true);
     try {
@@ -166,6 +188,25 @@ function HarianPanel() {
   if (loading) return <div className="flex items-center gap-3 text-muted-foreground py-10"><Loader2 className="h-5 w-5 animate-spin" /> Memuat...</div>;
 
   const harianSorted = Object.entries(data.harian ?? {}).sort(([a], [b]) => a.localeCompare(b));
+  const allKeys      = harianSorted.map(([k]) => k);
+  const pastKeys     = allKeys.filter((k) => k < today);
+  const futureKeys   = allKeys.filter((k) => k > today);
+  const thisMonthPfx = today.slice(0, 7); // "YYYY-MM"
+  const thisMonthKeys= allKeys.filter((k) => k.startsWith(thisMonthPfx));
+
+  const allChecked   = allKeys.length > 0 && allKeys.every((k) => selected.has(k));
+  const someChecked  = selected.size > 0 && !allChecked;
+
+  const toggleKey  = (k: string) => setSelected((prev) => {
+    const next = new Set(prev);
+    next.has(k) ? next.delete(k) : next.add(k);
+    return next;
+  });
+  const selectAll      = () => setSelected(new Set(allKeys));
+  const selectPast     = () => setSelected(new Set(pastKeys));
+  const selectFuture   = () => setSelected(new Set(futureKeys));
+  const selectThisMonth= () => setSelected(new Set(thisMonthKeys));
+  const deselectAll    = () => setSelected(new Set());
 
   const EXAMPLE_HARIAN = {
     "2026-06-01": { reference: "Filipi 4:13", text: "Segala perkara dapat kutanggung di dalam Dia yang memberi kekuatan kepadaku." },
@@ -180,40 +221,132 @@ function HarianPanel() {
           Kelola ayat per tanggal. Hari ini (<span className="font-semibold" style={{ color: "var(--brand)" }}>{fmtDate(today)}</span>) ditandai khusus.
         </p>
         <div className="flex items-center gap-2 flex-wrap">
-          {harianSorted.length > 0 && (
-            <button onClick={() => exportJSON(data.harian!, `ayat-harian-${today}.json`)}
+          {harianSorted.length > 0 && !selectMode && (
+            <>
+              <button onClick={() => setSelectMode(true)}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                style={{ color: "var(--danger)", borderColor: "#fca5a5" }}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Hapus Massal
+              </button>
+              <button onClick={() => exportJSON(data.harian!, `ayat-harian-${today}.json`)}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-muted transition-colors"
+                style={{ color: "var(--brand)" }}
+              >
+                <Download className="h-3.5 w-3.5" /> Export
+              </button>
+            </>
+          )}
+          {!selectMode && (
+            <button onClick={() => setShowImport(true)}
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-muted transition-colors"
               style={{ color: "var(--brand)" }}
             >
-              <Download className="h-3.5 w-3.5" /> Export
+              <Upload className="h-3.5 w-3.5" /> Import JSON
             </button>
           )}
-          <button onClick={() => setShowImport(true)}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-muted transition-colors"
-            style={{ color: "var(--brand)" }}
-          >
-            <Upload className="h-3.5 w-3.5" /> Import JSON
-          </button>
+          {selectMode && (
+            <button onClick={exitSelect}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-muted transition-colors text-muted-foreground"
+            >
+              Batal
+            </button>
+          )}
         </div>
       </div>
 
       {/* Saved */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="flex items-center px-5 py-3 border-b border-border gap-2" style={{ backgroundColor: "var(--brand-muted)" }}>
-          <CalendarDays className="h-4 w-4" style={{ color: "var(--brand)" }} />
-          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--brand)" }}>
-            Tersimpan ({harianSorted.length} tanggal)
-          </p>
+        {/* Section header */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border gap-2" style={{ backgroundColor: "var(--brand-muted)" }}>
+          <div className="flex items-center gap-2">
+            {selectMode && (
+              /* Master checkbox */
+              <button
+                onClick={allChecked ? deselectAll : selectAll}
+                className="w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all"
+                style={{
+                  borderColor: allChecked || someChecked ? "var(--brand)" : "var(--border)",
+                  backgroundColor: allChecked ? "var(--brand)" : someChecked ? "var(--brand-muted)" : "transparent",
+                }}
+              >
+                {allChecked  && <span className="text-white text-[10px] font-black leading-none">✓</span>}
+                {someChecked && <span className="w-2 h-0.5 rounded-full" style={{ backgroundColor: "var(--brand)" }} />}
+              </button>
+            )}
+            <CalendarDays className="h-4 w-4" style={{ color: "var(--brand)" }} />
+            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--brand)" }}>
+              {selectMode
+                ? selected.size > 0
+                  ? `${selected.size} dipilih dari ${harianSorted.length}`
+                  : `Pilih Ayat (${harianSorted.length} tersimpan)`
+                : `Tersimpan (${harianSorted.length} tanggal)`}
+            </p>
+          </div>
+
+          {/* Quick-select shortcuts */}
+          {selectMode && harianSorted.length > 0 && (
+            <div className="flex items-center gap-1 flex-wrap">
+              {pastKeys.length > 0 && (
+                <button onClick={selectPast}
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground"
+                >
+                  Lalu ({pastKeys.length})
+                </button>
+              )}
+              {thisMonthKeys.length > 0 && (
+                <button onClick={selectThisMonth}
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground"
+                >
+                  Bulan Ini ({thisMonthKeys.length})
+                </button>
+              )}
+              {futureKeys.length > 0 && (
+                <button onClick={selectFuture}
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground"
+                >
+                  Mendatang ({futureKeys.length})
+                </button>
+              )}
+              {selected.size > 0 && (
+                <button onClick={deselectAll}
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+          )}
         </div>
+
         {harianSorted.length === 0 ? (
           <div className="text-center py-8 text-xs text-muted-foreground">Belum ada ayat harian tersimpan.</div>
         ) : (
           <div className="divide-y divide-border">
             {harianSorted.map(([dateKey, val]) => {
-              const isToday  = dateKey === today;
-              const isFuture = dateKey > today;
+              const isToday   = dateKey === today;
+              const isFuture  = dateKey > today;
+              const isChecked = selected.has(dateKey);
               return (
-                <div key={dateKey} className={`flex items-start gap-3 px-4 py-3 ${isToday ? "bg-brand-muted/30" : ""}`}>
+                <div
+                  key={dateKey}
+                  onClick={selectMode ? () => toggleKey(dateKey) : undefined}
+                  className={`flex items-start gap-3 px-4 py-3 transition-colors ${
+                    selectMode ? "cursor-pointer hover:bg-muted/40" : ""
+                  } ${isToday && !isChecked ? "bg-brand-muted/30" : ""} ${isChecked ? "bg-red-50 dark:bg-red-950/15" : ""}`}
+                >
+                  {/* Checkbox (select mode only) */}
+                  {selectMode && (
+                    <div
+                      className="w-4 h-4 mt-0.5 rounded border-2 flex items-center justify-center shrink-0 transition-all"
+                      style={{
+                        borderColor: isChecked ? "#dc2626" : "var(--border)",
+                        backgroundColor: isChecked ? "#dc2626" : "transparent",
+                      }}
+                    >
+                      {isChecked && <span className="text-white text-[10px] font-black leading-none">✓</span>}
+                    </div>
+                  )}
                   <div className="shrink-0 w-28">
                     <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold ${
                       isToday ? "text-white" : isFuture ? "bg-muted text-muted-foreground" : "bg-muted/50 text-muted-foreground/60"
@@ -228,17 +361,90 @@ function HarianPanel() {
                     <p className="text-xs font-semibold mb-0.5" style={{ color: "var(--brand)" }}>{val.reference}</p>
                     <p className="text-xs text-muted-foreground line-clamp-2">{val.text}</p>
                   </div>
-                  <button onClick={() => handleDelete(dateKey)}
-                    className="shrink-0 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 text-red-400 hover:text-red-600 transition-colors"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  {!selectMode && (
+                    <button onClick={() => handleDelete(dateKey)}
+                      className="shrink-0 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 text-red-400 hover:text-red-600 transition-colors"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
               );
             })}
           </div>
         )}
+
+        {/* Sticky bulk-delete action bar */}
+        {selectMode && selected.size > 0 && (
+          <div className="sticky bottom-0 flex items-center justify-between gap-3 px-5 py-3 border-t border-red-200 dark:border-red-900"
+            style={{ backgroundColor: "#fef2f2" }}>
+            <p className="text-xs font-semibold text-red-700">
+              {selected.size} ayat dipilih
+            </p>
+            <div className="flex items-center gap-2">
+              <button onClick={exitSelect}
+                className="px-3 py-1.5 text-xs rounded-lg border border-border hover:bg-white transition-colors text-muted-foreground"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => setConfirmBulk(true)}
+                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-lg text-white hover:opacity-90 transition-all"
+                style={{ backgroundColor: "#dc2626" }}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Hapus {selected.size} Ayat
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Confirm bulk delete dialog */}
+      {confirmBulk && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-950/30 flex items-center justify-center shrink-0">
+                <Trash2 className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <p className="text-sm font-bold">Hapus {selected.size} Ayat?</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {selected.size} ayat harian akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.
+                </p>
+              </div>
+            </div>
+            {/* Preview list — max 5 */}
+            <div className="rounded-xl bg-muted/40 border border-border px-3 py-2 space-y-1 max-h-32 overflow-y-auto">
+              {[...selected].sort().slice(0, 5).map((k) => (
+                <p key={k} className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
+                  <span className="font-medium">{k}</span>
+                  <span className="truncate text-muted-foreground/60">— {(data.harian ?? {})[k]?.reference}</span>
+                </p>
+              ))}
+              {selected.size > 5 && (
+                <p className="text-[11px] text-muted-foreground pl-3">+ {selected.size - 5} lainnya...</p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <button onClick={() => setConfirmBulk(false)} disabled={bulkDeleting}
+                className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-xl transition-colors disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button onClick={handleBulkDelete} disabled={bulkDeleting}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white rounded-xl hover:opacity-90 disabled:opacity-60 transition-all"
+                style={{ backgroundColor: "#dc2626" }}
+              >
+                {bulkDeleting
+                  ? <><Loader2 className="h-4 w-4 animate-spin" /> Menghapus...</>
+                  : <><Trash2 className="h-4 w-4" /> Ya, Hapus</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add new */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">

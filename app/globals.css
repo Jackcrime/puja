@@ -20,6 +20,7 @@
     --radius: 0.75rem;
 
     /* Brand tokens — adapt per mode */
+    --danger: #dc2626;
     --brand: #7B1D1D;
     --brand-hover: #5E1515;
     --brand-muted: rgba(123,29,29,0.10);
@@ -45,6 +46,7 @@
     --primary: 355 60% 55%;
     --primary-foreground: 40 30% 97%;
 
+    --danger: #ee5855;
     --brand: #D4706E;
     --brand-hover: #E8908E;
     --brand-muted: rgba(212,112,110,0.12);
