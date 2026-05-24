@@ -27,6 +27,7 @@ function BarChart7({ data }: { data: { label: string; value: number; isToday: bo
             <rect
               x={x} y={y} width={barW} height={barH}
               rx={4} fill={color} opacity={opacity}
+              style={{ transition: "height 0.4s ease, y 0.4s ease" }}
             />
             {/* Value label on top */}
             {d.value > 0 && (
@@ -127,8 +128,12 @@ export function DashboardVisitChart({ devotional, ayatKhusus, lDevotional, lKhus
     >
       {/* Header */}
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-2">
           Statistik Realtime
+          <span className="flex items-center gap-1 text-[9px] font-semibold" style={{ color: "var(--brand)", opacity: 0.7 }}>
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse inline-block" style={{ backgroundColor: "var(--brand)" }} />
+            LIVE
+          </span>
         </p>
         <div className="flex bg-muted rounded-xl p-0.5 gap-0.5">
           {TABS.map((t) => (

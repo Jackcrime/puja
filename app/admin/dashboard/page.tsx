@@ -2,10 +2,7 @@
 
 import React, { useMemo } from "react";
 import Link from "next/link";
-import {
-  useAyatCategories, useAuthors, usePustakaBooks,
-  useMinistries, useBibleReadings, useAyatKhusus, useDevotional,
-} from "@/lib/hooks/useFirestoreData";
+import { useAdminDashboardStats } from "@/lib/hooks/useAdminDashboardStats";
 import { AdminLayout }  from "@/components/admin/AdminLayout";
 import { AdminGuard }   from "@/components/admin/AdminGuard";
 import { DashboardStats }            from "@/components/admin/dashboard/DashboardStats";
@@ -107,19 +104,22 @@ function SectionLabel({ label }: { label: string }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
-  const { data: ayatCats,   loading: lAyat      } = useAyatCategories();
-  const { data: authors,    loading: lAuthors    } = useAuthors();
-  const { data: pustaka,    loading: lPustaka    } = usePustakaBooks();
-  const { data: ministries, loading: lMinistries } = useMinistries();
-  const { data: readings,   loading: lReadings   } = useBibleReadings();
-  const { data: ayatKhusus, loading: lKhusus     } = useAyatKhusus();
-  const { data: devotional, loading: lDevotional } = useDevotional();
+  const {
+    totalAyat, totalAuthors, totalPustaka, totalMinistries, totalReadings,
+    devotional, ayatKhusus,
+    loading: lf,
+  } = useAdminDashboardStats();
 
-  const totalAyat       = lAyat       ? "…" : (ayatCats as any[]).reduce((s: number, c: any) => s + (c.verses?.length ?? 0), 0);
-  const totalAuthors    = lAuthors    ? "…" : Object.keys(authors as object).length;
-  const totalPustaka    = lPustaka    ? "…" : (pustaka  as any[]).length;
-  const totalMinistries = lMinistries ? "…" : (ministries as any[]).length;
-  const totalReadings   = lReadings   ? "…" : (readings as any[]).length;
+  // Expose as "…" while loading (same pattern as before)
+  const statAyat       = lf.ayat       ? "…" : totalAyat       as number | "…";
+  const statAuthors    = lf.authors    ? "…" : totalAuthors    as number | "…";
+  const statPustaka    = lf.pustaka    ? "…" : totalPustaka    as number | "…";
+  const statMinistries = lf.ministries ? "…" : totalMinistries as number | "…";
+  const statReadings   = lf.readings   ? "…" : totalReadings   as number | "…";
+
+  // Aliases reused below (quick actions + pie charts)
+  const lDevotional = lf.devotional;
+  const lKhusus     = lf.khusus;
 
   const ayatTahun = ayatKhusus?.tahun;
   const thisSundayKey = useMemo(() => {
@@ -132,17 +132,17 @@ export default function AdminDashboard() {
   const quickActions = [
     { href: "/admin/ayat?tab=dwmy",    icon: CalendarDays, label: "Update Ayat Minggu",  sub: ayatMinggu?.reference ? `Saat ini: ${ayatMinggu.reference}` : "Belum diset untuk minggu ini" },
     { href: "/admin/renungan",         icon: Pencil,       label: "Edit Renungan",        sub: devotional?.title ?? "Renungan harian" },
-    { href: "/admin/ayat?tab=bacaan",  icon: BookOpen,     label: "Tambah Bacaan",        sub: `${totalReadings} bacaan aktif` },
+    { href: "/admin/ayat?tab=bacaan",  icon: BookOpen,     label: "Tambah Bacaan",        sub: `${statReadings} bacaan aktif` },
     { href: "/admin/pengumuman",       icon: Megaphone,    label: "Atur Pengumuman",      sub: "Warta jemaat terbaru" },
   ];
 
   const modules = [
-    { href: "/admin/ayat",       icon: Star,       color: "var(--gold)",  label: "Ayat",            desc: "Kategori, DWMY, bacaan & perikop.", badge: totalAyat       },
+    { href: "/admin/ayat",       icon: Star,       color: "var(--gold)",  label: "Ayat",            desc: "Kategori, DWMY, bacaan & perikop.", badge: statAyat       },
     { href: "/admin/renungan",   icon: ScrollText,  color: "var(--brand)", label: "Renungan Harian", desc: "Teks, penulis, doa, dan audio MP3." },
     { href: "/admin/pengumuman", icon: Megaphone,   color: "var(--brand)", label: "Pengumuman",      desc: "Warta dan informasi jemaat aktif." },
-    { href: "/admin/pustaka",    icon: Library,     color: "var(--gold)",  label: "Pustaka Digital", desc: "Buku, materi, dan panduan GKPB.",   badge: totalPustaka    },
-    { href: "/admin/penulis",    icon: Users,       color: "var(--brand)", label: "Penulis",         desc: "Pendeta dan pengkhotbah GKPB.",     badge: totalAuthors    },
-    { href: "/admin/ministries", icon: Church,      color: "var(--gold)",  label: "Unit Pelayanan",  desc: "Jemaat dan unit sinode.",            badge: totalMinistries },
+    { href: "/admin/pustaka",    icon: Library,     color: "var(--gold)",  label: "Pustaka Digital", desc: "Buku, materi, dan panduan GKPB.",   badge: statPustaka    },
+    { href: "/admin/penulis",    icon: Users,       color: "var(--brand)", label: "Penulis",         desc: "Pendeta dan pengkhotbah GKPB.",     badge: statAuthors    },
+    { href: "/admin/ministries", icon: Church,      color: "var(--gold)",  label: "Unit Pelayanan",  desc: "Jemaat dan unit sinode.",            badge: statMinistries },
   ];
 
   return (
@@ -232,11 +232,11 @@ export default function AdminDashboard() {
 
         {/* ── Statistik ────────────────────────────────────────────────────── */}
         <DashboardStats
-          totalAyat={totalAyat}
-          totalAuthors={totalAuthors}
-          totalPustaka={totalPustaka}
-          totalReadings={totalReadings}
-          totalMinistries={totalMinistries}
+          totalAyat={statAyat}
+          totalAuthors={statAuthors}
+          totalPustaka={statPustaka}
+          totalReadings={statReadings}
+          totalMinistries={statMinistries}
         />
 
         {/* ── Realtime Analytics (Pie Charts) ──────────────────────────────── */}
@@ -259,12 +259,7 @@ export default function AdminDashboard() {
 
         {/* ── Status Konten (Collapsible) ──────────────────────────────────── */}
         <div className="mb-5">
-        <DashboardIncompleteContent
-          devotional={devotional}
-          ayatKhusus={ayatKhusus}
-          lDevotional={lDevotional}
-          lKhusus={lKhusus}
-        />
+        <DashboardIncompleteContent />
         </div>
 
         {/* ── Aksi Cepat ───────────────────────────────────────────────────── */}

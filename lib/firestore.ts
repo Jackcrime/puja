@@ -147,6 +147,25 @@ export async function deleteItem(
   }
 }
 // ─── Realtime subscription (onSnapshot) ───────────────────────────────────────
+// ─── Realtime subscription for a whole collection ─────────────────────────────
+export function subscribeCollection<T>(
+  collectionName: CollectionName,
+  onData: (data: T[]) => void
+): () => void {
+  const ref = collection(db, collectionName);
+  const unsub = onSnapshot(
+    ref,
+    (snap) => {
+      onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as T)));
+    },
+    (err) => {
+      console.error(`[firestore] subscribeCollection error:`, err);
+      onData([]);
+    }
+  );
+  return unsub;
+}
+
 export function subscribeDoc<T>(
   collectionName: CollectionName,
   docId: string,
