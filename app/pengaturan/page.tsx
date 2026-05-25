@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { NotificationSettings } from "@/components/ui/NotificationSettings";
 import { PatchNotesSheet } from "@/components/ui/PatchNotesSheet";
+import { usePatchNotesPublic } from "@/lib/hooks/usePatchNotes";
+import { useTentangInfoPublic } from "@/lib/hooks/useTentangInfo";
 import { useFontSize } from "@/lib/hooks/useFontSize";
 import { useI18n } from "@/lib/hooks/useI18n";
 import { useTheme } from "next-themes";
@@ -18,6 +20,9 @@ export default function Pengaturan() {
   const { lang, setLang, t } = useI18n();
   const { theme, setTheme } = useTheme();
   const [cleared, setCleared] = useState(false);
+  const { data: patches } = usePatchNotesPublic();
+  const { data: tentang } = useTentangInfoPublic();
+  const displayVersion = patches[0]?.version ?? tentang.appVersion;
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
@@ -77,7 +82,7 @@ export default function Pengaturan() {
           </div>
           <div className="mt-3 pt-3 border-t border-border">
             <p className="text-xs text-muted-foreground">
-              {t("pengaturan.appStatusDesc").replace("{version}", "0.8 Beta")}
+              {t("pengaturan.appStatusDesc").replace("{version}", displayVersion)}
             </p>
           </div>
         </div>
