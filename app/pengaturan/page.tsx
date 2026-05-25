@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { NotificationSettings } from "@/components/ui/NotificationSettings";
+import { PatchNotesSheet } from "@/components/ui/PatchNotesSheet";
 import { useFontSize } from "@/lib/hooks/useFontSize";
 import { useI18n } from "@/lib/hooks/useI18n";
 import { useTheme } from "next-themes";
@@ -80,6 +81,9 @@ export default function Pengaturan() {
             </p>
           </div>
         </div>
+
+        {/* Patch Notes */}
+        <PatchNotesSheet />
 
         {/* Reset data */}
         <div className="bg-card border border-border rounded-xl p-5">

@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Star, Users, ScrollText,
   Library, Megaphone, LogOut,
   Menu, ChevronRight, Shield, Church,
-  Sun, Moon, Bell, BellRing, BellOff, X
+  Sun, Moon, Bell, BellRing, BellOff, X, ClipboardList
 } from "lucide-react";
 import { toast } from "sonner";
 import { logout } from "@/lib/admin/auth";
@@ -16,7 +16,6 @@ import { NotificationSettings } from "@/components/ui/NotificationSettings";
 import { loadSettings, initNotifications } from "@/lib/notifications";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-// 1. Fungsi bawaan kamu (sudah rapi, tinggal dikit penyesuaian)
 function getTodayFullString(): string {
   return new Date().toLocaleDateString("id-ID", {
     weekday: "long",
@@ -45,6 +44,7 @@ const NAV_GROUPS = [
     items: [
       { href: "/admin/penulis",     label: "Penulis",         icon: Users           },
       { href: "/admin/ministries",  label: "Unit Pelayanan",  icon: Church          },
+      { href: "/admin/patchnote",   label: "Patch Note",      icon: ClipboardList   },
     ],
   },
 ];

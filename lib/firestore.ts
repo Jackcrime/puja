@@ -33,7 +33,8 @@ export type CollectionName =
   | "bahan_khotbah"
   | "pokok_doa_harian"
   | "ayat_nats"
-  | "page_visits";
+  | "page_visits"
+  | "patch_notes";
 
 // ─── Read single document ──────────────────────────────────────────────────────
 export async function readDoc<T>(
