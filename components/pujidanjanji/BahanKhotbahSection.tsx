@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { BookMarked, ChevronDown, ChevronUp, Loader2, Copy, Check, BookOpen } from "lucide-react";
-import { useBahanKhotbah } from "@/lib/hooks/useFirestoreData";
+import { useBahanKhotbah } from "@/lib/hooks/useSupabaseData";
 import { SectionDivider } from "@/components/shared/SectionDivider";
 import { useI18n } from "@/lib/hooks/useI18n";
 import type { BiblePassageResponse } from "@/app/api/bible/route";

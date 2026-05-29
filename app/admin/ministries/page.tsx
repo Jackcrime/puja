@@ -6,7 +6,7 @@ import { AdminGuard } from "@/components/admin/AdminGuard";
 import { DataTable } from "@/components/admin/DataTable";
 import { FormModal } from "@/components/admin/FormModal";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
-import { useMinistries, type Ministry } from "@/lib/hooks/useFirestoreData";
+import { useMinistries, type Ministry } from "@/lib/hooks/useSupabaseData";
 import { Loader2 } from "lucide-react";
 import { showToast } from "@/lib/utils/toast";
 

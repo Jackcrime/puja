@@ -1,96 +1,92 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { login, onAuthChange } from "@/lib/admin/auth";
-import { Shield, Eye, EyeOff, Lock, AlertCircle, Loader2 } from "lucide-react";
+// ─── /app/admin/login/page.tsx ────────────────────────────────────────────────
+// Ganti seluruh isi file login lama dengan file ini.
 
-export default function AdminLogin() {
-  const router   = useRouter();
+import { useState, FormEvent, useEffect } from "react";
+import { useRouter }   from "next/navigation";
+import { login }       from "@/lib/admin/auth";
+import { supabase }    from "@/lib/supabase";
+
+export default function AdminLoginPage() {
+  const router = useRouter();
+  const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
-  const [showPw, setShowPw]     = useState(false);
-  const [error, setError]       = useState("");
-  const [loading, setLoading]   = useState(false);
-  const [checking, setChecking] = useState(true);
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState("");
 
-  // Kalau sudah login, langsung ke dashboard
+  // Kalau sudah login, langsung redirect
   useEffect(() => {
-    const unsub = onAuthChange((user) => {
-      if (user) router.replace("/admin/dashboard");
-      setChecking(false);
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) router.replace("/admin");
     });
-    return () => unsub();
   }, [router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-    const ok = await login(password);
-    if (ok) { router.push("/admin/dashboard"); }
-    else    { setError("Password salah. Cek di Firebase Console → Authentication."); setLoading(false); setPassword(""); }
+
+    const ok = await login(email.trim(), password);
+
+    if (!ok) {
+      setError("Email atau password salah. Coba lagi.");
+      setLoading(false);
+      return;
+    }
+
+    router.replace("/admin");
   };
 
-  if (checking) return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-    </div>
-  );
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
-      <div className="w-full max-w-sm">
-        <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
-          <div className="h-1 w-full" style={{ backgroundColor: "var(--brand)" }} />
-          <div className="p-8">
-            <div className="flex flex-col items-center mb-8">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ backgroundColor: "var(--brand)" }}>
-                <Shield className="h-7 w-7 text-white" />
-              </div>
-              <h1 className="font-serif font-bold text-xl" style={{ color: "var(--brand)" }}>Admin Panel</h1>
-              <p className="text-sm text-muted-foreground mt-1">GKPB Puji dan Janji</p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
-                  Password Admin
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input type={showPw ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Password Firebase Auth" required autoFocus
-                    className="w-full pl-9 pr-10 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-1"
-                  />
-                  <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                    {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {error && (
-                <div className="flex items-start gap-2 text-xs text-red-600 bg-red-50 dark:bg-red-950/20 px-3 py-2.5 rounded-xl">
-                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                  {error}
-                </div>
-              )}
-
-              <button type="submit" disabled={loading || !password}
-                className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
-                style={{ backgroundColor: "var(--brand)" }}
-              >
-                {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Memeriksa...</> : "Masuk"}
-              </button>
-            </form>
-
-            <div className="mt-5 pt-4 border-t border-border text-xs text-muted-foreground space-y-1">
-              <p>Password diatur di Firebase Console → Authentication → Users</p>
-            </div>
-          </div>
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="w-full max-w-sm space-y-6 rounded-xl border bg-card p-6 shadow-sm">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">Admin</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Masuk ke panel admin Puji &amp; Janji</p>
         </div>
-        <p className="text-center text-xs text-muted-foreground mt-4">
-          <a href="/" className="hover:underline">← Kembali ke Aplikasi</a>
-        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1">
+            <label htmlFor="email" className="text-sm font-medium">Email</label>
+            <input
+              id="email"
+              type="email"
+              autoComplete="email"
+              required
+              disabled={loading}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label htmlFor="password" className="text-sm font-medium">Password</label>
+            <input
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              disabled={loading}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          {error && (
+            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+          >
+            {loading ? "Masuk…" : "Masuk"}
+          </button>
+        </form>
       </div>
     </div>
   );

@@ -1,13 +1,12 @@
 "use client";
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   useDevotional, useAuthors, useBibleReadings,
   type BibleReading, type Devotional, formatDateKey,
-} from "@/lib/hooks/useFirestoreData";
+} from "@/lib/hooks/useSupabaseData";                              // ← ganti dari useSupabaseData
 import { BibleVerseSelector, emptySelection, type VerseSelection } from "@/components/admin/ayat/BibleVerseSelector";
 import { selToRef } from "@/lib/utils/adminAyat";
-import { deleteUploadThingFile, useUploadThing } from "@/lib/uploadthing-client";
-import { auth } from "@/lib/firebase";
+import { uploadFileWithProgress, deleteFileByUrl } from "@/lib/storage";  // ← ganti dari uploadthing-client
 import { showToast } from "@/lib/utils/toast";
 import { convertToWebM, browserSupportsWebM } from "@/lib/utils/audioConverter";
 import {
@@ -72,7 +71,6 @@ function CalendarPopup({
         </button>
 
         <div className="flex items-center gap-1.5">
-          {/* Month select */}
           <select
             value={viewMonth}
             onChange={(e) => setViewMonth(Number(e.target.value))}
@@ -81,7 +79,6 @@ function CalendarPopup({
           >
             {BULAN_FULL.map((b, i) => <option key={i} value={i}>{b}</option>)}
           </select>
-          {/* Year select */}
           <select
             value={viewYear}
             onChange={(e) => setViewYear(Number(e.target.value))}
@@ -115,10 +112,7 @@ function CalendarPopup({
           return (
             <button
               key={d}
-              onClick={() => {
-                onSelect(new Date(viewYear, viewMonth, d));
-                onClose();
-              }}
+              onClick={() => { onSelect(new Date(viewYear, viewMonth, d)); onClose(); }}
               className="aspect-square flex items-center justify-center rounded-lg text-xs font-semibold transition-all hover:scale-105"
               style={{
                 backgroundColor: sel ? "var(--brand)" : tod ? "var(--brand-muted)" : "transparent",
@@ -133,7 +127,6 @@ function CalendarPopup({
         })}
       </div>
 
-      {/* Footer: jump to today */}
       <div className="mt-3 pt-3 border-t border-border flex justify-center">
         <button
           onClick={() => { onSelect(new Date()); onClose(); }}
@@ -147,27 +140,17 @@ function CalendarPopup({
   );
 }
 
-function DayPicker({
-  date,
-  onChange,
-}: {
-  date:     Date;
-  onChange: (d: Date) => void;
-}) {
+function DayPicker({ date, onChange }: { date: Date; onChange: (d: Date) => void }) {
   const today    = new Date();
   const isToday  = isSameDay(date, today);
   const dateLabel = format(date, "EEEE, d MMMM yyyy", { locale: localeId });
-
   const [calOpen, setCalOpen] = React.useState(false);
   const wrapperRef            = React.useRef<HTMLDivElement>(null);
 
-  // Close on outside click
   React.useEffect(() => {
     if (!calOpen) return;
     const handler = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setCalOpen(false);
-      }
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) setCalOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -175,21 +158,13 @@ function DayPicker({
 
   return (
     <div className="flex items-center gap-1 p-1 bg-muted/40 rounded-xl border border-border w-fit relative" ref={wrapperRef}>
-      {/* Prev day */}
-      <button
-        onClick={() => onChange(subDays(date, 1))}
-        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background hover:shadow-sm transition-all text-muted-foreground hover:text-foreground"
-        title="Hari sebelumnya"
-      >
+      <button onClick={() => onChange(subDays(date, 1))} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background hover:shadow-sm transition-all text-muted-foreground hover:text-foreground" title="Hari sebelumnya">
         <ChevronLeft className="h-4 w-4" />
       </button>
 
-      {/* Date label */}
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-background border border-border min-w-[220px] justify-center">
         <CalendarDays className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--brand)" }} />
-        <span className="text-xs font-semibold" style={{ color: "var(--brand)" }}>
-          {dateLabel}
-        </span>
+        <span className="text-xs font-semibold" style={{ color: "var(--brand)" }}>{dateLabel}</span>
         {isToday && (
           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white shrink-0" style={{ backgroundColor: "var(--brand)" }}>
             HARI INI
@@ -197,53 +172,32 @@ function DayPicker({
         )}
       </div>
 
-      {/* Next day */}
-      <button
-        onClick={() => onChange(addDays(date, 1))}
-        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background hover:shadow-sm transition-all text-muted-foreground hover:text-foreground"
-        title="Hari berikutnya"
-      >
+      <button onClick={() => onChange(addDays(date, 1))} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background hover:shadow-sm transition-all text-muted-foreground hover:text-foreground" title="Hari berikutnya">
         <ChevronRight className="h-4 w-4" />
       </button>
 
-      {/* Tombol "Sekarang" */}
       {!isToday && (
-        <button
-          onClick={() => onChange(new Date())}
-          className="ml-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold hover:bg-background transition-colors"
-          style={{ color: "var(--brand)" }}
-          title="Kembali ke hari ini"
-        >
+        <button onClick={() => onChange(new Date())} className="ml-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold hover:bg-background transition-colors" style={{ color: "var(--brand)" }} title="Kembali ke hari ini">
           Sekarang
         </button>
       )}
 
-      {/* Calendar icon — buka popup */}
       <button
         onClick={() => setCalOpen((o) => !o)}
         className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background transition-all ml-0.5"
-        style={{
-          color:           calOpen ? "white" : "var(--muted-foreground)",
-          backgroundColor: calOpen ? "var(--brand)" : "transparent",
-        }}
+        style={{ color: calOpen ? "white" : "var(--muted-foreground)", backgroundColor: calOpen ? "var(--brand)" : "transparent" }}
         title="Pilih tanggal dari kalender"
       >
         <CalendarDays className="h-3.5 w-3.5" />
       </button>
 
-      {/* Calendar popup */}
-      {calOpen && (
-        <CalendarPopup
-          selected={date}
-          onSelect={onChange}
-          onClose={() => setCalOpen(false)}
-        />
-      )}
+      {calOpen && <CalendarPopup selected={date} onSelect={onChange} onClose={() => setCalOpen(false)} />}
     </div>
   );
 }
 
-// ─── Audio Upload ─────────────────────────────────────────────────────────────
+// ─── Audio Upload Zone ────────────────────────────────────────────────────────
+// Diganti dari useUploadThing (UploadThing) → uploadFileWithProgress (Supabase Storage)
 
 interface AudioUploadZoneProps {
   currentUrl: string;
@@ -260,32 +214,23 @@ function AudioUploadZone({ currentUrl, onUploaded, onRemove }: AudioUploadZonePr
   const [error,         setError]         = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { startUpload } = useUploadThing("audioUploader", {
-    headers: async (): Promise<Record<string, string>> => {
-      const token = (await auth.currentUser?.getIdToken()) ?? "";
-      return { authorization: `Bearer ${token}` };
-    },
-    onUploadProgress: (p: number) => setUploadPct(p),
-    onClientUploadComplete: (res) => {
-      if (!res?.[0]) return;
-      const file = res[0];
-      const url  = (file as any).ufsUrl ?? (file as any).serverData?.url ?? file.url;
-      onUploaded(url);
-      setIsUploading(false); setUploadPct(0); setError("");
-    },
-    onUploadError: (err) => {
-      setError(err.message ?? "Upload gagal. Coba lagi.");
-      setIsUploading(false); setUploadPct(0);
-    },
-  });
-
   const handleFile = async (file: File) => {
     if (!file) return;
     setError(""); setConvertedInfo(null);
-    if (!file.type.startsWith("audio/")) { setError("Format tidak didukung. Gunakan MP3, WAV, OGG, atau WebM."); return; }
-    if (file.size > 64 * 1024 * 1024) { setError("Ukuran maks 64 MB."); return; }
+
+    if (!file.type.startsWith("audio/")) {
+      setError("Format tidak didukung. Gunakan MP3, WAV, OGG, atau WebM.");
+      return;
+    }
+    // Supabase Storage: maks 100 MB (di-set di bucket)
+    if (file.size > 100 * 1024 * 1024) {
+      setError("Ukuran maks 100 MB.");
+      return;
+    }
 
     let fileToUpload = file;
+
+    // Konversi ke WebM kalau browser support (sama persis seperti sebelumnya)
     if (file.type !== "audio/webm" && browserSupportsWebM()) {
       setConverting(true); setConvertPct(0);
       const result = await convertToWebM(file, (pct) => setConvertPct(pct));
@@ -297,8 +242,24 @@ function AudioUploadZone({ currentUrl, onUploaded, onRemove }: AudioUploadZonePr
         fileToUpload = result.file;
       }
     }
+
     setIsUploading(true); setUploadPct(0);
-    await startUpload([fileToUpload]);
+
+    try {
+      // ↓ Sebelumnya: startUpload([fileToUpload]) via UploadThing
+      // ↓ Sekarang:   uploadFileWithProgress via Supabase Storage
+      const result = await uploadFileWithProgress(
+        "audio",
+        fileToUpload,
+        ({ percent }) => setUploadPct(percent)
+      );
+      onUploaded(result.url);
+      setError("");
+    } catch (e: any) {
+      setError(e?.message ?? "Upload gagal. Coba lagi.");
+    } finally {
+      setIsUploading(false); setUploadPct(0);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -307,6 +268,7 @@ function AudioUploadZone({ currentUrl, onUploaded, onRemove }: AudioUploadZonePr
     if (file) handleFile(file);
   };
 
+  // ─── Sudah ada audio ─────────────────────────────────────────────────────
   if (currentUrl) {
     return (
       <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-muted/30">
@@ -316,46 +278,78 @@ function AudioUploadZone({ currentUrl, onUploaded, onRemove }: AudioUploadZonePr
           <p className="text-xs text-muted-foreground mt-1 truncate">{currentUrl}</p>
         </div>
         <div className="flex flex-col gap-1 shrink-0">
-          <button onClick={() => inputRef.current?.click()} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground" title="Ganti audio">
+          <button
+            onClick={() => inputRef.current?.click()}
+            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
+            title="Ganti audio"
+          >
             <RefreshCw className="h-4 w-4" />
           </button>
-          <button onClick={onRemove} className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500 transition-colors" title="Hapus audio">
+          <button
+            onClick={onRemove}
+            className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500 transition-colors"
+            title="Hapus audio"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
-        <input ref={inputRef} type="file" accept="audio/*" className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }} />
+        <input
+          ref={inputRef} type="file" accept="audio/*" className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+        />
       </div>
     );
   }
 
+  // ─── Belum ada audio — dropzone ───────────────────────────────────────────
   const busy = converting || isUploading;
   return (
     <div>
       <div
         onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}
         onClick={() => !busy && inputRef.current?.click()}
-        className={["flex flex-col items-center justify-center gap-2 px-4 py-5 rounded-xl border-2 border-dashed transition-colors", busy ? "opacity-70 cursor-wait" : "cursor-pointer hover:bg-muted"].join(" ")}
+        className={[
+          "flex flex-col items-center justify-center gap-2 px-4 py-5 rounded-xl border-2 border-dashed transition-colors",
+          busy ? "opacity-70 cursor-wait" : "cursor-pointer hover:bg-muted",
+        ].join(" ")}
         style={{ borderColor: "var(--brand-border)" }}
       >
         {converting ? (
-          <><Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--brand)" }} />
-          <p className="text-sm font-medium" style={{ color: "var(--brand)" }}>Mengkonversi ke WebM... {convertPct}%</p></>
+          <>
+            <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--brand)" }} />
+            <p className="text-sm font-medium" style={{ color: "var(--brand)" }}>Mengkonversi ke WebM... {convertPct}%</p>
+          </>
         ) : isUploading ? (
-          <><Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--brand)" }} />
-          <p className="text-sm font-medium" style={{ color: "var(--brand)" }}>Mengupload... {uploadPct}%</p></>
+          <>
+            <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--brand)" }} />
+            <p className="text-sm font-medium" style={{ color: "var(--brand)" }}>Mengupload ke Supabase... {uploadPct}%</p>
+            {/* Progress bar */}
+            <div className="h-1.5 w-48 overflow-hidden rounded-full bg-muted">
+              <div className="h-full bg-[var(--brand)] transition-all duration-200" style={{ width: `${uploadPct}%` }} />
+            </div>
+          </>
         ) : (
-          <><Upload className="h-6 w-6" style={{ color: "var(--brand)" }} />
-          <p className="text-sm text-muted-foreground text-center">
-            <span className="font-semibold" style={{ color: "var(--brand)" }}>Klik atau seret</span> file audio ke sini
-          </p>
-          <p className="text-xs text-muted-foreground">MP3 / WAV / OGG — otomatis dikonversi ke <strong>WebM</strong></p></>
+          <>
+            <Upload className="h-6 w-6" style={{ color: "var(--brand)" }} />
+            <p className="text-sm text-muted-foreground text-center">
+              <span className="font-semibold" style={{ color: "var(--brand)" }}>Klik atau seret</span> file audio ke sini
+            </p>
+            <p className="text-xs text-muted-foreground">MP3 / WAV / OGG — otomatis dikonversi ke <strong>WebM</strong></p>
+          </>
         )}
       </div>
-      {convertedInfo && <div className="flex items-center gap-1.5 mt-1.5 text-xs text-green-600 dark:text-green-400"><CheckCircle2 className="h-3.5 w-3.5" /> {convertedInfo}</div>}
+
+      {convertedInfo && (
+        <div className="flex items-center gap-1.5 mt-1.5 text-xs text-green-600 dark:text-green-400">
+          <CheckCircle2 className="h-3.5 w-3.5" /> {convertedInfo}
+        </div>
+      )}
       {error && <p className="text-xs text-red-500 mt-1.5">{error}</p>}
-      <input ref={inputRef} type="file" accept="audio/*" className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }} />
+
+      <input
+        ref={inputRef} type="file" accept="audio/*" className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+      />
     </div>
   );
 }
@@ -363,21 +357,17 @@ function AudioUploadZone({ currentUrl, onUploaded, onRemove }: AudioUploadZonePr
 // ─── Renungan Sub-section ─────────────────────────────────────────────────────
 
 function RenunganPart({ date }: { date: Date }) {
-  // noFallback=true: admin selalu dapat form kosong untuk hari yang belum ada renungannya
-  // (tidak bocor ke "current" dari hari lain)
   const { data, exists, loading, update } = useDevotional(date, { noFallback: true });
   const { data: authorsDict, loading: authLoading } = useAuthors();
 
-  const [form,    setForm]   = useState<Devotional | null>(null);
-  const [dirty,   setDirty]  = useState(false);   // ada perubahan yang belum disimpan
-  const [saving,  setSaving] = useState(false);
-  const [saved,   setSaved]  = useState(false);
+  const [form,    setForm]    = useState<Devotional | null>(null);
+  const [dirty,   setDirty]   = useState(false);
+  const [saving,  setSaving]  = useState(false);
+  const [saved,   setSaved]   = useState(false);
   const [preview, setPreview] = useState(false);
 
-  // Reset form setiap kali tanggal berganti
   useEffect(() => { setForm(null); setDirty(false); setPreview(false); }, [date]);
 
-  // form != null → pakai draft; null → pakai data dari Firestore
   const current = form ?? data;
 
   const set = (key: string, value: string) => {
@@ -385,7 +375,6 @@ function RenunganPart({ date }: { date: Date }) {
     setDirty(true);
   };
 
-  // Reset ke state TERSIMPAN terakhir (bukan ke sebelum save)
   const handleReset = () => {
     setForm(null);
     setDirty(false);
@@ -396,8 +385,7 @@ function RenunganPart({ date }: { date: Date }) {
     setSaving(true);
     try {
       await update(current);
-      // Setelah save: sinkronkan form ke data terbaru, hapus dirty flag
-      setForm(null);   // update() sudah memanggil setData(updated) di dalam hook-nya
+      setForm(null);
       setDirty(false);
       showToast.success("Renungan harian berhasil disimpan.");
       setSaved(true);
@@ -406,7 +394,11 @@ function RenunganPart({ date }: { date: Date }) {
     setSaving(false);
   };
 
-  if (loading) return <div className="flex items-center gap-2 text-muted-foreground py-4"><Loader2 className="h-4 w-4 animate-spin" /> Memuat renungan...</div>;
+  if (loading) return (
+    <div className="flex items-center gap-2 text-muted-foreground py-4">
+      <Loader2 className="h-4 w-4 animate-spin" /> Memuat renungan...
+    </div>
+  );
 
   const isEmpty = !exists && !dirty;
 
@@ -436,7 +428,6 @@ function RenunganPart({ date }: { date: Date }) {
           </div>
         </div>
 
-        {/* Banner kosong — hanya tampil kalau belum ada data dan belum mulai ngetik */}
         {isEmpty && (
           <div className="flex items-start gap-3 p-3.5 rounded-xl border border-dashed border-border bg-muted/30">
             <BookOpen className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
@@ -465,20 +456,21 @@ function RenunganPart({ date }: { date: Date }) {
           />
         </div>
 
-        {/* Audio */}
+        {/* Audio — sekarang pakai Supabase Storage */}
         <div>
           <FieldLabel>Audio Renungan</FieldLabel>
           <AudioUploadZone
             currentUrl={String((current as any).audioUrl ?? "")}
             onUploaded={(url) => set("audioUrl", url)}
             onRemove={async () => {
-              const url = (current as any).audioUrl;
+              const url = (current as any).audioUrl as string;
               set("audioUrl", "");
               try {
                 await update({ ...(form ?? data), audioUrl: "" });
                 setForm(null);
                 setDirty(false);
-                if (url) await deleteUploadThingFile(url).catch(() => {});
+                // Hapus dari Supabase Storage berdasarkan URL
+                if (url) await deleteFileByUrl(url).catch(() => {});
                 showToast.success("Audio berhasil dihapus.");
               } catch {
                 set("audioUrl", url);
@@ -486,7 +478,7 @@ function RenunganPart({ date }: { date: Date }) {
               }
             }}
           />
-          <p className="text-xs text-muted-foreground mt-1">MP3 / WAV / OGG — maks 64 MB.</p>
+          <p className="text-xs text-muted-foreground mt-1">MP3 / WAV / OGG — maks 100 MB.</p>
         </div>
 
         {/* Isi */}
@@ -504,7 +496,7 @@ function RenunganPart({ date }: { date: Date }) {
         </div>
 
         <div className="flex gap-2 pt-1 flex-wrap">
-          <SaveButton saving={saving} saved={saved} onClick={handleSave} label="Simpan ke Firestore" />
+          <SaveButton saving={saving} saved={saved} onClick={handleSave} label="Simpan" />
           <button onClick={handleReset}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-border hover:bg-muted transition-colors text-muted-foreground">
             <RotateCcw className="h-4 w-4" /> Reset Form
@@ -519,7 +511,9 @@ function RenunganPart({ date }: { date: Date }) {
           <div className="border-t border-border pt-4">
             <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: "var(--gold)" }}>PRATINJAU</p>
             <h2 className="font-serif font-bold text-2xl mb-5" style={{ color: "var(--brand)" }}>{(current as any).title}</h2>
-            {(current as any).audioUrl && <div className="mb-5"><audio controls src={(current as any).audioUrl} className="w-full" /></div>}
+            {(current as any).audioUrl && (
+              <div className="mb-5"><audio controls src={(current as any).audioUrl} className="w-full" /></div>
+            )}
             <div className="space-y-4">
               {String((current as any).body ?? "").split("\n\n").map((para, i) => (
                 <p key={i} className="text-foreground leading-relaxed">{para}</p>
@@ -532,7 +526,7 @@ function RenunganPart({ date }: { date: Date }) {
   );
 }
 
-// ─── Reading Card (simplified — reference + title only, no perikop/cross-ref) ──
+// ─── Reading Card ─────────────────────────────────────────────────────────────
 
 interface ReadingDraft {
   id:        string;
@@ -547,13 +541,7 @@ function newDraft(): ReadingDraft {
 }
 
 function draftFromSaved(r: BibleReading): ReadingDraft {
-  return {
-    id:        crypto.randomUUID(),
-    reference: r.reference,
-    title:     r.title,
-    sel:       emptySelection(),
-    expanded:  false,
-  };
+  return { id: crypto.randomUUID(), reference: r.reference, title: r.title, sel: emptySelection(), expanded: false };
 }
 
 function ReadingCard({
@@ -601,15 +589,12 @@ function ReadingCard({
 
       {draft.expanded && (
         <div className="p-4 space-y-4 border-t border-border">
-          {/* Perikop selector */}
           <div>
             <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
               Pilih Perikop Bacaan
             </label>
             <BibleVerseSelector value={draft.sel} onChange={handleSelChange} showPreview={false} compact />
           </div>
-
-          {/* Referensi override */}
           <div>
             <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
               Referensi (otomatis terisi, bisa diedit)
@@ -622,8 +607,6 @@ function ReadingCard({
               style={{ color: "var(--brand)" }}
             />
           </div>
-
-          {/* Judul */}
           <div>
             <label className="text-xs font-bold uppercase tracking-wider block mb-1.5" style={{ color: "var(--gold)" }}>
               Judul Bacaan
@@ -650,7 +633,6 @@ function BacaanPart({ date }: { date: Date }) {
   const [saved_, setSaved_] = useState(false);
   const [synced, setSynced] = useState(false);
 
-  // Re-sync when date changes
   useEffect(() => { setSynced(false); }, [date]);
 
   useEffect(() => {
@@ -660,18 +642,15 @@ function BacaanPart({ date }: { date: Date }) {
     }
   }, [dataLoading, saved, synced]);
 
-  const updateDraft  = useCallback((id: string, updated: ReadingDraft) => setDrafts((p) => p.map((d) => d.id === id ? updated : d)), []);
-  const deleteDraft  = useCallback((id: string) => setDrafts((p) => p.filter((d) => d.id !== id)), []);
-  const moveUp       = useCallback((i: number) => setDrafts((p) => { const n = [...p]; [n[i-1], n[i]] = [n[i], n[i-1]]; return n; }), []);
-  const moveDown     = useCallback((i: number) => setDrafts((p) => { const n = [...p]; [n[i], n[i+1]] = [n[i+1], n[i]]; return n; }), []);
+  const updateDraft = useCallback((id: string, updated: ReadingDraft) => setDrafts((p) => p.map((d) => d.id === id ? updated : d)), []);
+  const deleteDraft = useCallback((id: string) => setDrafts((p) => p.filter((d) => d.id !== id)), []);
+  const moveUp      = useCallback((i: number) => setDrafts((p) => { const n = [...p]; [n[i-1], n[i]] = [n[i], n[i-1]]; return n; }), []);
+  const moveDown    = useCallback((i: number) => setDrafts((p) => { const n = [...p]; [n[i], n[i+1]] = [n[i+1], n[i]]; return n; }), []);
 
   const handleSave = async () => {
     const items: BibleReading[] = drafts
       .filter((d) => d.reference.trim())
-      .map((d) => ({
-        reference: d.reference,
-        title:     d.title,
-      }));
+      .map((d) => ({ reference: d.reference, title: d.title }));
     setSaving(true);
     try {
       await save(items);
@@ -682,7 +661,11 @@ function BacaanPart({ date }: { date: Date }) {
     setSaving(false);
   };
 
-  if (dataLoading) return <div className="flex items-center gap-2 py-6 text-muted-foreground text-sm"><Loader2 className="h-4 w-4 animate-spin" /> Memuat bacaan...</div>;
+  if (dataLoading) return (
+    <div className="flex items-center gap-2 py-6 text-muted-foreground text-sm">
+      <Loader2 className="h-4 w-4 animate-spin" /> Memuat bacaan...
+    </div>
+  );
 
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
@@ -724,8 +707,10 @@ function BacaanPart({ date }: { date: Date }) {
 
         <div className="flex items-center gap-3 pt-1">
           <SaveButton saving={saving} saved={saved_} onClick={handleSave} />
-          <button onClick={() => { setDrafts(saved.map(draftFromSaved)); showToast.success("Perubahan dibatalkan."); }}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <button
+            onClick={() => { setDrafts(saved.map(draftFromSaved)); showToast.success("Perubahan dibatalkan."); }}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
             <RefreshCw className="h-3.5 w-3.5" /> Reset
           </button>
         </div>
@@ -744,7 +729,6 @@ export function RenunganBacaanSection({ onDateChange }: RenunganBacaanSectionPro
   const { date: globalDate } = useDate();
   const [selectedDate, setSelectedDate] = useState<Date>(globalDate ?? new Date());
 
-  // Sync with global date on first mount
   useEffect(() => { if (globalDate) setSelectedDate(globalDate); }, [globalDate]);
 
   const handleDateChange = (d: Date) => {
@@ -754,7 +738,6 @@ export function RenunganBacaanSection({ onDateChange }: RenunganBacaanSectionPro
 
   return (
     <div className="space-y-5">
-      {/* Date Picker + Import/Export */}
       <div>
         <div className="flex items-center justify-between mb-2.5">
           <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--gold)" }}>
@@ -770,11 +753,8 @@ export function RenunganBacaanSection({ onDateChange }: RenunganBacaanSectionPro
         </p>
       </div>
 
-      {/* Renungan */}
       <RenunganPart date={selectedDate} />
-
-      {/* Bacaan Alkitab */}
-      <BacaanPart date={selectedDate} />
+      <BacaanPart   date={selectedDate} />
     </div>
   );
 }

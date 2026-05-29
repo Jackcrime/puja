@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Minimize2 } from "lucide-react";
 import { useI18n } from "@/lib/hooks/useI18n";
-import { useAuthors } from "@/lib/hooks/useFirestoreData";
+import { useAuthors } from "@/lib/hooks/useSupabaseData";
 import { AuthorModal } from "@/components/ui/AuthorModal";
 
 interface FocusModeProps {

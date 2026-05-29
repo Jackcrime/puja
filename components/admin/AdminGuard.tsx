@@ -1,28 +1,47 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { onAuthChange } from "@/lib/admin/auth";
-import { Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
-export function AdminGuard({ children }: { children: React.ReactNode }) {
+interface AdminGuardProps {
+  children: React.ReactNode;
+}
+
+export function AdminGuard({ children }: AdminGuardProps) {
   const router  = useRouter();
-  const [state, setState] = useState<"loading" | "authed" | "rejected">("loading");
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // onAuthChange waits for Firebase Auth to restore session
-    const unsub = onAuthChange((user) => {
-      if (user) { setState("authed"); }
-      else      { setState("rejected"); router.replace("/admin/login"); }
+    // Cek session saat mount
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        router.replace("/admin/login");
+      } else {
+        setReady(true);
+      }
     });
-    return () => unsub();
+
+    // Subscribe ke perubahan auth state
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        router.replace("/admin/login");
+        setReady(false);
+      } else {
+        setReady(true);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [router]);
 
-  if (state === "loading")  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-    </div>
-  );
-  if (state === "rejected") return null;
+  if (!ready) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
   return <>{children}</>;
 }

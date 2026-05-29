@@ -7,7 +7,7 @@ import { DataTable } from "@/components/admin/DataTable";
 import { FormModal } from "@/components/admin/FormModal";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { FileUploader } from "@/components/admin/FileUploader";
-import { usePustakaBooks, type PustakaBook } from "@/lib/hooks/useFirestoreData";
+import { usePustakaBooks, type PustakaBook } from "@/lib/hooks/useSupabaseData";
 import { deleteUploadThingFile } from "@/lib/uploadthing-client";
 import { Loader2, ExternalLink } from "lucide-react";
 import { showToast } from "@/lib/utils/toast";

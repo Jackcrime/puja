@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import {
   useMazmurMinggu, useBahanKhotbah,
   type MazmurMinggu, type BahanKhotbah,
-} from "@/lib/hooks/useFirestoreData";
+} from "@/lib/hooks/useSupabaseData";
 import {
   BibleVerseSelector, emptySelection, refLabel, effectiveVerses,
   type VerseSelection,

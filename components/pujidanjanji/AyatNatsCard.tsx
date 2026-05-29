@@ -5,7 +5,7 @@ import {
   Flame, Copy, Check, ChevronLeft, ChevronRight,
   ChevronDown, ChevronUp, BookOpen, CalendarDays, RefreshCw,
 } from "lucide-react";
-import { useAyatNatsHarian } from "@/lib/hooks/useFirestoreData";
+import { useAyatNatsHarian } from "@/lib/hooks/useSupabaseData";
 import { parseReference } from "@/lib/bible-books";
 import { PerikopModal } from "@/components/ui/PerikopModal";
 import { getVerseCount } from "@/lib/bible-verse-counts";

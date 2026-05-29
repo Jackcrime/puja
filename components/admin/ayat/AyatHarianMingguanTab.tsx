@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { useAyatKhusus }           from "@/lib/hooks/useFirestoreData";
+import { useAyatKhusus }           from "@/lib/hooks/useSupabaseData";
 import { BibleVerseSelector, type VerseSelection, emptySelection } from "./BibleVerseSelector";
 import { showToast }               from "@/lib/utils/toast";
 import {

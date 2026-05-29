@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { usePokokDoaHarian, type PokokDoa } from "@/lib/hooks/useFirestoreData";
+import { usePokokDoaHarian, type PokokDoa } from "@/lib/hooks/useSupabaseData";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { showToast } from "@/lib/utils/toast";
 import { Download, Eye, EyeOff, HandHeart, Info, Loader2, Plus, Trash2, Upload } from "lucide-react";

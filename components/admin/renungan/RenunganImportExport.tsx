@@ -7,8 +7,8 @@ import {
 } from "lucide-react";
 import { readCollection, writeDoc } from "@/lib/firestore";
 import { showToast } from "@/lib/utils/toast";
-import { formatDateKey } from "@/lib/hooks/useFirestoreData";
-import type { Devotional } from "@/lib/hooks/useFirestoreData";
+import { formatDateKey } from "@/lib/hooks/useSupabaseData";
+import type { Devotional } from "@/lib/hooks/useSupabaseData";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

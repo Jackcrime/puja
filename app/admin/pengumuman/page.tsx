@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminGuard } from "@/components/admin/AdminGuard";
-import { useAnnouncement } from "@/lib/hooks/useFirestoreData";
+import { useAnnouncement } from "@/lib/hooks/useSupabaseData";
 import { getLiturgicalEvents, getLiturgicalSeason, getEventsForMonth } from "@/lib/utils/liturgicalCalendar";
 import {
   Megaphone, Save, Check, Loader2, CalendarDays, ChevronLeft, ChevronRight,

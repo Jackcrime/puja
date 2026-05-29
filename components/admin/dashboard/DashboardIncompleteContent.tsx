@@ -14,7 +14,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { subscribeDoc } from "@/lib/firestore";
 import { useRealtimeStats } from "@/lib/hooks/useRealtimeStats";
-import type { AyatNats } from "@/lib/hooks/useFirestoreData";
+import type { AyatNats } from "@/lib/hooks/useSupabaseData";
 import {
   CheckCircle2, XCircle, ChevronDown, RefreshCw,
   BookOpen, BookMarked, HandHeart, Star, CalendarDays,

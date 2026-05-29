@@ -5,7 +5,7 @@ import {
   CalendarDays, Shuffle, Check, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
   Trash2, Loader2, Info, Plus, Minus,
 } from "lucide-react";
-import { useAyatNats, useAyatNatsSchedule, type AyatNatsItem } from "@/lib/hooks/useFirestoreData";
+import { useAyatNats, useAyatNatsSchedule, type AyatNatsItem } from "@/lib/hooks/useSupabaseData";
 import { showToast } from "@/lib/utils/toast";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────

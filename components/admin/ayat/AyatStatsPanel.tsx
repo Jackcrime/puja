@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { subscribeDoc } from "@/lib/firestore";
-import type { AyatKhusus, AyatNats, AyatNatsDailySchedule } from "@/lib/hooks/useFirestoreData";
+import type { AyatKhusus, AyatNats, AyatNatsDailySchedule } from "@/lib/hooks/useSupabaseData";
 import {
   BarChart2, CheckCircle2, XCircle, Minus,
   ChevronDown, ChevronUp, Loader2, RefreshCw,

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { BookOpenText, ScrollText, Library, Star, ArrowRight, CalendarDays, BookMarked, Loader2 } from "lucide-react";
 import { useI18n } from "@/lib/hooks/useI18n";
-import { useDevotional, useDailyVerse } from "@/lib/hooks/useFirestoreData";
+import { useDevotional, useDailyVerse } from "@/lib/hooks/useSupabaseData";
 import { format } from "date-fns";
 import { id as localeId, enUS } from "date-fns/locale";
 

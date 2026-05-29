@@ -7,7 +7,7 @@ import { AdminGuard } from "@/components/admin/AdminGuard";
 import { DataTable } from "@/components/admin/DataTable";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { FileUploader } from "@/components/admin/FileUploader";
-import { useAuthors, useMinistries, type Author, type ServiceEntry } from "@/lib/hooks/useFirestoreData";
+import { useAuthors, useMinistries, type Author, type ServiceEntry } from "@/lib/hooks/useSupabaseData";
 import { deleteUploadThingFile } from "@/lib/uploadthing-client";
 import { TITLE_OPTIONS } from "@/lib/constants/authorOptions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";

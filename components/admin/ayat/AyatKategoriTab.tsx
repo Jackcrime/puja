@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { DataTable }      from "@/components/admin/DataTable";
 import { FormModal }      from "@/components/admin/FormModal";
 import { ConfirmDialog }  from "@/components/admin/ConfirmDialog";
-import { useAyatCategories, useAyatNats, type AyatNatsItem } from "@/lib/hooks/useFirestoreData";
+import { useAyatCategories, useAyatNats, type AyatNatsItem } from "@/lib/hooks/useSupabaseData";
 import { BibleVerseSelector, type VerseSelection, emptySelection, effectiveVerses, refLabel } from "@/components/admin/ayat/BibleVerseSelector";
 import { AyatNatsScheduleSection } from "@/components/admin/ayat/AyatNatsScheduleSection";
 import { parseReference } from "@/lib/bible-books";

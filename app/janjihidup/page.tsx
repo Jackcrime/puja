@@ -20,7 +20,7 @@ import {
   useBibleReadings,
   usePokokDoaHarian,
   useAuthors,
-} from "@/lib/hooks/useFirestoreData";
+} from "@/lib/hooks/useSupabaseData";
 
 // ─── Helper: hari ini dalam seminggu (0=Minggu…6=Sabtu) → nama hari ─────────
 const NAMA_HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"] as const;

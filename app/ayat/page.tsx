@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { AppLayout }    from "@/components/layout/AppLayout";
 import { VerseCard }    from "@/components/ui/VerseCard";
-import { useAyatCategories, useAyatKhusus } from "@/lib/hooks/useFirestoreData";
+import { useAyatCategories, useAyatKhusus } from "@/lib/hooks/useSupabaseData";
 import { useI18n } from "@/lib/hooks/useI18n";
 import { AyatTuntunanSection } from "@/components/ayat/AyatTuntunanSection";
 import { AyatKategoriSection } from "@/components/ayat/AyatKategoriSection";

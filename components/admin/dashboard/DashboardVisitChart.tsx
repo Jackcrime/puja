@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { PieChart, PieSlice } from "./PieChart";
 import { useVisitStats, shortDay, peakHour, dateKey } from "@/lib/hooks/useVisitStats";
-import type { Devotional, AyatKhusus } from "@/lib/hooks/useFirestoreData";
+import type { Devotional, AyatKhusus } from "@/lib/hooks/useSupabaseData";
 import { TrendingUp, Clock } from "lucide-react";
 
 // ─── Bar Chart (SVG, 7 hari) ──────────────────────────────────────────────────

@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useTentangInfoPublic } from "@/lib/hooks/useTentangInfo";
 import { usePatchNotesPublic } from "@/lib/hooks/usePatchNotes";
-import { useAuthors } from "@/lib/hooks/useFirestoreData";
+import { useAuthors } from "@/lib/hooks/useSupabaseData";
 import { useI18n } from "@/lib/hooks/useI18n";
 
 const PLATFORM_ICONS: Record<string, React.ElementType> = {

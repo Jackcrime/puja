@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { X, Megaphone, Bell } from "lucide-react";
-import { useAnnouncement } from "@/lib/hooks/useFirestoreData";
+import { useAnnouncement } from "@/lib/hooks/useSupabaseData";
 import { getLiturgicalEvents } from "@/lib/utils/liturgicalCalendar";
 
 const BANNER_KEY_PREFIX = "gkpb_banner_v";

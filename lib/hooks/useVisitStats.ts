@@ -1,22 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { doc, onSnapshot, runTransaction } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface DailyVisit {
-  date:  string;                      // "YYYY-MM-DD"
-  count: number;                      // unique sessions that day
-  hours: Record<string, number>;      // "00"–"23" → count
+  date:  string;
+  count: number;
+  hours: Record<string, number>;  // "00"–"23" → count
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 export function dateKey(date = new Date()): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-/** Last N days as "YYYY-MM-DD" strings, newest last */
 export function lastNDays(n: number): string[] {
   return Array.from({ length: n }, (_, i) => {
     const d = new Date();
@@ -38,71 +36,77 @@ export function peakHour(hours: Record<string, number>): string | null {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useVisitStats(days = 7) {
-  const [data, setData]       = useState<DailyVisit[]>([]);
+  const [data,    setData]    = useState<DailyVisit[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const keys   = lastNDays(days);
+    const keys = lastNDays(days);
     const result: Record<string, DailyVisit> = {};
-    // Pre-fill dengan 0 biar hari tanpa data tetap muncul di chart
     keys.forEach((k) => { result[k] = { date: k, count: 0, hours: {} }; });
 
-    let resolved = 0;
-    const unsubs = keys.map((k) => {
-      const ref = doc(db, "page_visits", k);
-      return onSnapshot(
-        ref,
-        (snap) => {
-          if (snap.exists()) {
-            const d = snap.data() as { count: number; hours: Record<string, number> };
-            result[k] = { date: k, count: d.count ?? 0, hours: d.hours ?? {} };
-          }
-          resolved++;
-          if (resolved >= keys.length) setLoading(false);
-          // trigger re-render dengan shallow copy array
-          setData(keys.map((key) => ({ ...result[key] })));
-        },
-        (err) => {
-          console.error("[useVisitStats]", err);
-          resolved++;
-          if (resolved >= keys.length) setLoading(false);
-        }
-      );
-    });
+    // Baca data awal
+    async function fetchAll() {
+      const { data: visits } = await supabase
+        .from("page_visits")
+        .select("id, date_key, count")
+        .in("date_key", keys);
 
-    return () => unsubs.forEach((u) => u());
+      if (!visits || visits.length === 0) {
+        setData(keys.map((k) => result[k]));
+        setLoading(false);
+        return;
+      }
+
+      const ids = visits.map((v: any) => v.id);
+      const { data: hours } = await supabase
+        .from("page_visit_hours")
+        .select("visit_id, hour, count")
+        .in("visit_id", ids);
+
+      for (const v of visits) {
+        const h: Record<string, number> = {};
+        (hours ?? []).filter((hr: any) => hr.visit_id === v.id).forEach((hr: any) => {
+          h[hr.hour] = hr.count;
+        });
+        result[v.date_key] = { date: v.date_key, count: v.count, hours: h };
+      }
+
+      setData(keys.map((k) => ({ ...result[k] })));
+      setLoading(false);
+    }
+
+    fetchAll();
+
+    // Realtime: subscribe ke page_visits
+    const channel = supabase
+      .channel("page_visits:recent")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "page_visits" },
+        () => { fetchAll(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [days]);
 
   return { data, loading };
 }
 
 // ─── trackPageVisit — dipanggil dari public layout ────────────────────────────
-// Cukup taruh 1x di public layout, otomatis detect semua halaman publik.
-// Session key per hari → 1 user 1 kunjungan per hari, anti ghost visit.
+// Pakai RPC Postgres untuk atomic increment (aman dari race condition)
 export async function trackPageVisit(): Promise<void> {
   try {
-    const today    = dateKey();
-    const sesKey   = `pj-visited-${today}`;
+    const today  = dateKey();
+    const sesKey = `pj-visited-${today}`;
 
-    // Sudah dikunjungi hari ini di sesi ini → skip
     if (typeof window !== "undefined" && sessionStorage.getItem(sesKey)) return;
 
     const hour = String(new Date().getHours()).padStart(2, "0");
-    const ref  = doc(db, "page_visits", today);
 
-    await runTransaction(db, async (tx) => {
-      const snap    = await tx.get(ref);
-      const current = snap.exists()
-        ? (snap.data() as { count: number; hours: Record<string, number> })
-        : { count: 0, hours: {} };
-
-      tx.set(ref, {
-        count: (current.count ?? 0) + 1,
-        hours: {
-          ...current.hours,
-          [hour]: ((current.hours ?? {})[hour] ?? 0) + 1,
-        },
-      });
+    await supabase.rpc("increment_page_visit", {
+      p_date_key: today,
+      p_hour:     hour,
     });
 
     if (typeof window !== "undefined") sessionStorage.setItem(sesKey, "1");

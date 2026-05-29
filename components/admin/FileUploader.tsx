@@ -1,197 +1,185 @@
 "use client";
 
-import React, { useState, useRef } from "react";
-import Image from "next/image";
-import { Upload, X, FileText, Loader2, ExternalLink, ImageIcon, RefreshCw } from "lucide-react";
-import { useUploadThing, validateFile, type UploadEndpoint, type UploadResult } from "@/lib/uploadthing-client";
-import { auth } from "@/lib/firebase";
+// ─── FileUploader — Supabase Storage ─────────────────────────────────────────
+// Menggantikan komponen lama yang pakai useUploadThing dari UploadThing.
+// Sekarang upload langsung ke Supabase Storage via browser SDK.
+
+import { useRef, useState, useCallback } from "react";
+import { uploadFileWithProgress, deleteFileByUrl } from "@/lib/storage";
+import { validateStorageFile, getStorageLabel, formatFileSize } from "@/lib/file-utils";
+import type { StorageFolder } from "@/lib/file-utils";
+import { cn } from "@/lib/utils";
 
 interface FileUploaderProps {
-  endpoint: UploadEndpoint;
-  label?: string;
-  accept?: string;
-  isImage?: boolean;
-  currentUrl?: string;
-  currentName?: string;
-  onUploadComplete: (result: UploadResult) => void;
-  onRemove?: () => void;
+  folder:         StorageFolder;
+  currentUrl?:    string;
+  onUploadDone:   (url: string, path: string) => void;
+  onRemove?:      () => void;
+  className?:     string;
+  disabled?:      boolean;
+  label?:         string;
 }
 
 export function FileUploader({
-  endpoint, label, accept, isImage = false,
-  currentUrl, currentName, onUploadComplete, onRemove,
+  folder,
+  currentUrl,
+  onUploadDone,
+  onRemove,
+  className,
+  disabled = false,
+  label,
 }: FileUploaderProps) {
-  const [error, setError] = useState("");
-  const [progress, setProgress] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [progress,  setProgress]  = useState(0);
+  const [error,     setError]     = useState<string | null>(null);
+  const [preview,   setPreview]   = useState<string | null>(currentUrl ?? null);
 
-  const { startUpload, isUploading } = useUploadThing(endpoint, {
-    headers: async (): Promise<Record<string, string>> => {
-      const token = (await auth.currentUser?.getIdToken()) ?? "";
-      return { authorization: `Bearer ${token}` };
-    },
-    onUploadProgress: (p: number) => setProgress(p),
-    onClientUploadComplete: (res) => {
-      if (!res?.[0]) return;
-      const file = res[0];
-      const url = (file as any).ufsUrl ?? (file as any).serverData?.url ?? file.url;
-      onUploadComplete({ url, name: file.name, size: file.size });
-      setError("");
-      setProgress(0);
-    },
-    onUploadError: (err) => {
-      setError(err.message ?? "Upload gagal. Coba lagi.");
-      setProgress(0);
-    },
-  });
+  const accept = folder === "pustaka"
+    ? "application/pdf"
+    : folder === "audio"
+    ? "audio/*"
+    : "image/jpeg,image/png,image/webp";
 
-  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = useCallback(async (file: File) => {
+    setError(null);
+
+    // Validasi
+    const { valid, error: validErr } = validateStorageFile(file, folder);
+    if (!valid) {
+      setError(validErr ?? "File tidak valid.");
+      return;
+    }
+
+    // Hapus file lama dari storage kalau ada
+    if (preview && preview !== currentUrl) {
+      await deleteFileByUrl(preview).catch(() => null);
+    } else if (currentUrl) {
+      await deleteFileByUrl(currentUrl).catch(() => null);
+    }
+
+    setUploading(true);
+    setProgress(0);
+
+    try {
+      const result = await uploadFileWithProgress(folder, file, ({ percent }) => {
+        setProgress(percent);
+      });
+
+      setPreview(result.url);
+      onUploadDone(result.url, result.path);
+    } catch (e: any) {
+      setError(e?.message ?? "Upload gagal. Coba lagi.");
+    } finally {
+      setUploading(false);
+      setProgress(0);
+    }
+  }, [folder, currentUrl, preview, onUploadDone]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const { valid, error: vErr } = validateFile(file, endpoint);
-    if (!valid) { setError(vErr ?? "File tidak valid"); return; }
-    setError("");
-    await startUpload([file]);
+    if (file) handleFile(file);
     e.target.value = "";
   };
 
-  // ── Sudah ada file ──────────────────────────────────────────────────────────
-  if (currentUrl) {
-    return (
-      <div>
-        {label && (
-          <p className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: "var(--gold)" }}>
-            {label}
-          </p>
-        )}
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFile(file);
+  };
 
-        {isImage ? (
-          <div className="flex items-center gap-3">
-            {/* Thumbnail dengan hover overlay Ganti */}
-            <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-border shrink-0 group">
-              {isUploading ? (
-                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-1">
-                  <Loader2 className="h-5 w-5 text-white animate-spin" />
-                  <span className="text-white text-xs font-medium">{progress}%</span>
-                </div>
-              ) : (
-                <>
-                  <Image src={currentUrl} alt="foto" fill sizes="96px" className="object-cover" />
-                  <button type="button" onClick={() => inputRef.current?.click()}
-                    className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity">
-                    <RefreshCw className="h-4 w-4 text-white" />
-                    <span className="text-white text-[10px] font-semibold">Ganti</span>
-                  </button>
-                </>
-              )}
+  const handleRemove = async () => {
+    if (preview) await deleteFileByUrl(preview).catch(() => null);
+    setPreview(null);
+    onRemove?.();
+  };
+
+  return (
+    <div className={cn("flex flex-col gap-2", className)}>
+      {/* Label opsional */}
+      {label && <p className="text-sm font-medium text-muted-foreground">{label}</p>}
+
+      {/* Dropzone */}
+      <div
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+        onClick={() => !disabled && !uploading && inputRef.current?.click()}
+        className={cn(
+          "relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-6 text-sm transition-colors",
+          disabled || uploading
+            ? "cursor-not-allowed opacity-60"
+            : "cursor-pointer hover:border-primary/60 hover:bg-accent/30",
+          error ? "border-destructive" : "border-muted"
+        )}
+      >
+        {uploading ? (
+          <div className="flex w-full flex-col items-center gap-2">
+            <svg className="h-6 w-6 animate-spin text-primary" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+            </svg>
+            <span className="text-muted-foreground">Mengupload… {progress}%</span>
+            {/* Progress bar */}
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full bg-primary transition-all duration-200"
+                style={{ width: `${progress}%` }}
+              />
             </div>
-            {onRemove && !isUploading && (
-              <button type="button" onClick={onRemove}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-red-500 transition-colors">
-                <X className="h-3.5 w-3.5" /> Hapus foto
-              </button>
-            )}
           </div>
-        ) : (
-          <div className="space-y-2">
-            {/* Link file aktif */}
-            <div className="flex items-center gap-2 text-sm bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 px-3 py-2.5 rounded-xl border border-green-200 dark:border-green-800">
-              <FileText className="h-4 w-4 shrink-0" />
-              <a href={currentUrl} target="_blank" rel="noopener noreferrer"
-                className="flex-1 truncate text-xs underline">
-                {currentName ?? "Lihat file"}
-              </a>
-              <a href={currentUrl} target="_blank" rel="noopener noreferrer"
-                className="shrink-0 text-green-600 hover:text-green-700">
-                <ExternalLink className="h-3.5 w-3.5" />
-              </a>
+        ) : preview ? (
+          <div className="flex flex-col items-center gap-2 text-center">
+            {folder === "images" && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={preview} alt="Preview" className="h-20 w-20 rounded-md object-cover" />
+            )}
+            <p className="max-w-[200px] truncate text-xs text-muted-foreground">{preview}</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
+                className="rounded border px-2 py-1 text-xs hover:bg-accent"
+              >
+                Ganti
+              </button>
               {onRemove && (
-                <button type="button" onClick={onRemove}
-                  className="shrink-0 text-muted-foreground hover:text-red-500 transition-colors">
-                  <X className="h-4 w-4" />
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleRemove(); }}
+                  className="rounded border border-destructive px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
+                >
+                  Hapus
                 </button>
               )}
             </div>
-
-            {/* Progress bar atau tombol Ganti */}
-            {isUploading ? (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed"
-                style={{ borderColor: "var(--brand-border)" }}>
-                <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" style={{ color: "var(--brand)" }} />
-                <div className="flex-1">
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">Mengupload file baru...</span>
-                    <span style={{ color: "var(--brand)" }}>{progress}%</span>
-                  </div>
-                  <div className="h-1 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-200"
-                      style={{ backgroundColor: "var(--brand)", width: `${progress}%` }} />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <button type="button" onClick={() => inputRef.current?.click()}
-                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-dashed hover:bg-muted transition-colors"
-                style={{ borderColor: "var(--brand-border)", color: "var(--brand)" }}>
-                <RefreshCw className="h-3.5 w-3.5" /> Ganti file
-              </button>
-            )}
           </div>
+        ) : (
+          <>
+            <svg className="h-8 w-8 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            <p className="text-center text-sm text-muted-foreground">
+              Klik atau drag &amp; drop file di sini
+            </p>
+            <p className="text-xs text-muted-foreground">{getStorageLabel(folder)}</p>
+          </>
         )}
-
-        {error && <p className="text-xs text-red-500 mt-1.5">{error}</p>}
-        <input ref={inputRef} type="file" accept={accept}
-          className="hidden" onChange={handleChange} disabled={isUploading} />
       </div>
-    );
-  }
 
-  // ── Belum ada file ──────────────────────────────────────────────────────────
-  return (
-    <div>
-      {label && (
-        <p className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: "var(--gold)" }}>
-          {label}
-        </p>
+      {/* Error */}
+      {error && (
+        <p className="text-xs text-destructive">{error}</p>
       )}
 
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => !isUploading && inputRef.current?.click()}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") inputRef.current?.click(); }}
-        className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
-          isUploading ? "opacity-50 pointer-events-none" : "hover:bg-muted"
-        }`} style={{ borderColor: "var(--brand-border)" }}>
-        {isUploading
-          ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" style={{ color: "var(--brand)" }} />
-          : isImage
-            ? <ImageIcon className="h-4 w-4 shrink-0" style={{ color: "var(--brand)" }} />
-            : <Upload className="h-4 w-4 shrink-0" style={{ color: "var(--brand)" }} />
-        }
-        <div className="flex-1 min-w-0">
-          {isUploading ? (
-            <div>
-              <div className="flex justify-between text-xs font-medium mb-1.5">
-                <span className="text-muted-foreground">Mengupload...</span>
-                <span style={{ color: "var(--brand)" }}>{progress}%</span>
-              </div>
-              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                <div className="h-full rounded-full transition-all duration-200"
-                  style={{ backgroundColor: "var(--brand)", width: `${progress}%` }} />
-              </div>
-            </div>
-          ) : (
-            <span className="text-sm text-muted-foreground">
-              {isImage ? "Pilih foto (JPG/PNG/WebP, maks 4 MB)" : "Pilih file untuk diupload"}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {error && <p className="text-xs text-red-500 mt-1.5">{error}</p>}
-      <input ref={inputRef} type="file" accept={accept}
-        className="hidden" onChange={handleChange} disabled={isUploading} />
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        className="hidden"
+        onChange={handleChange}
+        disabled={disabled || uploading}
+      />
     </div>
   );
 }

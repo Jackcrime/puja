@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import { VerseCard } from "@/components/ui/VerseCard";
-import type { AyatKhusus } from "@/lib/hooks/useFirestoreData";
+import type { AyatKhusus } from "@/lib/hooks/useSupabaseData";
 
 const BULAN = [
   "Januari","Februari","Maret","April","Mei","Juni",

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Music, ChevronDown, ChevronUp, Copy, Check } from "lucide-react";
-import { useMazmurMinggu } from "@/lib/hooks/useFirestoreData";
+import { useMazmurMinggu } from "@/lib/hooks/useSupabaseData";
 import { getLiturgicalEvents } from "@/lib/utils/liturgicalCalendar";
 import { SectionDivider } from "@/components/shared/SectionDivider";
 

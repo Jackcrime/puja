@@ -14,7 +14,7 @@ import { SectionDivider }      from "@/components/shared/SectionDivider";
 import { CalendarDays, ChevronRight, Copy, Check, BookOpen, ScrollText, Loader2 } from "lucide-react";
 import {
   useBibleReadings, useAyatKhusus,
-} from "@/lib/hooks/useFirestoreData";
+} from "@/lib/hooks/useSupabaseData";
 import { useI18n } from "@/lib/hooks/useI18n";
 import { useDate } from "@/lib/context/DateContext";
 import { getLiturgicalEvents, getLiturgicalSeason } from "@/lib/utils/liturgicalCalendar";

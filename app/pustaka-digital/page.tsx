@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { usePustakaBooks, type PustakaBook } from "@/lib/hooks/useFirestoreData";
+import { usePustakaBooks, type PustakaBook } from "@/lib/hooks/useSupabaseData";
 
 const CATEGORIES = ["Semua", "BUKU", "MATERI", "PANDUAN"];
 const PUSTAKA_PER_PAGE = 6;

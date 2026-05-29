@@ -4,7 +4,7 @@ import React, { useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Image from "next/image";
 import { Church } from "lucide-react";
-import { useAuthors, useMinistries } from "@/lib/hooks/useFirestoreData";
+import { useAuthors, useMinistries } from "@/lib/hooks/useSupabaseData";
 import { useI18n } from "@/lib/hooks/useI18n";
 
 interface AuthorModalProps {

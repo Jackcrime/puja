@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Heart } from "lucide-react";
-import { usePokokDoaHarian } from "@/lib/hooks/useFirestoreData";
+import { usePokokDoaHarian } from "@/lib/hooks/useSupabaseData";
 import { SectionDivider } from "@/components/shared/SectionDivider";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
