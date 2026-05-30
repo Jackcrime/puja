@@ -10,6 +10,7 @@
 // Set Public = true agar URL bisa diakses tanpa auth
 
 import { supabase } from "@/lib/supabase";
+import type { StorageFolder } from "@/lib/file-utils";
 export { formatFileSize, validateStorageFile as validateFile, type StorageFolder } from "@/lib/file-utils";
 
 export interface UploadResult {

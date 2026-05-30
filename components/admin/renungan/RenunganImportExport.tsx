@@ -5,7 +5,7 @@ import {
   Download, Upload, X, CheckCircle2, AlertTriangle,
   Loader2, FileJson, ChevronDown, ChevronUp, Trash2,
 } from "lucide-react";
-import { readCollection, writeDoc } from "@/lib/firestore";
+import { supabase } from "@/lib/supabase";
 import { showToast } from "@/lib/utils/toast";
 import { formatDateKey } from "@/lib/hooks/useSupabaseData";
 import type { Devotional } from "@/lib/hooks/useSupabaseData";
@@ -59,18 +59,24 @@ function ExportPanel({ onClose }: { onClose: () => void }) {
   const handleExport = async () => {
     setLoading(true);
     try {
-      const allDocs = await readCollection<{ id: string } & Devotional>("devotional", []);
-      let entries: RenunganExportEntry[] = allDocs
-        .filter((d) => isDateKey(d.id))
-        .map((d) => ({
-          date:       d.id,
-          title:      d.title      ?? "",
-          authorCode: d.authorCode ?? "",
-          audioUrl:   d.audioUrl   ?? "",
-          body:       d.body       ?? "",
-          prayer:     d.prayer     ?? "",
+      const { data: rows, error } = await supabase
+        .from("devotional")
+        .select("date_key, title, author_code, audio_url, body, prayer")
+        .order("date_key");
+
+      if (error) throw error;
+
+      let entries: RenunganExportEntry[] = (rows ?? [])
+        .filter((d: any) => isDateKey(d.date_key))
+        .map((d: any) => ({
+          date:       d.date_key,
+          title:      d.title       ?? "",
+          authorCode: d.author_code ?? "",
+          audioUrl:   d.audio_url   ?? "",
+          body:       d.body        ?? "",
+          prayer:     d.prayer      ?? "",
         }))
-        .sort((a, b) => a.date.localeCompare(b.date));
+        .sort((a: RenunganExportEntry, b: RenunganExportEntry) => a.date.localeCompare(b.date));
 
       if (fromDate) entries = entries.filter((e) => e.date >= fromDate);
       if (toDate)   entries = entries.filter((e) => e.date <= toDate);
@@ -205,9 +211,12 @@ function ImportPanel({ onClose, onImported }: { onClose: () => void; onImported?
         return;
       }
 
-      // Check which dates already have docs
-      const allDocs = await readCollection<{ id: string }>("devotional", []);
-      const existingDates = new Set(allDocs.filter((d) => isDateKey(d.id)).map((d) => d.id));
+      // Check which dates already have docs in Supabase
+      const { data: existingRows } = await supabase
+        .from("devotional")
+        .select("date_key")
+        .not("date_key", "eq", "current");
+      const existingDates = new Set((existingRows ?? []).filter((d: any) => isDateKey(d.date_key)).map((d: any) => d.date_key));
       setExisting(existingDates);
       setEntries(parsed.sort((a, b) => a.date.localeCompare(b.date)));
       setErrors(errs);
@@ -234,7 +243,17 @@ function ImportPanel({ onClose, onImported }: { onClose: () => void; onImported?
     let done = 0;
     for (const entry of toImport) {
       const { date, ...data } = entry;
-      await writeDoc("devotional", date, data as Devotional);
+      await supabase.from("devotional").upsert(
+        {
+          date_key:    date,
+          title:       data.title,
+          author_code: data.authorCode,
+          audio_url:   data.audioUrl ?? "",
+          body:        data.body,
+          prayer:      data.prayer,
+        },
+        { onConflict: "date_key" }
+      );
       done++;
       setProgress(Math.round((done / toImport.length) * 100));
     }
@@ -292,7 +311,7 @@ function ImportPanel({ onClose, onImported }: { onClose: () => void; onImported?
       <div className="flex flex-col items-center gap-3 py-6 text-center">
         <CheckCircle2 className="h-10 w-10 text-green-500" />
         <p className="font-semibold text-foreground">Impor selesai!</p>
-        <p className="text-sm text-muted-foreground">{entries.length} renungan berhasil disimpan ke Firestore.</p>
+        <p className="text-sm text-muted-foreground">{entries.length} renungan berhasil disimpan ke Supabase.</p>
         <button onClick={onClose} className="mt-2 px-5 py-2 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "var(--brand)" }}>
           Tutup
         </button>

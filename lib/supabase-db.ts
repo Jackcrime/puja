@@ -85,7 +85,7 @@ export async function updateRow<T extends object>(
   changes: Partial<T>,
   idCol:  string = "id"
 ): Promise<void> {
-  const { error } = await supabase.from(table).update(changes).eq(idCol, id);
+  const { error } = await supabase.from(table).update(changes as any).eq(idCol, id);
 
   if (error) {
     console.error(`[supabase-db] updateRow error (${table}/${id}):`, error);

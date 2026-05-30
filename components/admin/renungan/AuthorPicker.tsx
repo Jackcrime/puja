@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import Image from "next/image";
 import { Search, X, User, Check, ChevronDown } from "lucide-react";
-import type { AuthorsMap } from "@/lib/hooks/useFirestoreData";
+import type { AuthorsMap } from "@/lib/hooks/useSupabaseData";
 
 interface Props {
   value:       string;           // authorCode yang sedang dipilih

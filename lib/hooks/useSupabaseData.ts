@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { sw } from "@/lib/supabase-safe";
 import { readRow, writeRow, readCollection, insertRow, updateRow, deleteRow, replaceAllRows, subscribeRow } from "@/lib/supabase-db";
 import { toast } from "sonner";
 
@@ -132,7 +133,7 @@ export function useDevotional(date?: Date, { noFallback = false }: { noFallback?
         prayer:      updated.prayer,
       };
       const key = dateKey ?? "current";
-      await supabase.from("devotional").upsert({ date_key: key, ...payload }, { onConflict: "date_key" });
+      await sw(supabase.from("devotional").upsert({ date_key: key, ...payload }, { onConflict: "date_key" }))
       setData(updated);
       setExists(true);
     } catch (e) {
@@ -186,7 +187,7 @@ export function usePerikop() {
 
   const save = useCallback(async (items: PerikopItem[]) => {
     try {
-      await supabase.from("perikop_items").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await sw(supabase.from("perikop_items").delete().neq("id", "00000000-0000-0000-0000-000000000000"))
       if (items.length > 0) {
         await supabase.from("perikop_items").insert(
           items.map((item, i) => ({ ...item, sort_order: i }))
@@ -224,7 +225,7 @@ export function useVerseHighlights() {
 
   const save = useCallback(async (items: VerseHighlightItem[]) => {
     try {
-      await supabase.from("verse_highlights").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await sw(supabase.from("verse_highlights").delete().neq("id", "00000000-0000-0000-0000-000000000000"))
       if (items.length > 0) {
         await supabase.from("verse_highlights").insert(
           items.map((item, i) => ({ ...item, sort_order: i }))
@@ -292,7 +293,7 @@ export function useAnnouncement() {
   const update = useCallback(async (changes: Partial<Announcement>) => {
     const fresh = { text: changes.text ?? "", link: changes.link ?? "" };
     try {
-      await supabase.from("announcement").upsert({ id: "current", ...fresh }, { onConflict: "id" });
+      await sw(supabase.from("announcement").upsert({ id: "current", ...fresh }, { onConflict: "id" }))
       setData(fresh);
     } catch (e) {
       console.error("[useAnnouncement] update error:", e);
@@ -367,9 +368,9 @@ export function useAuthors() {
   const save = useCallback(async (authors: AuthorsMap) => {
     try {
       // Hapus semua data lama dulu
-      await supabase.from("author_service_history").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-      await supabase.from("author_titles").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-      await supabase.from("authors").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await sw(supabase.from("author_service_history").delete().neq("id", "00000000-0000-0000-0000-000000000000"))
+      await sw(supabase.from("author_titles").delete().neq("id", "00000000-0000-0000-0000-000000000000"))
+      await sw(supabase.from("authors").delete().neq("id", "00000000-0000-0000-0000-000000000000"))
 
       // Insert baru
       for (const [code, author] of Object.entries(authors)) {
@@ -437,8 +438,8 @@ export function useAyatCategories() {
 
   const save = useCallback(async (items: AyatCategory[]) => {
     try {
-      await supabase.from("ayat_category_verses").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-      await supabase.from("ayat_categories").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await sw(supabase.from("ayat_category_verses").delete().neq("id", "00000000-0000-0000-0000-000000000000"))
+      await sw(supabase.from("ayat_categories").delete().neq("id", "00000000-0000-0000-0000-000000000000"))
 
       for (let i = 0; i < items.length; i++) {
         const cat = items[i];
@@ -501,7 +502,8 @@ export function usePustakaBooks() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data: rows } = await supabase.from("pustaka_books").select("*").order("created_at");
+    const { data: rows, error: _swErr } = await supabase.from("pustaka_books").select("*").order("created_at");
+    if (_swErr) throw _swErr;
     setData((rows ?? []).map(rowToPustakaBook));
     setLoading(false);
   }, []);
@@ -546,7 +548,7 @@ export function usePustakaBooks() {
       if (changes.fileUrl         !== undefined) payload.file_url          = changes.fileUrl;
       if (changes.fileStoragePath !== undefined) payload.file_storage_path = changes.fileStoragePath;
       if (changes.audioUrl        !== undefined) payload.audio_url         = changes.audioUrl;
-      await supabase.from("pustaka_books").update(payload).eq("id", id);
+      await sw(supabase.from("pustaka_books").update(payload).eq("id", id))
       await load();
     } catch (e) {
       console.error("[usePustakaBooks] update error:", e);
@@ -556,7 +558,7 @@ export function usePustakaBooks() {
 
   const remove = useCallback(async (id: string) => {
     try {
-      await supabase.from("pustaka_books").delete().eq("id", id);
+      await sw(supabase.from("pustaka_books").delete().eq("id", id))
       await load();
     } catch (e) {
       console.error("[usePustakaBooks] remove error:", e);
@@ -584,7 +586,8 @@ export function useMinistries() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data: rows } = await supabase.from("ministries").select("*").order("category");
+    const { data: rows, error: _swErr } = await supabase.from("ministries").select("*").order("category");
+    if (_swErr) throw _swErr;
     setData(rows && rows.length > 0 ? rows : DEFAULT_MINISTRIES);
     setLoading(false);
   }, []);
@@ -594,7 +597,7 @@ export function useMinistries() {
   const add = useCallback(async (m: Omit<Ministry, "id">) => {
     try {
       const id = m.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      await supabase.from("ministries").insert({ id, ...m });
+      await sw(supabase.from("ministries").insert({ id, ...m }))
       await load();
     } catch (e) {
       console.error("[useMinistries] add error:", e);
@@ -604,7 +607,7 @@ export function useMinistries() {
 
   const update = useCallback(async (id: string, changes: Partial<Ministry>) => {
     try {
-      await supabase.from("ministries").update(changes).eq("id", id);
+      await sw(supabase.from("ministries").update(changes).eq("id", id))
       await load();
     } catch (e) {
       console.error("[useMinistries] update error:", e);
@@ -614,7 +617,7 @@ export function useMinistries() {
 
   const remove = useCallback(async (id: string) => {
     try {
-      await supabase.from("ministries").delete().eq("id", id);
+      await sw(supabase.from("ministries").delete().eq("id", id))
       await load();
     } catch (e) {
       console.error("[useMinistries] remove error:", e);
@@ -798,8 +801,8 @@ async function saveMazmurByKey(dateKey: string, next: MazmurMinggu): Promise<voi
   const id = upserted?.id;
   if (!id) throw new Error("Gagal upsert mazmur_minggu");
 
-  await supabase.from("mazmur_minggu_verses").delete().eq("mazmur_id", id);
-  await supabase.from("mazmur_visible_days").delete().eq("mazmur_id", id);
+  await sw(supabase.from("mazmur_minggu_verses").delete().eq("mazmur_id", id))
+  await sw(supabase.from("mazmur_visible_days").delete().eq("mazmur_id", id))
 
   if (next.verses?.length) {
     await supabase.from("mazmur_minggu_verses").insert(
@@ -936,7 +939,7 @@ async function saveKhotbahByKey(dateKey: string, next: BahanKhotbah): Promise<vo
   const id = upserted?.id;
   if (!id) throw new Error("Gagal upsert bahan_khotbah");
 
-  await supabase.from("khotbah_visible_days").delete().eq("khotbah_id", id);
+  await sw(supabase.from("khotbah_visible_days").delete().eq("khotbah_id", id))
   if (next.visibleDays?.length) {
     await supabase.from("khotbah_visible_days").insert(
       next.visibleDays.map((d) => ({ khotbah_id: id, day_of_week: d }))
@@ -1024,7 +1027,7 @@ export function usePokokDoaHarian() {
 
   const save = useCallback(async (items: PokokDoa[]) => {
     try {
-      await supabase.from("pokok_doa_harian").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await sw(supabase.from("pokok_doa_harian").delete().neq("id", "00000000-0000-0000-0000-000000000000"))
       if (items.length > 0) {
         await supabase.from("pokok_doa_harian").insert(
           items.map((item, i) => ({ ...item, sort_order: i }))
@@ -1072,7 +1075,8 @@ export function useAyatNats() {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const { data: rows } = await supabase.from("ayat_nats").select("*").order("sort_order");
+    const { data: rows, error: _swErr } = await supabase.from("ayat_nats").select("*").order("sort_order");
+    if (_swErr) throw _swErr;
     setData({ items: (rows ?? []).map(rowToAyatNats) });
     setLoading(false);
   }, []);
@@ -1081,7 +1085,7 @@ export function useAyatNats() {
 
   const save = useCallback(async (next: AyatNats) => {
     try {
-      await supabase.from("ayat_nats").delete().neq("id", "SENTINEL");
+      await sw(supabase.from("ayat_nats").delete().neq("id", "SENTINEL"))
       if (next.items.length > 0) {
         await supabase.from("ayat_nats").insert(
           next.items.map((item, i) => ({
@@ -1177,12 +1181,12 @@ export function useAyatNatsSchedule() {
 
   const save = useCallback(async (next: AyatNatsDailySchedule) => {
     try {
-      await supabase.from("ayat_nats_schedule").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await sw(supabase.from("ayat_nats_schedule").delete().neq("id", "00000000-0000-0000-0000-000000000000"))
       const rows: any[] = [];
       for (const [dateKey, ids] of Object.entries(next.schedule)) {
         ids.forEach((id, i) => rows.push({ date_key: dateKey, ayat_nats_id: id, sort_order: i }));
       }
-      if (rows.length > 0) await supabase.from("ayat_nats_schedule").insert(rows);
+      if (rows.length > 0) await sw(supabase.from("ayat_nats_schedule").insert(rows))
       setData(next);
     } catch (e) {
       console.error("[useAyatNatsSchedule] save error:", e);
@@ -1207,7 +1211,7 @@ export function useAyatNatsSchedule() {
       }
       // Persist async
       (async () => {
-        await supabase.from("ayat_nats_schedule").delete().eq("date_key", dateKey);
+        await sw(supabase.from("ayat_nats_schedule").delete().eq("date_key", dateKey))
         const ids = next.schedule[dateKey] ?? [];
         if (ids.length > 0) {
           await supabase.from("ayat_nats_schedule").insert(
@@ -1258,12 +1262,13 @@ async function loadBibleReadingsByKey(dateKey: string): Promise<BibleReading[]> 
 
 async function saveBibleReadingsByKey(dateKey: string, items: BibleReading[]): Promise<void> {
   // Hapus readings lama untuk date_key ini
-  const { data: old } = await supabase.from("bible_readings").select("id").eq("date_key", dateKey);
+  const { data: old, error: _swErr } = await supabase.from("bible_readings").select("id").eq("date_key", dateKey);
+  if (_swErr) throw _swErr;
   if (old && old.length > 0) {
     const ids = (old as any[]).map((r) => r.id);
-    await supabase.from("bible_reading_verses").delete().in("reading_id", ids);
-    await supabase.from("bible_reading_cross_refs").delete().in("reading_id", ids);
-    await supabase.from("bible_readings").delete().eq("date_key", dateKey);
+    await sw(supabase.from("bible_reading_verses").delete().in("reading_id", ids))
+    await sw(supabase.from("bible_reading_cross_refs").delete().in("reading_id", ids))
+    await sw(supabase.from("bible_readings").delete().eq("date_key", dateKey))
   }
 
   if (items.length === 0) return;

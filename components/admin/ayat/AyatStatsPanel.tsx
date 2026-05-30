@@ -3,11 +3,11 @@
 /**
  * AyatStatsPanel
  * Panel statistik REALTIME untuk halaman Admin Ayat.
- * Menggunakan subscribeDoc (onSnapshot) — update otomatis tanpa refresh.
+ * Menggunakan Supabase Realtime — update otomatis tanpa refresh.
  */
 
 import React, { useState, useEffect, useRef } from "react";
-import { subscribeDoc } from "@/lib/firestore";
+import { supabase } from "@/lib/supabase";
 import type { AyatKhusus, AyatNats, AyatNatsDailySchedule } from "@/lib/hooks/useSupabaseData";
 import {
   BarChart2, CheckCircle2, XCircle, Minus,
@@ -48,17 +48,15 @@ function sundaysOfCurrentMonth(): string[] {
 
 // ─── Realtime hook ────────────────────────────────────────────────────────────
 
-const DEFAULT_KHUSUS: AyatKhusus           = {};
-const DEFAULT_NATS:   AyatNats             = { items: [] };
-const DEFAULT_SCHED:  AyatNatsDailySchedule = { schedule: {} };
+const DEFAULT_KHUSUS: AyatKhusus = {};
+const DEFAULT_NATS:   AyatNats   = { items: [] };
 
 function useAyatStatsRealtime() {
-  const [khusus,   setKhusus]   = useState<AyatKhusus>(DEFAULT_KHUSUS);
-  const [nats,     setNats]     = useState<AyatNats>(DEFAULT_NATS);
-  const [schedule, setSchedule] = useState<AyatNatsDailySchedule>(DEFAULT_SCHED);
+  const [khusus,     setKhusus]     = useState<AyatKhusus>(DEFAULT_KHUSUS);
+  const [nats,       setNats]       = useState<AyatNats>(DEFAULT_NATS);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const loaded  = useRef({ khu: false, nats: false, sched: false });
+  const loaded  = useRef({ khu: false, nats: false });
   const [loading, setLoading] = useState(true);
 
   const markLoaded = (key: keyof typeof loaded.current) => {
@@ -67,51 +65,92 @@ function useAyatStatsRealtime() {
     setLastUpdated(new Date());
   };
 
+  // ─── Load ayat_khusus dari 4 tabel Supabase ─────────────────────────────
+  const loadKhusus = async () => {
+    const [
+      { data: tahun },
+      { data: bulanRows },
+      { data: harianRows },
+      { data: mingguanRows },
+    ] = await Promise.all([
+      supabase.from("ayat_khusus_tahun").select("*").eq("id", "current").maybeSingle(),
+      supabase.from("ayat_khusus_bulan").select("*").order("month"),
+      supabase.from("ayat_khusus_harian").select("*").order("date_key"),
+      supabase.from("ayat_khusus_mingguan").select("*").order("date_key"),
+    ]);
+
+    const bulan: Record<string, { reference: string; text: string }> = {};
+    for (const row of (bulanRows ?? [])) {
+      bulan[String(row.month)] = { reference: row.reference, text: row.text };
+    }
+    const harian: Record<string, { reference: string; text: string }> = {};
+    for (const row of (harianRows ?? [])) {
+      harian[row.date_key] = { reference: row.reference, text: row.text };
+    }
+    const mingguan: Record<string, { reference: string; text: string }> = {};
+    for (const row of (mingguanRows ?? [])) {
+      mingguan[row.date_key] = { reference: row.reference, text: row.text };
+    }
+
+    setKhusus({
+      tahun:    tahun?.year ? { year: tahun.year, reference: tahun.reference, text: tahun.text } : undefined,
+      bulan:    Object.keys(bulan).length    > 0 ? bulan    : undefined,
+      harian:   Object.keys(harian).length   > 0 ? harian   : undefined,
+      mingguan: Object.keys(mingguan).length > 0 ? mingguan : undefined,
+    });
+    markLoaded("khu");
+  };
+
+  // ─── Load ayat_nats pool ─────────────────────────────────────────────────
+  const loadNats = async () => {
+    const { data: rows } = await supabase
+      .from("ayat_nats")
+      .select("*")
+      .order("sort_order");
+
+    setNats({
+      items: (rows ?? []).map((r: any) => ({
+        id:        r.id,
+        reference: r.reference,
+        text:      r.text,
+        bookSlug:  r.book_slug  || undefined,
+        bookName:  r.book_name  || undefined,
+        chapter:   r.chapter    || undefined,
+        verseFrom: r.verse_from || undefined,
+        verseTo:   r.verse_to   || undefined,
+      })),
+    });
+    markLoaded("nats");
+  };
+
   useEffect(() => {
-    const unsubs: (() => void)[] = [];
+    // Initial load
+    loadKhusus();
+    loadNats();
 
-    // 1. ayat_khusus/current — harian, mingguan, bulan, tahun
-    unsubs.push(
-      subscribeDoc<AyatKhusus>("ayat_khusus", "current", DEFAULT_KHUSUS, (d) => {
-        setKhusus(d ?? DEFAULT_KHUSUS);
-        markLoaded("khu");
-      })
-    );
+    // Realtime: subscribe ke semua tabel ayat_khusus
+    const khususChannel = supabase
+      .channel("ayat_stats:khusus")
+      .on("postgres_changes", { event: "*", schema: "public", table: "ayat_khusus_tahun"   }, loadKhusus)
+      .on("postgres_changes", { event: "*", schema: "public", table: "ayat_khusus_bulan"   }, loadKhusus)
+      .on("postgres_changes", { event: "*", schema: "public", table: "ayat_khusus_harian"  }, loadKhusus)
+      .on("postgres_changes", { event: "*", schema: "public", table: "ayat_khusus_mingguan"}, loadKhusus)
+      .subscribe();
 
-    // 2. ayat_nats/current — pool of nats items
-    unsubs.push(
-      subscribeDoc<AyatNats>("ayat_nats", "current", DEFAULT_NATS, (d) => {
-        // backward-compat: doc lama mungkin tidak punya field `items`
-        const raw = d as any;
-        if (raw?.items) {
-          setNats(raw as AyatNats);
-        } else if (raw?.reference) {
-          setNats({ items: [{ id: "1", reference: raw.reference, text: raw.text ?? "" }] });
-        } else {
-          setNats(DEFAULT_NATS);
-        }
-        markLoaded("nats");
-      })
-    );
+    // Realtime: subscribe ke ayat_nats
+    const natsChannel = supabase
+      .channel("ayat_stats:nats")
+      .on("postgres_changes", { event: "*", schema: "public", table: "ayat_nats" }, loadNats)
+      .subscribe();
 
-    // 3. ayat_nats/daily_schedule — jadwal harian
-    unsubs.push(
-      subscribeDoc<AyatNatsDailySchedule>("ayat_nats", "daily_schedule", DEFAULT_SCHED, (d) => {
-        // backward-compat: normalise string → string[]
-        const raw = d?.schedule ?? {};
-        const norm: Record<string, string[]> = {};
-        for (const [k, v] of Object.entries(raw)) {
-          norm[k] = Array.isArray(v) ? v : [v as any];
-        }
-        setSchedule({ schedule: norm });
-        markLoaded("sched");
-      })
-    );
-
-    return () => unsubs.forEach((u) => u());
+    return () => {
+      supabase.removeChannel(khususChannel);
+      supabase.removeChannel(natsChannel);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { khusus, nats, schedule, loading, lastUpdated };
+  return { khusus, nats, loading, lastUpdated };
 }
 
 // ─── Sub-types ────────────────────────────────────────────────────────────────
@@ -432,7 +471,7 @@ export function AyatStatsPanel() {
             {/* Groups */}
             {loading ? (
               <div className="flex items-center gap-2 py-3 text-muted-foreground text-xs">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Menghubungkan ke Firestore...
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Menghubungkan ke Supabase...
               </div>
             ) : (
               allGroups.map((group) => <StatBlock key={group.id} group={group} />)
