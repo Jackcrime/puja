@@ -107,14 +107,14 @@ export default function AdminMinistries() {
               </p>
               {!loading && (
                 <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 px-2 py-0.5 rounded-full font-semibold">
-                  Live Firestore
+                  Live Supabase
                 </span>
               )}
             </div>
 
             {loading ? (
               <div className="flex items-center gap-3 text-muted-foreground py-10">
-                <Loader2 className="h-5 w-5 animate-spin" /> Memuat dari Firestore...
+                <Loader2 className="h-5 w-5 animate-spin" /> Memuat data...
               </div>
             ) : (
               <DataTable

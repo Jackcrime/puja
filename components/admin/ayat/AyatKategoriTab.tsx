@@ -514,7 +514,7 @@ export function AyatKategoriTab() {
       <div className="mb-4 flex items-center gap-3">
         {loading ? (
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
-            <Loader2 className="h-4 w-4 animate-spin" /> Memuat dari Firestore...
+            <Loader2 className="h-4 w-4 animate-spin" /> Memuat data...
           </div>
         ) : (
           <>
@@ -525,7 +525,7 @@ export function AyatKategoriTab() {
               </span>
             ) : (
               <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 px-2 py-0.5 rounded-full font-semibold">
-                Live Firestore
+                Live Supabase
               </span>
             )}
           </>

@@ -173,7 +173,7 @@ export default function AdminPenulis() {
   const handleSubmit = async () => {
     const isEdit = !!editing;
     if (pendingDeleteUrl) {
-      await deleteFileByUrl(pendingDeleteUrl);
+      try { await deleteFileByUrl(pendingDeleteUrl); } catch { /* tidak kritis */ }
       setPendingDeleteUrl("");
     }
     const next = isEdit
@@ -186,16 +186,14 @@ export default function AdminPenulis() {
 
   const handleDelete = async () => {
     if (!target) return;
-    const deletedCode    = target.code;
-    const deletedName    = target.name;
+    const deletedCode     = target.code ?? target.id;
+    const deletedName     = target.name;
     const deletedPhotoUrl = target.photoUrl;
     setTarget(null);
     try {
-      // Hapus foto dari Supabase Storage dulu (kalau ada), tapi jangan block delete author
       if (deletedPhotoUrl) {
         try { await deleteFileByUrl(deletedPhotoUrl); } catch { /* foto tidak kritis */ }
       }
-      // Hapus author beserta relasi (titles + service history)
       await removeAuthor(deletedCode);
       showToast.success(`Penulis "${deletedName}" berhasil dihapus.`);
     } catch {
@@ -432,14 +430,11 @@ export default function AdminPenulis() {
                   Foto Penulis (opsional)
                 </p>
                 <FileUploader
-                  endpoint="imageUploader"
-                  label=""
-                  accept="image/jpeg,image/png,image/webp"
-                  isImage
+                  folder="images"
                   currentUrl={form.photoUrl}
-                  onUploadComplete={(res) => {
+                  onUploadDone={(url) => {
                     if (form.photoUrl) setPendingDeleteUrl(form.photoUrl);
-                    setForm((f) => ({ ...f, photoUrl: res.url }));
+                    setForm((f) => ({ ...f, photoUrl: url }));
                   }}
                   onRemove={() => {
                     if (form.photoUrl) setPendingDeleteUrl(form.photoUrl);
@@ -479,4 +474,4 @@ export default function AdminPenulis() {
       </AdminLayout>
     </AdminGuard>
   );
-} 
+}

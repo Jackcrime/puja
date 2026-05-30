@@ -70,7 +70,7 @@ export default function AdminPustaka() {
 
   const handleSubmit = async () => {
     const isEdit = !!editing;
-    // Hapus file lama dari Supabase Storage setelah user klik Save
+    // Baru hapus file lama dari UploadThing setelah user klik Save
     if (pendingDeleteUrl) {
       try { await deleteFileByUrl(pendingDeleteUrl); } catch { /* tidak kritis */ }
       setPendingDeleteUrl("");
@@ -97,7 +97,6 @@ export default function AdminPustaka() {
     const deletedFileUrl = target.fileUrl;
     setTarget(null);
     try {
-      // Hapus file dari Supabase Storage dulu (non-blocking kalau gagal)
       if (deletedFileUrl) {
         try { await deleteFileByUrl(deletedFileUrl); } catch { /* file tidak kritis */ }
       }
@@ -212,26 +211,21 @@ export default function AdminPustaka() {
           onChange={(k, v) => setForm((f: any) => ({ ...f, [k]: v }))}
           onSubmit={handleSubmit}
         >
-          {/* Upload PDF via Uploadthing */}
+          {/* Upload PDF via Supabase Storage */}
           <div className="mt-1">
             <FileUploader
-              endpoint="pustakaUploader"
-              label="File PDF (Uploadthing — gratis)"
-              accept=".pdf,application/pdf"
+              folder="pustaka"
+              label="File PDF"
               currentUrl={form.fileUrl}
-              currentName={form.fileStoragePath}
-              onUploadComplete={(result) => {
-                // Kalau ada file lama (ganti file), tandai untuk dihapus saat save
+              onUploadDone={(url, path) => {
                 if (form.fileUrl) setPendingDeleteUrl(form.fileUrl);
                 setForm((f: any) => ({
                   ...f,
-                  fileUrl:         result.url,
-                  fileStoragePath: result.name,
+                  fileUrl:         url,
+                  fileStoragePath: path,
                 }));
               }}
               onRemove={() => {
-                // Tandai untuk dihapus saat save — jangan langsung hapus
-                // supaya kalau user cancel, file asli aman
                 if (form.fileUrl) setPendingDeleteUrl(form.fileUrl);
                 setForm((f: any) => ({ ...f, fileUrl: "", fileStoragePath: "" }));
               }}

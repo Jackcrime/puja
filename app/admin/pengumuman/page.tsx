@@ -215,7 +215,7 @@ export default function AdminPengumuman() {
         <div className="max-w-5xl">
           {loading ? (
             <div className="flex items-center gap-3 text-muted-foreground py-8">
-              <Loader2 className="h-5 w-5 animate-spin" /> Memuat dari Firestore...
+              <Loader2 className="h-5 w-5 animate-spin" /> Memuat pengumuman...
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
@@ -226,10 +226,10 @@ export default function AdminPengumuman() {
                   <div className="flex items-center gap-2 mb-1">
                     <Megaphone className="h-4 w-4" style={{ color: "var(--gold)" }} />
                     <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--gold)" }}>Banner Pengumuman</p>
-                    <span className="ml-auto text-xs bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 px-2 py-0.5 rounded-full font-semibold">Live Firestore</span>
+                    <span className="ml-auto text-xs bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 px-2 py-0.5 rounded-full font-semibold">Live Supabase</span>
                   </div>
 
-                  {/* Pengumuman aktif di Firestore */}
+                  {/* Pengumuman aktif */}
                   {data.text && (
                     <div className="rounded-xl px-3 py-2.5 border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
                       <p className="text-[10px] font-bold uppercase tracking-wider mb-1 text-amber-700 dark:text-amber-400">
@@ -285,7 +285,7 @@ export default function AdminPengumuman() {
                     >
                       {saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Menyimpan...</>
                         : saved ? <><Check className="h-4 w-4" /> Tersimpan!</>
-                        : <><Save className="h-4 w-4" /> Simpan ke Firestore</>}
+                        : <><Save className="h-4 w-4" /> Simpan ke Supabase</>}
                     </button>
                     <button
                       onClick={() => { setText(""); setLink(""); }}

@@ -1,7 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRealtimeStats } from "@/lib/hooks/useRealtimeStats";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  useDevotional,
+  useMazmurMinggu,
+  useBahanKhotbah,
+  usePokokDoaHarian,
+  useAuthors,
+  useBibleReadings,
+  type PokokDoa,
+  type BibleReading,
+} from "@/lib/hooks/useSupabaseData";
 import {
   CheckCircle2, XCircle, Loader2, BookOpen, Music,
   Minus,
@@ -156,10 +165,30 @@ interface RenunganStatsPanelProps {
 }
 
 export function RenunganStatsPanel({ selectedDate }: RenunganStatsPanelProps = {}) {
-  const { devotional: dev, mazmur, khotbah, pokdoa, authors, bibleReadings, loading, lastUpdated } = useRealtimeStats(selectedDate);
+  const date = selectedDate ?? new Date();
+
+  // ── Data dari hook Supabase masing-masing ────────────────────────────────
+  const { data: dev,          loading: l1 } = useDevotional(date);
+  const { data: mazmur,       loading: l2 } = useMazmurMinggu(date);
+  const { data: khotbah,      loading: l3 } = useBahanKhotbah(date);
+  const { data: pokdoa,       loading: l4 } = usePokokDoaHarian();
+  const { data: authorsDict,  loading: l5 } = useAuthors();
+  const { data: bibleReadings, loading: l6 } = useBibleReadings(date);
+
+  const loading     = l1 || l2 || l3 || l4 || l5 || l6;
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Catat kapan terakhir semua data selesai dimuat
+  const prevLoading = useRef(true);
+  useEffect(() => {
+    if (prevLoading.current && !loading) setLastUpdated(new Date());
+    prevLoading.current = loading;
+  }, [loading]);
+
+  const authors = authorsDict ?? {};
 
   const authorName = (() => {
-    if (!dev.authorCode) return undefined;
+    if (!dev?.authorCode) return undefined;
     const a = (authors as any)[dev.authorCode];
     return a ? `${a.title ? a.title + " " : ""}${a.name}` : dev.authorCode;
   })();
@@ -169,11 +198,11 @@ export function RenunganStatsPanel({ selectedDate }: RenunganStatsPanelProps = {
   const renunganGroup: StatGroup = {
     id: "renungan", title: "Renungan Harian", icon: BookOpen, color: "var(--brand)",
     rows: [
-      { label: "Judul",       filled: !!dev.title?.trim(),      detail: dev.title?.slice(0, 20) },
-      { label: "Penulis",     filled: !!dev.authorCode?.trim(), detail: authorName },
-      { label: "Isi",         filled: !!dev.body?.trim(),       detail: dev.body?.trim() ? `${dev.body.split(" ").length} kata` : undefined },
-      { label: "Doa Penutup", filled: !!dev.prayer?.trim(),     detail: dev.prayer?.trim() ? `${dev.prayer.split(" ").length} kata` : undefined },
-      { label: "Audio",       filled: !!dev.audioUrl?.trim(),   detail: dev.audioUrl?.trim() ? "Terupload" : undefined },
+      { label: "Judul",       filled: !!dev?.title?.trim(),      detail: dev?.title?.slice(0, 20) },
+      { label: "Penulis",     filled: !!dev?.authorCode?.trim(), detail: authorName },
+      { label: "Isi",         filled: !!dev?.body?.trim(),       detail: dev?.body?.trim() ? `${dev.body.split(" ").length} kata` : undefined },
+      { label: "Doa Penutup", filled: !!dev?.prayer?.trim(),     detail: dev?.prayer?.trim() ? `${dev.prayer.split(" ").length} kata` : undefined },
+      { label: "Audio",       filled: !!dev?.audioUrl?.trim(),   detail: dev?.audioUrl?.trim() ? "Terupload" : undefined },
     ],
   };
 
@@ -198,7 +227,7 @@ export function RenunganStatsPanel({ selectedDate }: RenunganStatsPanelProps = {
   const pokdoaGroup: StatGroup = {
     id: "pokdoa", title: "Pokok Doa", icon: HandHeart, color: "#0891b2",
     rows: HARI.map((hari) => {
-      const entry = pokdoa.find((d) => d.hari === hari);
+      const entry = pokdoa.find((d: PokokDoa) => d.hari === hari);
       return { label: hari, filled: !!(entry?.topik?.trim()), detail: entry?.topik?.slice(0, 16) };
     }),
   };
@@ -206,7 +235,7 @@ export function RenunganStatsPanel({ selectedDate }: RenunganStatsPanelProps = {
   const bacaanAlkitabGroup: StatGroup = {
     id: "bacaan-alkitab", title: "Bacaan Alkitab", icon: BookOpen, color: "#16a34a",
     rows: bibleReadings.length > 0
-      ? bibleReadings.map((r, i) => ({
+      ? bibleReadings.map((r: BibleReading, i: number) => ({
           label:  `Bacaan ${i + 1}`,
           filled: !!(r.reference?.trim()),
           detail: r.reference?.slice(0, 20) || undefined,
@@ -275,7 +304,7 @@ export function RenunganStatsPanel({ selectedDate }: RenunganStatsPanelProps = {
       {/* Groups */}
       {loading ? (
         <div className="flex items-center gap-2 py-3 text-muted-foreground text-xs">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Menghubungkan ke Firestore...
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Menghubungkan ke Supabase...
         </div>
       ) : (
         allGroups.map((group) => (
