@@ -405,7 +405,22 @@ export function useAuthors() {
     }
   }, []);
 
-  return { data, loading, save };
+  // ── remove: hapus satu author by code (lebih aman dari "clear all") ─────
+  const remove = useCallback(async (code: string) => {
+    try {
+      // Hapus relasi dulu (foreign key), baru parent
+      await sw(supabase.from("author_service_history").delete().eq("author_code", code))
+      await sw(supabase.from("author_titles").delete().eq("author_code", code))
+      await sw(supabase.from("authors").delete().eq("code", code))
+      await load();
+    } catch (e) {
+      console.error("[useAuthors] remove error:", e);
+      toast.error("Gagal menghapus penulis. Coba lagi.");
+      throw e; // re-throw supaya caller bisa catch
+    }
+  }, [load]);
+
+  return { data, loading, save, remove };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -696,7 +711,7 @@ export function useAyatKhusus() {
         );
       }
 
-      // Bulan (upsert per bulan)
+      // Bulan (upsert per bulan — bulan tidak dihapus via save, kelola manual)
       if (next.bulan) {
         for (const [monthStr, val] of Object.entries(next.bulan)) {
           await supabase.from("ayat_khusus_bulan").upsert(
@@ -706,22 +721,33 @@ export function useAyatKhusus() {
         }
       }
 
-      // Harian (upsert per tanggal)
-      if (next.harian) {
-        for (const [dateKey, val] of Object.entries(next.harian)) {
-          await supabase.from("ayat_khusus_harian").upsert(
-            { date_key: dateKey, reference: val.reference, text: val.text },
-            { onConflict: "date_key" }
+      // Harian — diff delete: hapus baris yang tidak ada di next.harian
+      {
+        const nextKeys  = Object.keys(next.harian  ?? {});
+        // Hapus semua lalu insert ulang (paling aman untuk replace-all pattern)
+        await supabase.from("ayat_khusus_harian").delete().neq("date_key", "__never__");
+        if (nextKeys.length > 0) {
+          await supabase.from("ayat_khusus_harian").insert(
+            nextKeys.map((dateKey) => ({
+              date_key:  dateKey,
+              reference: (next.harian![dateKey]).reference,
+              text:      (next.harian![dateKey]).text,
+            }))
           );
         }
       }
 
-      // Mingguan (upsert per minggu)
-      if (next.mingguan) {
-        for (const [dateKey, val] of Object.entries(next.mingguan)) {
-          await supabase.from("ayat_khusus_mingguan").upsert(
-            { date_key: dateKey, reference: val.reference, text: val.text },
-            { onConflict: "date_key" }
+      // Mingguan — sama, replace-all
+      {
+        const nextKeys  = Object.keys(next.mingguan ?? {});
+        await supabase.from("ayat_khusus_mingguan").delete().neq("date_key", "__never__");
+        if (nextKeys.length > 0) {
+          await supabase.from("ayat_khusus_mingguan").insert(
+            nextKeys.map((dateKey) => ({
+              date_key:  dateKey,
+              reference: (next.mingguan![dateKey]).reference,
+              text:      (next.mingguan![dateKey]).text,
+            }))
           );
         }
       }

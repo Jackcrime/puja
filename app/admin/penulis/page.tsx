@@ -8,7 +8,7 @@ import { DataTable } from "@/components/admin/DataTable";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { FileUploader } from "@/components/admin/FileUploader";
 import { useAuthors, useMinistries, type Author, type ServiceEntry } from "@/lib/hooks/useSupabaseData";
-import { deleteUploadThingFile } from "@/lib/uploadthing-client";
+import { deleteFileByUrl } from "@/lib/storage";
 import { TITLE_OPTIONS } from "@/lib/constants/authorOptions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, UserCircle, Plus, X, GripVertical } from "lucide-react";
@@ -121,7 +121,7 @@ function ServiceRow({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function AdminPenulis() {
-  const { data: authorsDict, loading: authLoading, save: saveDict } = useAuthors();
+  const { data: authorsDict, loading: authLoading, save: saveDict, remove: removeAuthor } = useAuthors();
   const { data: ministries,  loading: minLoading  }                 = useMinistries();
 
   const [authors, setAuthors] = useState<AuthorRow[]>([]);
@@ -173,7 +173,7 @@ export default function AdminPenulis() {
   const handleSubmit = async () => {
     const isEdit = !!editing;
     if (pendingDeleteUrl) {
-      await deleteUploadThingFile(pendingDeleteUrl);
+      await deleteFileByUrl(pendingDeleteUrl);
       setPendingDeleteUrl("");
     }
     const next = isEdit
@@ -186,13 +186,21 @@ export default function AdminPenulis() {
 
   const handleDelete = async () => {
     if (!target) return;
-    const deletedId = target.id;
-    const deletedName = target.name;
+    const deletedCode    = target.code;
+    const deletedName    = target.name;
     const deletedPhotoUrl = target.photoUrl;
     setTarget(null);
-    if (deletedPhotoUrl) await deleteUploadThingFile(deletedPhotoUrl);
-    await persist(authors.filter((a) => a.id !== deletedId));
-    showToast.success(`Penulis "${deletedName}" berhasil dihapus.`);
+    try {
+      // Hapus foto dari Supabase Storage dulu (kalau ada), tapi jangan block delete author
+      if (deletedPhotoUrl) {
+        try { await deleteFileByUrl(deletedPhotoUrl); } catch { /* foto tidak kritis */ }
+      }
+      // Hapus author beserta relasi (titles + service history)
+      await removeAuthor(deletedCode);
+      showToast.success(`Penulis "${deletedName}" berhasil dihapus.`);
+    } catch {
+      showToast.error("Gagal menghapus penulis. Coba lagi.");
+    }
   };
 
   // ─── Service history helpers ───────────────────────────────────────────────
@@ -247,14 +255,14 @@ export default function AdminPenulis() {
           )}
           {!loading && !saving && (
             <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 px-2 py-0.5 rounded-full font-semibold">
-              Live Firestore
+              Live Supabase
             </span>
           )}
         </div>
 
         {loading ? (
           <div className="flex items-center gap-3 text-muted-foreground py-10">
-            <Loader2 className="h-5 w-5 animate-spin" /> Memuat dari Firestore...
+            <Loader2 className="h-5 w-5 animate-spin" /> Memuat data penulis...
           </div>
         ) : (
           <DataTable
@@ -471,4 +479,4 @@ export default function AdminPenulis() {
       </AdminLayout>
     </AdminGuard>
   );
-}
+} 

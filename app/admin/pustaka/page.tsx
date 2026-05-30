@@ -8,7 +8,7 @@ import { FormModal } from "@/components/admin/FormModal";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { FileUploader } from "@/components/admin/FileUploader";
 import { usePustakaBooks, type PustakaBook } from "@/lib/hooks/useSupabaseData";
-import { deleteUploadThingFile } from "@/lib/uploadthing-client";
+import { deleteFileByUrl } from "@/lib/storage";
 import { Loader2, ExternalLink } from "lucide-react";
 import { showToast } from "@/lib/utils/toast";
 
@@ -70,9 +70,9 @@ export default function AdminPustaka() {
 
   const handleSubmit = async () => {
     const isEdit = !!editing;
-    // Baru hapus file lama dari UploadThing setelah user klik Save
+    // Hapus file lama dari Supabase Storage setelah user klik Save
     if (pendingDeleteUrl) {
-      await deleteUploadThingFile(pendingDeleteUrl);
+      try { await deleteFileByUrl(pendingDeleteUrl); } catch { /* tidak kritis */ }
       setPendingDeleteUrl("");
     }
     const entry = { ...form, pages: Number(form.pages), year: Number(form.year) };
@@ -97,7 +97,10 @@ export default function AdminPustaka() {
     const deletedFileUrl = target.fileUrl;
     setTarget(null);
     try {
-      if (deletedFileUrl) await deleteUploadThingFile(deletedFileUrl);
+      // Hapus file dari Supabase Storage dulu (non-blocking kalau gagal)
+      if (deletedFileUrl) {
+        try { await deleteFileByUrl(deletedFileUrl); } catch { /* file tidak kritis */ }
+      }
       await remove(deletedId);
       showToast.success(`Buku "${deletedTitle}" berhasil dihapus.`);
     } catch {
@@ -111,7 +114,7 @@ export default function AdminPustaka() {
 
         {loading ? (
           <div className="flex items-center gap-3 text-muted-foreground py-8">
-            <Loader2 className="h-5 w-5 animate-spin" /> Memuat dari Firestore...
+            <Loader2 className="h-5 w-5 animate-spin" /> Memuat pustaka digital...
           </div>
         ) : (
           <DataTable
