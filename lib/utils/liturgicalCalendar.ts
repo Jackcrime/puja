@@ -66,13 +66,13 @@ function getLastWeekdayOfMonth(year: number, month: number, weekday: number): Da
 
 // ─── Hitung Advent (Minggu 4 minggu sebelum Natal) ─────────────────────────
 function adventStart(year: number): Date {
-  const christmas = new Date(year, 11, 25); // 25 Des
-  const dayOfWeek = christmas.getDay(); // 0=Min
-  // Minggu pertama Advent = Minggu terdekat sebelum atau pada 3 Des
-  // = Minggu ke-4 sebelum Natal
-  const daysToSunday = dayOfWeek === 0 ? 0 : dayOfWeek;
-  const fourthSundayBefore = addDays(christmas, -(daysToSunday + 21));
-  return fourthSundayBefore;
+  const christmas = new Date(year, 11, 25);
+  const dayOfWeek = christmas.getDay(); // 0=Min, 1=Sen, ..., 6=Sab
+  // Bug fix: kalau Natal jatuh Minggu (dayOfWeek=0), formula lama salah return Dec 4.
+  // Harusnya: Adven I = 4 Minggu sebelum Natal = Christmas - 28 hari.
+  // Kalau bukan Minggu: mundur ke Minggu terdekat sebelumnya, lalu mundur 3 Minggu lagi.
+  const daysBack = dayOfWeek === 0 ? 28 : dayOfWeek + 21;
+  return addDays(christmas, -daysBack);
 }
 
 // ─── Cek apakah tanggal ada di musim tertentu ──────────────────────────────
@@ -126,11 +126,14 @@ export function getLiturgicalEvents(date: Date): LiturgicalEvent[] {
   // ── GKPB — Minggu Doa & Puasa (Minggu pertama Februari) ─────────────────
   const doaPuasaGKPB = getNthWeekdayOfMonth(year, 1, 0, 1);
 
-  // ── GKPB — Hari Zending / Misi Sedunia (Minggu terakhir Oktober) ─────────
-  const hariMisiGKPB = getLastWeekdayOfMonth(year, 9, 0);
+  // ── GKPB — Minggu Misi/Zending Sedunia (Minggu ke-2 Oktober) ────────────
+  // World Mission Sunday — ditempatkan minggu ke-2 Oktober agar tidak
+  // bentrok dengan Minggu Pemuda (akhir Oktober, dekat Sumpah Pemuda)
+  const hariMisiGKPB = getNthWeekdayOfMonth(year, 9, 0, 2);
 
-  // ── GKPB — Minggu Pemuda (Minggu ke-3 September) ─────────────────────────
-  const hariPemudaGKPB = getNthWeekdayOfMonth(year, 8, 0, 3);
+  // ── GKPB — Minggu Pemuda (Minggu terakhir Oktober, dekat Sumpah Pemuda 28 Okt) ──
+  // Sumpah Pemuda = 28 Oktober; Minggu terdekat = Minggu terakhir Oktober
+  const hariPemudaGKPB = getLastWeekdayOfMonth(year, 9, 0);
 
   // ── GKPB — Hari Wanita Gereja (Minggu pertama Maret) ─────────────────────
   const hariWanitaGKPB = getNthWeekdayOfMonth(year, 2, 0, 1);
@@ -249,6 +252,15 @@ export interface LiturgicalSeason {
 
 export function getLiturgicalSeason(date: Date): LiturgicalSeason {
   const year   = date.getFullYear();
+
+  // ── Fix: Jan 1–5 masih dalam Masa Natal tahun sebelumnya ─────────────────
+  // Masa Natal berlangsung 25 Des – 5 Jan (hari sebelum Epifani).
+  // Karena getLiturgicalSeason menghitung tahun dari date, kalender Natal
+  // tahun lalu tidak akan terdeteksi tanpa pengecekan khusus ini.
+  if (date.getMonth() === 0 && date.getDate() < 6) {
+    return { name: "Masa Natal", color: "#16a34a", darkColor: "#4ade80", emoji: "🎄" };
+  }
+
   const easter = easterDate(year);
   const advent = adventStart(year);
 

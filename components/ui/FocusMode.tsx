@@ -55,7 +55,7 @@ export function FocusMode({ title, authorCode, body, prayer, onExit }: FocusMode
                   className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
                   style={{ backgroundColor: "var(--brand)" }}
                 >
-                  {author.name?.[0] ?? authorCode[0]}
+                  {author?.name?.[0] ?? authorCode?.[0] ?? "?"}
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-semibold" style={{ color: "var(--brand)" }}>

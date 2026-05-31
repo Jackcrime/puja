@@ -69,7 +69,7 @@ export function PatchNotesSheet() {
 
       {/* Bottom sheet */}
       {open && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end">
+        <div className="fixed inset-0 z-[60] flex flex-col justify-end">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -158,8 +158,11 @@ export function PatchNotesSheet() {
               })}
             </div>
 
-            {/* Bottom safe area */}
-            <div className="shrink-0 pb-safe-or-4" />
+            {/* Bottom safe area — tambah ruang untuk BottomNav di mobile */}
+            <div
+              className="shrink-0 md:hidden"
+              style={{ height: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
+            />
           </div>
         </div>
       )}
