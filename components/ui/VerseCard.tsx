@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { Copy, Check, BookOpen } from "lucide-react";
+import { Copy, Check, BookOpen, Share2 } from "lucide-react";
 import { useI18n } from "@/lib/hooks/useI18n";
 import { parseReference } from "@/lib/bible-books";
 import { PerikopModal } from "@/components/ui/PerikopModal";
+import { shareVerseToWhatsApp } from "@/lib/utils/share";
 
 interface VerseCardProps {
   reference:    string;
@@ -42,6 +43,10 @@ export function VerseCard({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const shareWA = () => {
+    shareVerseToWhatsApp({ reference, text, label });
+  };
+
   return (
     <div className="border rounded-xl overflow-hidden flex flex-col bg-card" style={{ borderColor: "var(--border)" }}>
       {/* Accent stripe */}
@@ -64,16 +69,30 @@ export function VerseCard({
         {date && <p className="text-xs text-muted-foreground -mt-1">{date}</p>}
       </div>
 
-      {/* Footer sticky bottom */}
+      {/* Footer */}
       <div className="flex items-center justify-between gap-2 px-5 py-3 border-t" style={{ borderColor: "var(--border)" }}>
-        <button
-          onClick={copy}
-          className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {copied
-            ? <><Check className="h-3.5 w-3.5 text-green-600" /> {t("common.copied")}</>
-            : <><Copy className="h-3.5 w-3.5" /> {t("common.copy")}</>}
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Copy */}
+          <button
+            onClick={copy}
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {copied
+              ? <><Check className="h-3.5 w-3.5 text-green-600" /> {t("common.copied")}</>
+              : <><Copy className="h-3.5 w-3.5" /> {t("common.copy")}</>}
+          </button>
+
+          {/* Share WhatsApp */}
+          <button
+            onClick={shareWA}
+            title="Bagikan ke WhatsApp"
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            WA
+          </button>
+        </div>
+
         {parsed && (
           <button
             onClick={() => setPerikopOpen(true)}

@@ -11,13 +11,16 @@ import { BahanKhotbahSection } from "@/components/pujidanjanji/BahanKhotbahSecti
 import { PokokDoaSection }     from "@/components/pujidanjanji/PokokDoaSection";
 import { ReadingCollapse }     from "@/components/pujidanjanji/ReadingCollapse";
 import { SectionDivider }      from "@/components/shared/SectionDivider";
-import { CalendarDays, ChevronRight, Copy, Check, BookOpen, ScrollText, Loader2 } from "lucide-react";
+import { CalendarDays, ChevronRight, Copy, Check, BookOpen, ScrollText, Loader2, ExternalLink } from "lucide-react";
 import {
   useBibleReadings, useAyatKhusus,
 } from "@/lib/hooks/useSupabaseData";
 import { useI18n } from "@/lib/hooks/useI18n";
 import { useDate } from "@/lib/context/DateContext";
 import { getLiturgicalEvents, getLiturgicalSeason } from "@/lib/utils/liturgicalCalendar";
+
+// TODO: ganti dengan URL app Alkitab GKPB setelah selesai dibangun
+const BIBLE_APP_URL = "https://alkitab.gkpb.id";
 import { useTheme } from "next-themes";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -196,6 +199,26 @@ export default function PujiDanJanji() {
             <ChevronRight className="h-6 w-6 text-muted-foreground" />
           </div>
         </Link>
+
+        {/* Tombol ke App Alkitab */}
+        <a href={BIBLE_APP_URL} target="_blank" rel="noopener noreferrer">
+          <div className="flex items-center justify-between p-5 rounded-xl border border-border bg-card hover:shadow-md hover:-translate-y-0.5 transition-all mt-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "var(--brand-muted)" }}>
+                <BookOpen className="h-4 w-4" style={{ color: "var(--brand)" }} />
+              </div>
+              <div>
+                <p className="text-xs font-bold tracking-widest uppercase mb-0.5" style={{ color: "var(--gold)" }}>
+                  Alkitab GKPB
+                </p>
+                <p className="font-serif font-bold text-base" style={{ color: "var(--brand)" }}>
+                  Buka Alkitab
+                </p>
+              </div>
+            </div>
+            <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+          </div>
+        </a>
       </div>
     </AppLayout>
   );

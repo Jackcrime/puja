@@ -9,8 +9,12 @@ import { SectionDivider }  from "@/components/shared/SectionDivider";
 import { ReadingCollapse } from "@/components/pujidanjanji/ReadingCollapse";
 import {
   Play, Pause, Headphones, BookOpen, Printer, Share2, Check,
-  Maximize2, Loader2, HandHeart,
+  Maximize2, Loader2, HandHeart, MessageCircle, ExternalLink,
 } from "lucide-react";
+import { shareDevotionalToWhatsApp } from "@/lib/utils/share";
+
+// TODO: ganti dengan URL app Alkitab GKPB setelah selesai dibangun
+const BIBLE_APP_URL = "https://alkitab.gkpb.id";
 import { useI18n } from "@/lib/hooks/useI18n";
 import { useDate } from "@/lib/context/DateContext";
 import { format, getDay } from "date-fns";
@@ -100,6 +104,14 @@ export default function JanjiHidup() {
     } catch {}
   };
 
+  const shareWA = () => {
+    shareDevotionalToWhatsApp({
+      title:       devotional.title,
+      bodyPreview: devotional.body,
+      date:        todayStr,
+    });
+  };
+
   // ── Focus mode ────────────────────────────────────────────────────────────
   if (focusMode) {
     return (
@@ -140,6 +152,15 @@ export default function JanjiHidup() {
             >
               <Maximize2 className="h-4 w-4" />
             </button>
+            {/* Share WhatsApp */}
+            <button
+              onClick={shareWA}
+              className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
+              title="Bagikan ke WhatsApp"
+            >
+              <MessageCircle className="h-4 w-4" />
+            </button>
+            {/* Share / Copy link */}
             <button
               onClick={share}
               className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
@@ -317,6 +338,26 @@ export default function JanjiHidup() {
             ))}
           </div>
         </section>
+
+        {/* Tombol ke App Alkitab */}
+        <a href={BIBLE_APP_URL} target="_blank" rel="noopener noreferrer">
+          <div className="flex items-center justify-between p-5 rounded-xl border border-border bg-card hover:shadow-md hover:-translate-y-0.5 transition-all">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "var(--brand-muted)" }}>
+                <BookOpen className="h-4 w-4" style={{ color: "var(--brand)" }} />
+              </div>
+              <div>
+                <p className="text-xs font-bold tracking-widest uppercase mb-0.5" style={{ color: "var(--gold)" }}>
+                  Alkitab GKPB
+                </p>
+                <p className="font-serif font-bold text-base" style={{ color: "var(--brand)" }}>
+                  Buka Alkitab
+                </p>
+              </div>
+            </div>
+            <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+          </div>
+        </a>
 
       </div>
     </AppLayout>
