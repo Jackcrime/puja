@@ -4,8 +4,8 @@
 // Menggantikan komponen lama yang pakai useUploadThing dari UploadThing.
 // Sekarang upload langsung ke Supabase Storage via browser SDK.
 
-import { useRef, useState, useCallback } from "react";
-import { uploadFileWithProgress, deleteFileByUrl } from "@/lib/storage";
+import { useRef, useState, useCallback, useEffect } from "react";
+import { uploadFileWithProgress } from "@/lib/storage";
 import { validateStorageFile, getStorageLabel, formatFileSize } from "@/lib/file-utils";
 import type { StorageFolder } from "@/lib/file-utils";
 import { cn } from "@/lib/utils";
@@ -35,6 +35,16 @@ export function FileUploader({
   const [error,     setError]     = useState<string | null>(null);
   const [preview,   setPreview]   = useState<string | null>(currentUrl ?? null);
 
+  // Sync preview ketika currentUrl berubah dari luar (misal buka modal author berbeda)
+  const prevUrlRef = useRef(currentUrl);
+  useEffect(() => {
+    if (prevUrlRef.current !== currentUrl) {
+      prevUrlRef.current = currentUrl;
+      setPreview(currentUrl ?? null);
+      setError(null);
+    }
+  }, [currentUrl]);
+
   const accept = folder === "pustaka"
     ? "application/pdf"
     : folder === "audio"
@@ -44,19 +54,15 @@ export function FileUploader({
   const handleFile = useCallback(async (file: File) => {
     setError(null);
 
-    // Validasi
+    // Validasi tipe & ukuran file
     const { valid, error: validErr } = validateStorageFile(file, folder);
     if (!valid) {
       setError(validErr ?? "File tidak valid.");
       return;
     }
 
-    // Hapus file lama dari storage kalau ada
-    if (preview && preview !== currentUrl) {
-      await deleteFileByUrl(preview).catch(() => null);
-    } else if (currentUrl) {
-      await deleteFileByUrl(currentUrl).catch(() => null);
-    }
+    // JANGAN hapus file lama di sini — biarkan parent urus via pendingDeleteUrl
+    // supaya kalau user cancel, file lama tetap aman
 
     setUploading(true);
     setProgress(0);
@@ -74,7 +80,7 @@ export function FileUploader({
       setUploading(false);
       setProgress(0);
     }
-  }, [folder, currentUrl, preview, onUploadDone]);
+  }, [folder, onUploadDone]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -88,8 +94,9 @@ export function FileUploader({
     if (file) handleFile(file);
   };
 
-  const handleRemove = async () => {
-    if (preview) await deleteFileByUrl(preview).catch(() => null);
+  const handleRemove = () => {
+    // Jangan hapus dari Storage langsung — parent urus via pendingDeleteUrl
+    // supaya kalau user cancel modal, file lama tetap aman
     setPreview(null);
     onRemove?.();
   };

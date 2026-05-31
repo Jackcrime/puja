@@ -49,10 +49,10 @@ const nextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],  // konversi otomatis ke format modern
     remotePatterns: [
-      // Uploadthing UFS storage (foto penulis, thumbnail, dll)
-      { protocol: "https", hostname: "utfs.io"    },
-      { protocol: "https", hostname: "*.ufs.sh"   },
-      { protocol: "https", hostname: "uploadthing.com" },
+      // Supabase Storage — foto penulis, thumbnail, dll (format: <project>.supabase.co)
+      { protocol: "https", hostname: "*.supabase.co"  },
+      // Supabase CDN / storage edge
+      { protocol: "https", hostname: "*.supabase.in"  },
     ],
   },
 
