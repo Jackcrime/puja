@@ -933,12 +933,12 @@ async function loadKhotbahByKey(dateKey: string): Promise<BahanKhotbah | null> {
   return {
     bookSlug:     row.book_slug,
     bookName:     row.book_name,
-    chapter:      row.chapter,
-    verseFrom:    row.verse_from,
-    verseTo:      row.verse_to,
+    chapter:      Number(row.chapter)    || 1,
+    verseFrom:    Number(row.verse_from) || 1,
+    verseTo:      Number(row.verse_to)   || Number(row.verse_from) || 1,
     reference:    row.reference,
     visible:      row.visible,
-    visibleFrom:  row.visible_from || undefined,
+    visibleFrom:  row.visible_from  || undefined,
     visibleUntil: row.visible_until || undefined,
     visibleDays:  days && days.length > 0 ? (days as any[]).map((d) => d.day_of_week) : undefined,
   };

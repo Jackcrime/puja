@@ -16,12 +16,18 @@ export function BahanKhotbahSection({ date }: { date?: Date }) {
   const [fetching, setFetching] = useState(false);
   const [copied,   setCopied]   = useState(false);
 
-  // Reset verses ketika data berubah (misal ganti minggu)
-  useEffect(() => { setVerses(null); setOpen(false); }, [data.bookSlug, data.chapter]);
+  const [apiError, setApiError] = useState(false);
+
+  // Reset state ketika data berubah (misal ganti minggu)
+  useEffect(() => {
+    setVerses(null);
+    setOpen(false);
+    setApiError(false);
+  }, [data.bookSlug, data.chapter]);
 
   if (loading) return null;
   if (data.visible === false) return null;
-  if (!data.bookSlug) return null;
+  if (!data.bookSlug || !data.chapter || !data.verseFrom || !data.verseTo) return null;
 
   // Cek hari tampil berdasarkan visibleDays (utama) — fallback ke legacy date range
   const dayOfWeek     = d.getDay();
@@ -39,14 +45,37 @@ export function BahanKhotbahSection({ date }: { date?: Date }) {
   const handleOpen = async () => {
     const next = !open;
     setOpen(next);
-    if (next && !verses && !fetching) {
-      setFetching(true);
-      try {
-        const url = `/api/bible?book=${data.bookSlug}&chapter=${data.chapter}&from=${data.verseFrom}&to=${data.verseTo}&lang=${lang}`;
-        const res = await fetch(url);
-        if (res.ok) setVerses(await res.json());
-      } catch { /* silent — tampilkan referensi saja */ }
-      finally { setFetching(false); }
+    if (!next || verses || fetching) return;
+
+    setFetching(true);
+    setApiError(false);
+    try {
+      const ch  = Number(data.chapter)   || 1;
+      const frm = Number(data.verseFrom) || 1;
+      const to  = Number(data.verseTo)   || frm;
+      const url = `/api/bible?book=${data.bookSlug}&chapter=${ch}&from=${frm}&to=${to}&lang=${lang}`;
+      const res = await fetch(url);
+      const json = await res.json();
+
+      if (!res.ok || json.error || !Array.isArray(json.verses)) {
+        setApiError(true);
+        return;
+      }
+
+      // Strip HTML tags dari teks ayat (beberapa sumber punya tags)
+      const clean: BiblePassageResponse = {
+        ...json,
+        verses: (json.verses as { verse: number; text: string }[]).map((v) => ({
+          verse: v.verse,
+          text:  String(v.text ?? "").replace(/<[^>]+>/g, "").trim(),
+        })),
+      };
+      setVerses(clean.verses.length > 0 ? clean : null);
+      if (clean.verses.length === 0) setApiError(true);
+    } catch {
+      setApiError(true);
+    } finally {
+      setFetching(false);
     }
   };
 
@@ -110,7 +139,7 @@ export function BahanKhotbahSection({ date }: { date?: Date }) {
                 <Loader2 className="h-4 w-4 animate-spin shrink-0" style={{ color: "var(--brand)" }} />
                 Memuat teks ayat...
               </div>
-            ) : verses ? (
+            ) : verses && verses.verses.length > 0 ? (
               <div className="px-5 pt-4 pb-2">
                 {/* Verse header badge */}
                 <div className="flex items-center gap-2 mb-3">
@@ -148,10 +177,38 @@ export function BahanKhotbahSection({ date }: { date?: Date }) {
                 </div>
               </div>
             ) : (
-              /* Fallback — API tidak tersedia */
-              <div className="px-5 py-4">
-                <p className="text-sm text-muted-foreground italic">{data.reference}</p>
-                <div className="flex justify-end pt-3 mt-2 border-t border-border">
+              /* Fallback — API gagal atau tidak tersedia */
+              <div className="px-5 py-4 space-y-3">
+                <p className="text-sm font-semibold" style={{ color: "var(--brand)" }}>
+                  {data.reference}
+                </p>
+                {apiError && (
+                  <p className="text-xs text-muted-foreground">
+                    Teks ayat tidak dapat dimuat. Baca langsung di:
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href={`https://alkitab.sabda.org/passage/?passage=${encodeURIComponent(data.reference)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border hover:bg-muted transition-colors"
+                    style={{ color: "var(--brand)" }}
+                  >
+                    <BookOpen className="h-3 w-3" />
+                    Baca di SABDA
+                  </a>
+                  <a
+                    href={`https://www.bible.com/id/bible/306/${data.bookSlug?.toUpperCase()}.${data.chapter}.TB`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border hover:bg-muted transition-colors text-muted-foreground"
+                  >
+                    <BookOpen className="h-3 w-3" />
+                    Baca di Bible.com
+                  </a>
+                </div>
+                <div className="flex justify-end pt-2 border-t border-border">
                   <button
                     onClick={handleCopy}
                     className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
