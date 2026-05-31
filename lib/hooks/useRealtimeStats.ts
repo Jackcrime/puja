@@ -17,21 +17,22 @@ export function useRealtimeStats(): RealtimeStats {
 
   useEffect(() => {
     const today = dateKey();
+    let cancelled = false;
 
-    // Baca awal
     async function fetchToday() {
       const { data } = await supabase
         .from("page_visits")
         .select("count")
         .eq("date_key", today)
         .maybeSingle();
-      setTodayCount(data?.count ?? 0);
-      setLoading(false);
+      if (!cancelled) {
+        setTodayCount(data?.count ?? 0);
+        setLoading(false);
+      }
     }
 
     fetchToday();
 
-    // Realtime subscribe — update langsung saat row berubah
     const channel = supabase
       .channel(`page_visits:today:${today}`)
       .on(
@@ -42,14 +43,28 @@ export function useRealtimeStats(): RealtimeStats {
           table:  "page_visits",
           filter: `date_key=eq.${today}`,
         },
-        (payload) => {
+        (payload: any) => {
+          if (cancelled) return;
+          // DELETE → row hilang, reset ke 0
+          if (payload.eventType === "DELETE") {
+            setTodayCount(0);
+            return;
+          }
           const row = payload.new as any;
-          if (row?.count !== undefined) setTodayCount(row.count);
+          // UPDATE/INSERT — pakai nilai dari payload, fallback re-fetch
+          if (row?.count !== undefined) {
+            setTodayCount(row.count);
+          } else {
+            fetchToday();
+          }
         }
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return { todayCount, loading };

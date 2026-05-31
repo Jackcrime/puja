@@ -5,7 +5,8 @@ import { Copy, Check, BookOpen, Share2 } from "lucide-react";
 import { useI18n } from "@/lib/hooks/useI18n";
 import { parseReference } from "@/lib/bible-books";
 import { PerikopModal } from "@/components/ui/PerikopModal";
-import { shareVerseToWhatsApp } from "@/lib/utils/share";
+import { ShareButton } from "@/components/ui/ShareSheet";
+import { buildVersePayload } from "@/lib/utils/share";
 
 interface VerseCardProps {
   reference:    string;
@@ -43,9 +44,7 @@ export function VerseCard({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const shareWA = () => {
-    shareVerseToWhatsApp({ reference, text, label });
-  };
+  const sharePayload = buildVersePayload({ reference, text, label });
 
   return (
     <div className="border rounded-xl overflow-hidden flex flex-col bg-card" style={{ borderColor: "var(--border)" }}>
@@ -82,15 +81,15 @@ export function VerseCard({
               : <><Copy className="h-3.5 w-3.5" /> {t("common.copy")}</>}
           </button>
 
-          {/* Share WhatsApp */}
-          <button
-            onClick={shareWA}
-            title="Bagikan ke WhatsApp"
+          {/* Share multi-platform */}
+          <ShareButton
+            payload={sharePayload}
+            title="Bagikan"
             className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
-            <Share2 className="h-3.5 w-3.5" />
-            WA
-          </button>
+            <Share2 className="h-4 w-4" />
+            Bagikan
+          </ShareButton>
         </div>
 
         {parsed && (

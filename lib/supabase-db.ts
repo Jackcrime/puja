@@ -138,25 +138,40 @@ export function subscribeRow<T>(
   onData:   (data: T) => void,
   idCol:    string = "id"
 ): () => void {
+  let cancelled = false;
+
   // Baca sekali dulu
-  readRow<T>(table, id, fallback, idCol).then(onData);
+  readRow<T>(table, id, fallback, idCol).then((data) => {
+    if (!cancelled) onData(data);
+  });
 
   const channel: RealtimeChannel = supabase
     .channel(`${table}:${idCol}=eq.${id}`)
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table, filter: `${idCol}=eq.${id}` },
-      (payload) => {
+      (payload: any) => {
+        if (cancelled) return;
         if (payload.eventType === "DELETE") {
+          // Row dihapus — kirim fallback (data kosong)
           onData(fallback);
+        } else if (payload.new && Object.keys(payload.new).length > 0) {
+          // UPDATE / INSERT — pakai payload langsung (lebih cepat dari re-fetch)
+          onData(payload.new as T);
         } else {
-          onData((payload.new as T) ?? fallback);
+          // Payload kosong (edge case) — re-fetch
+          readRow<T>(table, id, fallback, idCol).then((data) => {
+            if (!cancelled) onData(data);
+          });
         }
       }
     )
     .subscribe();
 
-  return () => { supabase.removeChannel(channel); };
+  return () => {
+    cancelled = true;
+    supabase.removeChannel(channel);
+  };
 }
 
 // ─── Realtime: subscribe ke seluruh collection ───────────────────────────────

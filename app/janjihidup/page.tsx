@@ -8,10 +8,11 @@ import { AyatNatsCard }    from "@/components/pujidanjanji/AyatNatsCard";
 import { SectionDivider }  from "@/components/shared/SectionDivider";
 import { ReadingCollapse } from "@/components/pujidanjanji/ReadingCollapse";
 import {
-  Play, Pause, Headphones, BookOpen, Printer, Share2, Check,
-  Maximize2, Loader2, HandHeart, MessageCircle, ExternalLink,
+  Play, Pause, Headphones, BookOpen, Printer,
+  Maximize2, Loader2, HandHeart, Share2, ExternalLink,
 } from "lucide-react";
-import { shareDevotionalToWhatsApp } from "@/lib/utils/share";
+import { ShareButton } from "@/components/ui/ShareSheet";
+import { buildDevotionalPayload } from "@/lib/utils/share";
 
 // TODO: ganti dengan URL app Alkitab GKPB setelah selesai dibangun
 const BIBLE_APP_URL = "https://alkitab.gkpb.id";
@@ -49,14 +50,19 @@ export default function JanjiHidup() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // ── UI state ──────────────────────────────────────────────────────────────
-  const [shared,      setShared]      = useState(false);
   const [authorOpen,  setAuthorOpen]  = useState(false);
   const [focusMode,   setFocusMode]   = useState(false);
-
+  
   // ── Derived ───────────────────────────────────────────────────────────────
   const todayStr = format(date, "EEEE, d MMMM yyyy", { locale: localeId });
   const author   = authors[devotional.authorCode as keyof typeof authors];
   const audioUrl = (devotional as any).audioUrl as string | undefined;
+  
+  const sharePayload = buildDevotionalPayload({
+    title: devotional.title,
+    body:  devotional.body,
+    date:  todayStr,
+  });
 
   // Pokok doa hari yang dipilih — cocokkan berdasarkan nama hari
   const hariIni      = NAMA_HARI[getDay(date)];
@@ -91,26 +97,6 @@ export default function JanjiHidup() {
     isFinite(s)
       ? `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`
       : "0:00";
-
-  const share = async () => {
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: devotional.title, url: window.location.href });
-      } else {
-        await navigator.clipboard.writeText(window.location.href);
-        setShared(true);
-        setTimeout(() => setShared(false), 2000);
-      }
-    } catch {}
-  };
-
-  const shareWA = () => {
-    shareDevotionalToWhatsApp({
-      title:       devotional.title,
-      bodyPreview: devotional.body,
-      date:        todayStr,
-    });
-  };
 
   // ── Focus mode ────────────────────────────────────────────────────────────
   if (focusMode) {
@@ -152,22 +138,14 @@ export default function JanjiHidup() {
             >
               <Maximize2 className="h-4 w-4" />
             </button>
-            {/* Share WhatsApp */}
-            <button
-              onClick={shareWA}
+            {/* Share multi-platform */}
+            <ShareButton
+              payload={sharePayload}
+              title="Bagikan"
               className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
-              title="Bagikan ke WhatsApp"
             >
-              <MessageCircle className="h-4 w-4" />
-            </button>
-            {/* Share / Copy link */}
-            <button
-              onClick={share}
-              className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
-              title={t("common.share")}
-            >
-              {shared ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
-            </button>
+              <Share2 className="h-4 w-4" />
+            </ShareButton>
             <button
               onClick={() => window.print()}
               className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors no-print"
