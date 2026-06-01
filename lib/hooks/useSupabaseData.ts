@@ -842,13 +842,15 @@ async function saveMazmurByKey(dateKey: string, next: MazmurMinggu): Promise<voi
   }
 }
 
-export function useMazmurMinggu(date?: Date) {
+export function useMazmurMinggu(date?: Date, { noFallback = false }: { noFallback?: boolean } = {}) {
   const [data, setData]       = useState<MazmurMinggu>(EMPTY_MAZMUR);
+  const [exists, setExists]   = useState(false);
   const [loading, setLoading] = useState(true);
   const dateKey = getSundayKey(date ?? new Date());
 
   useEffect(() => {
     setLoading(true);
+    setExists(false);
     let cancelled = false;
 
     (async () => {
@@ -857,9 +859,12 @@ export function useMazmurMinggu(date?: Date) {
         if (cancelled) return;
         if (byWeek) {
           setData(byWeek);
-        } else {
+          setExists(true);
+        } else if (!noFallback) {
           const current = await loadMazmurByKey("current");
           if (!cancelled) setData(current ?? EMPTY_MAZMUR);
+        } else {
+          if (!cancelled) setData(EMPTY_MAZMUR);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -867,7 +872,7 @@ export function useMazmurMinggu(date?: Date) {
     })();
 
     return () => { cancelled = true; };
-  }, [dateKey]);
+  }, [dateKey, noFallback]);
 
   const save = useCallback(async (next: MazmurMinggu, targetDate?: Date) => {
     const key = getSundayKey(targetDate ?? date ?? new Date());
@@ -899,7 +904,7 @@ export function useMazmurMinggu(date?: Date) {
     }
   }, [date]);
 
-  return { data, loading, save, clear, dateKey };
+  return { data, exists, loading, save, clear, dateKey };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -973,13 +978,15 @@ async function saveKhotbahByKey(dateKey: string, next: BahanKhotbah): Promise<vo
   }
 }
 
-export function useBahanKhotbah(date?: Date) {
+export function useBahanKhotbah(date?: Date, { noFallback = false }: { noFallback?: boolean } = {}) {
   const [data, setData]       = useState<BahanKhotbah>(EMPTY_BAHAN_KHOTBAH);
+  const [exists, setExists]   = useState(false);
   const [loading, setLoading] = useState(true);
   const dateKey = getSundayKey(date ?? new Date());
 
   useEffect(() => {
     setLoading(true);
+    setExists(false);
     let cancelled = false;
 
     (async () => {
@@ -988,9 +995,12 @@ export function useBahanKhotbah(date?: Date) {
         if (cancelled) return;
         if (byWeek) {
           setData(byWeek);
-        } else {
+          setExists(true);
+        } else if (!noFallback) {
           const current = await loadKhotbahByKey("current");
           if (!cancelled) setData(current ?? EMPTY_BAHAN_KHOTBAH);
+        } else {
+          if (!cancelled) setData(EMPTY_BAHAN_KHOTBAH);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -998,7 +1008,7 @@ export function useBahanKhotbah(date?: Date) {
     })();
 
     return () => { cancelled = true; };
-  }, [dateKey]);
+  }, [dateKey, noFallback]);
 
   const save = useCallback(async (next: BahanKhotbah, targetDate?: Date) => {
     const key = getSundayKey(targetDate ?? date ?? new Date());
@@ -1028,9 +1038,8 @@ export function useBahanKhotbah(date?: Date) {
     }
   }, [date]);
 
-  return { data, loading, save, clear, dateKey };
+  return { data, exists, loading, save, clear, dateKey };
 }
-
 // ═══════════════════════════════════════════════════════════════════════════
 // 14. POKOK DOA HARIAN
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1323,7 +1332,7 @@ async function saveBibleReadingsByKey(dateKey: string, items: BibleReading[]): P
   }
 }
 
-export function useBibleReadings(date?: Date) {
+export function useBibleReadings(date?: Date, { noFallback = false }: { noFallback?: boolean } = {}) {
   const [data, setData]       = useState<BibleReading[]>([]);
   const [loading, setLoading] = useState(true);
   const dateKey = date ? formatDateKey(date) : null;
@@ -1339,9 +1348,11 @@ export function useBibleReadings(date?: Date) {
           if (cancelled) return;
           if (byDate.length > 0) {
             setData(byDate);
-          } else {
+          } else if (!noFallback) {
             const current = await loadBibleReadingsByKey("current");
             if (!cancelled) setData(current);
+          } else {
+            if (!cancelled) setData([]);
           }
         } else {
           const current = await loadBibleReadingsByKey("current");
@@ -1353,7 +1364,7 @@ export function useBibleReadings(date?: Date) {
     })();
 
     return () => { cancelled = true; };
-  }, [dateKey]);
+  }, [dateKey, noFallback]);
 
   const save = useCallback(async (items: BibleReading[]) => {
     try {

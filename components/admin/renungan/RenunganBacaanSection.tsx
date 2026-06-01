@@ -7,13 +7,14 @@ import {
 import { BibleVerseSelector, emptySelection, type VerseSelection } from "@/components/admin/ayat/BibleVerseSelector";
 import { selToRef } from "@/lib/utils/adminAyat";
 import { uploadFileWithProgress, deleteFileByUrl } from "@/lib/storage";  // ← ganti dari uploadthing-client
+import { supabase } from "@/lib/supabase";
 import { showToast } from "@/lib/utils/toast";
 import { convertToWebM, browserSupportsWebM } from "@/lib/utils/audioConverter";
 import {
   BookOpen, CalendarDays, ChevronLeft, ChevronRight,
   Eye, EyeOff, Loader2, Music2, X, Upload, CheckCircle2, RefreshCw,
   Save, RotateCcw, Plus, Trash2, ChevronDown, ChevronUp,
-  GripVertical,
+  GripVertical, ShieldAlert, AlertTriangle,
 } from "lucide-react";
 import { INPUT_CLS, FieldLabel, SectionCard, SaveButton } from "./shared";
 import { AuthorPicker } from "./AuthorPicker";
@@ -350,6 +351,150 @@ function AudioUploadZone({ currentUrl, onUploaded, onRemove }: AudioUploadZonePr
         ref={inputRef} type="file" accept="audio/*" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
       />
+    </div>
+  );
+}
+
+// ─── Reset Total Modal ────────────────────────────────────────────────────────
+
+function ResetTotalModal({ onClose }: { onClose: () => void }) {
+  const [step,     setStep]     = useState<"warn" | "confirm" | "deleting" | "done">("warn");
+  const [inputVal, setInputVal] = useState("");
+  const [count,    setCount]    = useState<number | null>(null);
+  const CONFIRM_WORD = "HAPUS SEMUA";
+
+  React.useEffect(() => {
+    supabase
+      .from("devotional")
+      .select("date_key", { count: "exact", head: true })
+      .not("date_key", "eq", "current")
+      .then(({ count: c }) => setCount(c ?? 0));
+  }, []);
+
+  const handleDelete = async () => {
+    setStep("deleting");
+    try {
+      const { error } = await supabase.from("devotional").delete().not("date_key", "eq", "current");
+      if (error) throw error;
+      setStep("done");
+      showToast.success("Semua data renungan berhasil dihapus.");
+    } catch (e) {
+      console.error(e);
+      showToast.error("Gagal menghapus. Coba lagi.");
+      setStep("confirm");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={step !== "deleting" ? onClose : undefined} />
+      <div className="relative bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="h-4 w-4 text-red-500" />
+            <p className="text-sm font-bold text-red-600 dark:text-red-400">Reset Total Renungan</p>
+          </div>
+          {step !== "deleting" && (
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        <div className="p-5">
+          {step === "done" && (
+            <div className="flex flex-col items-center gap-3 py-4 text-center">
+              <CheckCircle2 className="h-10 w-10 text-green-500" />
+              <p className="font-semibold">Semua renungan berhasil dihapus.</p>
+              <p className="text-sm text-muted-foreground">Database bersih. Kamu bisa mulai mengisi ulang.</p>
+              <button onClick={onClose} className="mt-2 px-5 py-2 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "var(--brand)" }}>
+                Tutup
+              </button>
+            </div>
+          )}
+
+          {step === "deleting" && (
+            <div className="flex flex-col items-center gap-4 py-6">
+              <Loader2 className="h-8 w-8 animate-spin text-red-500" />
+              <p className="text-sm font-semibold text-red-600">Menghapus semua renungan...</p>
+            </div>
+          )}
+
+          {step === "warn" && (
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
+                <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+                <div className="space-y-1.5">
+                  <p className="text-sm font-bold text-red-700 dark:text-red-400">Peringatan — Tidak Bisa Dibatalkan</p>
+                  <p className="text-xs text-red-600 dark:text-red-500 leading-relaxed">
+                    Fitur ini akan menghapus <strong>seluruh data renungan</strong> dari database secara permanen.
+                    Row <code className="font-mono text-[10px]">current</code> tidak ikut dihapus.
+                  </p>
+                  <ul className="text-xs text-red-600 dark:text-red-500 space-y-0.5 list-disc list-inside">
+                    <li>Semua judul, isi, doa, audio renungan akan hilang</li>
+                    <li>Data tidak bisa dipulihkan kecuali ada backup</li>
+                    <li>Pastikan sudah export terlebih dahulu</li>
+                  </ul>
+                </div>
+              </div>
+              <div className="rounded-xl bg-muted/40 border border-border p-3 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Total renungan tersimpan</span>
+                <span className="text-sm font-bold" style={{ color: "var(--brand)" }}>
+                  {count === null ? "..." : `${count} renungan`}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-border hover:bg-muted transition-colors text-muted-foreground">
+                  Batal
+                </button>
+                <button
+                  onClick={() => setStep("confirm")}
+                  disabled={count === 0}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
+                  style={{ backgroundColor: "#dc262615", color: "#dc2626", border: "1px solid #dc262640" }}
+                >
+                  <ShieldAlert className="h-4 w-4" /> Lanjutkan
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === "confirm" && (
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
+                <ShieldAlert className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-red-700 dark:text-red-400">Konfirmasi Penghapusan</p>
+                  <p className="text-xs text-red-600 dark:text-red-500 leading-relaxed">
+                    Ketik <strong className="font-mono tracking-wider">{CONFIRM_WORD}</strong> untuk menghapus{" "}
+                    <strong>{count ?? "..."} renungan</strong> secara permanen.
+                  </p>
+                </div>
+              </div>
+              <input
+                value={inputVal}
+                onChange={(e) => setInputVal(e.target.value)}
+                placeholder={CONFIRM_WORD}
+                className="w-full px-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-1 focus:ring-red-400 font-mono tracking-wide"
+              />
+              <div className="flex gap-2">
+                <button onClick={() => { setStep("warn"); setInputVal(""); }} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-border hover:bg-muted transition-colors text-muted-foreground">
+                  Kembali
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={inputVal !== CONFIRM_WORD}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-40 hover:opacity-90"
+                  style={{ backgroundColor: "#dc2626" }}
+                >
+                  <Trash2 className="h-4 w-4" /> Hapus Semua
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -728,6 +873,7 @@ interface RenunganBacaanSectionProps {
 export function RenunganBacaanSection({ onDateChange }: RenunganBacaanSectionProps = {}) {
   const { date: globalDate } = useDate();
   const [selectedDate, setSelectedDate] = useState<Date>(globalDate ?? new Date());
+  const [resetOpen,    setResetOpen]    = useState(false);
 
   useEffect(() => { if (globalDate) setSelectedDate(globalDate); }, [globalDate]);
 
@@ -746,7 +892,16 @@ export function RenunganBacaanSection({ onDateChange }: RenunganBacaanSectionPro
         </div>
         <div className="flex items-center justify-between gap-4 flex-wrap w-full">
           <DayPicker date={selectedDate} onChange={handleDateChange} />
-          <RenunganImportExport onImported={() => setSelectedDate((d) => new Date(d))} />
+          <div className="flex items-center gap-2">
+            <RenunganImportExport onImported={() => setSelectedDate((d) => new Date(d))} />
+            <button
+              onClick={() => setResetOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-colors hover:bg-red-50 dark:hover:bg-red-950/20 border-red-300 dark:border-red-800 text-red-600 dark:text-red-400"
+              title="Hapus semua data renungan"
+            >
+              <ShieldAlert className="h-3.5 w-3.5" /> Reset Total
+            </button>
+          </div>
         </div>
         <p className="text-[10px] text-muted-foreground mt-1.5">
           Renungan dan bacaan disimpan per tanggal. Gunakan panah atau ikon kalender untuk berpindah hari.
@@ -755,6 +910,8 @@ export function RenunganBacaanSection({ onDateChange }: RenunganBacaanSectionPro
 
       <RenunganPart date={selectedDate} />
       <BacaanPart   date={selectedDate} />
+
+      {resetOpen && <ResetTotalModal onClose={() => setResetOpen(false)} />}
     </div>
   );
 }

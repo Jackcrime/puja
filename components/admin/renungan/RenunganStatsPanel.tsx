@@ -168,12 +168,12 @@ export function RenunganStatsPanel({ selectedDate }: RenunganStatsPanelProps = {
   const date = selectedDate ?? new Date();
 
   // ── Data dari hook Supabase masing-masing ────────────────────────────────
-  const { data: dev,          loading: l1 } = useDevotional(date);
-  const { data: mazmur,       loading: l2 } = useMazmurMinggu(date);
-  const { data: khotbah,      loading: l3 } = useBahanKhotbah(date);
+  const { data: dev,          loading: l1 } = useDevotional(date, { noFallback: true });
+  const { data: mazmur,       loading: l2 } = useMazmurMinggu(date, { noFallback: true });
+  const { data: khotbah,      loading: l3 } = useBahanKhotbah(date, { noFallback: true });
   const { data: pokdoa,       loading: l4 } = usePokokDoaHarian();
   const { data: authorsDict,  loading: l5 } = useAuthors();
-  const { data: bibleReadings, loading: l6 } = useBibleReadings(date);
+  const { data: bibleReadings, loading: l6 } = useBibleReadings(date, { noFallback: true });
 
   const loading     = l1 || l2 || l3 || l4 || l5 || l6;
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);

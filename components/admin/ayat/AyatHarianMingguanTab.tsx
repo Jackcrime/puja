@@ -528,16 +528,22 @@ function HarianPanel() {
 
 function MingguanPanel() {
   const { data, loading, save } = useAyatKhusus();
-  const [newEntries, setNewEntries] = useState<NewEntry[]>([]);
-  const [saving,     setSaving]     = useState(false);
-  const [showImport, setShowImport] = useState(false);
+  const [newEntries,   setNewEntries]   = useState<NewEntry[]>([]);
+  const [saving,       setSaving]       = useState(false);
+  const [showImport,   setShowImport]   = useState(false);
+  // Bulk-select state
+  const [selectMode,   setSelectMode]   = useState(false);
+  const [selected,     setSelected]     = useState<Set<string>>(new Set());
+  const [confirmBulk,  setConfirmBulk]  = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const today      = todayISO();
   const thisSunday = thisSundayISO();
-  const sundays    = generateSundays(3, 8); // 3 lalu + minggu ini + 8 mendatang
+  const sundays    = generateSundays(3, 8);
 
   const addEntry    = () => setNewEntries((e) => [...e, { date: thisSunday, sel: emptySelection() }]);
   const removeEntry = (i: number) => setNewEntries((e) => e.filter((_, idx) => idx !== i));
+  const exitSelect  = () => { setSelectMode(false); setSelected(new Set()); };
 
   const handleSave = async () => {
     if (newEntries.length === 0) { showToast.info("Tidak ada entry baru."); return; }
@@ -562,6 +568,20 @@ function MingguanPanel() {
     catch { showToast.error("Gagal menghapus."); }
   };
 
+  const handleBulkDelete = async () => {
+    if (selected.size === 0) return;
+    setBulkDeleting(true);
+    const next = { ...(data.mingguan ?? {}) };
+    selected.forEach((k) => delete next[k]);
+    try {
+      await save({ ...data, mingguan: next });
+      showToast.success(`${selected.size} ayat mingguan berhasil dihapus.`);
+      exitSelect();
+    } catch { showToast.error("Gagal menghapus."); }
+    setBulkDeleting(false);
+    setConfirmBulk(false);
+  };
+
   const handleImport = async (entries: Record<string, { reference: string; text: string }>) => {
     setSaving(true);
     try {
@@ -575,6 +595,17 @@ function MingguanPanel() {
 
   const mingguanSorted = Object.entries(data.mingguan ?? {}).sort(([a], [b]) => a.localeCompare(b));
   const currentWeek    = mingguanSorted.find(([k]) => k === thisSunday);
+  const allKeys        = mingguanSorted.map(([k]) => k);
+  const pastKeys       = allKeys.filter((k) => k < thisSunday);
+  const futureKeys     = allKeys.filter((k) => k > thisSunday);
+  const allChecked     = allKeys.length > 0 && allKeys.every((k) => selected.has(k));
+  const someChecked    = selected.size > 0 && !allChecked;
+
+  const toggleKey    = (k: string) => setSelected((prev) => { const next = new Set(prev); next.has(k) ? next.delete(k) : next.add(k); return next; });
+  const selectAll    = () => setSelected(new Set(allKeys));
+  const selectPast   = () => setSelected(new Set(pastKeys));
+  const selectFuture = () => setSelected(new Set(futureKeys));
+  const deselectAll  = () => setSelected(new Set());
 
   const EXAMPLE_MINGGUAN = {
     "2026-06-01": { reference: "Yohanes 15:5", text: "Akulah pokok anggur dan kamulah ranting-rantingnya." },
@@ -598,40 +629,109 @@ function MingguanPanel() {
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {mingguanSorted.length > 0 && (
-            <button onClick={() => exportJSON(data.mingguan!, `ayat-mingguan-${today}.json`)}
+          {mingguanSorted.length > 0 && !selectMode && (
+            <>
+              <button onClick={() => exportJSON(data.mingguan!, `ayat-mingguan-${today}.json`)}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-muted transition-colors"
+                style={{ color: "var(--brand)" }}
+              >
+                <Download className="h-3.5 w-3.5" /> Export
+              </button>
+              <button onClick={() => setSelectMode(true)}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border rounded-xl hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors border-red-300 dark:border-red-800 text-red-600 dark:text-red-400"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Hapus Massal
+              </button>
+            </>
+          )}
+          {!selectMode && (
+            <button onClick={() => setShowImport(true)}
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-muted transition-colors"
               style={{ color: "var(--brand)" }}
             >
-              <Download className="h-3.5 w-3.5" /> Export
+              <Upload className="h-3.5 w-3.5" /> Import JSON
             </button>
           )}
-          <button onClick={() => setShowImport(true)}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-muted transition-colors"
-            style={{ color: "var(--brand)" }}
-          >
-            <Upload className="h-3.5 w-3.5" /> Import JSON
-          </button>
+          {selectMode && (
+            <button onClick={exitSelect}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-muted transition-colors text-muted-foreground"
+            >
+              Batal
+            </button>
+          )}
         </div>
       </div>
 
       {/* Saved */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="flex items-center px-5 py-3 border-b border-border gap-2" style={{ backgroundColor: "var(--brand-muted)" }}>
-          <Sun className="h-4 w-4" style={{ color: "var(--brand)" }} />
-          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--brand)" }}>
-            Tersimpan ({mingguanSorted.length} minggu)
-          </p>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border gap-2" style={{ backgroundColor: "var(--brand-muted)" }}>
+          <div className="flex items-center gap-2">
+            {selectMode && (
+              <button
+                onClick={allChecked ? deselectAll : selectAll}
+                className="w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all"
+                style={{
+                  borderColor: allChecked || someChecked ? "var(--brand)" : "var(--border)",
+                  backgroundColor: allChecked ? "var(--brand)" : someChecked ? "var(--brand-muted)" : "transparent",
+                }}
+              >
+                {allChecked  && <span className="text-white text-[10px] font-black leading-none">✓</span>}
+                {someChecked && <span className="w-2 h-0.5 rounded-full" style={{ backgroundColor: "var(--brand)" }} />}
+              </button>
+            )}
+            <Sun className="h-4 w-4" style={{ color: "var(--brand)" }} />
+            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--brand)" }}>
+              {selectMode
+                ? selected.size > 0
+                  ? `${selected.size} dipilih dari ${mingguanSorted.length}`
+                  : `Pilih Minggu (${mingguanSorted.length} tersimpan)`
+                : `Tersimpan (${mingguanSorted.length} minggu)`}
+            </p>
+          </div>
+          {/* Quick-select shortcuts */}
+          {selectMode && mingguanSorted.length > 0 && (
+            <div className="flex items-center gap-1 flex-wrap">
+              {pastKeys.length > 0 && (
+                <button onClick={selectPast} className="text-[10px] font-semibold px-2 py-0.5 rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground">
+                  Lalu ({pastKeys.length})
+                </button>
+              )}
+              {futureKeys.length > 0 && (
+                <button onClick={selectFuture} className="text-[10px] font-semibold px-2 py-0.5 rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground">
+                  Mendatang ({futureKeys.length})
+                </button>
+              )}
+              {selected.size > 0 && (
+                <button onClick={deselectAll} className="text-[10px] font-semibold px-2 py-0.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
+                  Reset
+                </button>
+              )}
+            </div>
+          )}
         </div>
+
         {mingguanSorted.length === 0 ? (
           <div className="text-center py-8 text-xs text-muted-foreground">Belum ada ayat mingguan tersimpan.</div>
         ) : (
           <div className="divide-y divide-border">
             {mingguanSorted.map(([dateKey, val]) => {
-              const isThis   = dateKey === thisSunday;
-              const isFuture = dateKey > thisSunday;
+              const isThis    = dateKey === thisSunday;
+              const isFuture  = dateKey > thisSunday;
+              const isChecked = selected.has(dateKey);
               return (
-                <div key={dateKey} className={`flex items-start gap-3 px-4 py-3 ${isThis ? "bg-brand-muted/30" : ""}`}>
+                <div
+                  key={dateKey}
+                  onClick={selectMode ? () => toggleKey(dateKey) : undefined}
+                  className={`flex items-start gap-3 px-4 py-3 transition-colors ${selectMode ? "cursor-pointer hover:bg-muted/40" : ""} ${isThis && !isChecked ? "bg-brand-muted/30" : ""} ${isChecked ? "bg-red-50 dark:bg-red-950/15" : ""}`}
+                >
+                  {selectMode && (
+                    <div
+                      className="w-4 h-4 mt-0.5 rounded border-2 flex items-center justify-center shrink-0 transition-all"
+                      style={{ borderColor: isChecked ? "#dc2626" : "var(--border)", backgroundColor: isChecked ? "#dc2626" : "transparent" }}
+                    >
+                      {isChecked && <span className="text-white text-[10px] font-black leading-none">✓</span>}
+                    </div>
+                  )}
                   <div className="shrink-0 w-28">
                     <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold ${
                       isThis ? "text-white" : isFuture ? "bg-muted text-muted-foreground" : "bg-muted/50 text-muted-foreground/60"
@@ -646,17 +746,76 @@ function MingguanPanel() {
                     <p className="text-xs font-semibold mb-0.5" style={{ color: "var(--brand)" }}>{val.reference}</p>
                     <p className="text-xs text-muted-foreground line-clamp-2">{val.text}</p>
                   </div>
-                  <button onClick={() => handleDelete(dateKey)}
-                    className="shrink-0 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 text-red-400 hover:text-red-600 transition-colors"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  {!selectMode && (
+                    <button onClick={() => handleDelete(dateKey)}
+                      className="shrink-0 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 text-red-400 hover:text-red-600 transition-colors"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
               );
             })}
           </div>
         )}
+
+        {/* Sticky bulk-delete action bar */}
+        {selectMode && selected.size > 0 && (
+          <div className="sticky bottom-0 flex items-center justify-between gap-3 px-5 py-3 border-t border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20">
+            <p className="text-xs font-semibold text-red-700 dark:text-red-400">{selected.size} minggu dipilih</p>
+            <div className="flex items-center gap-2">
+              <button onClick={exitSelect} className="px-3 py-1.5 text-xs rounded-lg border border-border hover:bg-muted transition-colors text-muted-foreground">Batal</button>
+              <button
+                onClick={() => setConfirmBulk(true)}
+                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-lg text-white hover:opacity-90 transition-all"
+                style={{ backgroundColor: "#dc2626" }}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Hapus {selected.size} Minggu
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Confirm bulk delete dialog */}
+      {confirmBulk && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-950/30 flex items-center justify-center shrink-0">
+                <Trash2 className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <p className="text-sm font-bold">Hapus {selected.size} Ayat Mingguan?</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {selected.size} ayat mingguan akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.
+                </p>
+              </div>
+            </div>
+            <div className="rounded-xl bg-muted/40 border border-border px-3 py-2 space-y-1 max-h-32 overflow-y-auto">
+              {[...selected].sort().slice(0, 5).map((k) => (
+                <p key={k} className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
+                  <span className="font-medium">{k}</span>
+                  <span className="truncate text-muted-foreground/60">— {(data.mingguan ?? {})[k]?.reference}</span>
+                </p>
+              ))}
+              {selected.size > 5 && <p className="text-[11px] text-muted-foreground pl-3">+ {selected.size - 5} lainnya...</p>}
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <button onClick={() => setConfirmBulk(false)} disabled={bulkDeleting}
+                className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-xl transition-colors disabled:opacity-50"
+              >Batal</button>
+              <button onClick={handleBulkDelete} disabled={bulkDeleting}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white rounded-xl hover:opacity-90 disabled:opacity-60 transition-all"
+                style={{ backgroundColor: "#dc2626" }}
+              >
+                {bulkDeleting ? <><Loader2 className="h-4 w-4 animate-spin" /> Menghapus...</> : <><Trash2 className="h-4 w-4" /> Ya, Hapus</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add new */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">

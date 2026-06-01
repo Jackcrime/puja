@@ -3,7 +3,7 @@
 import React, { useRef, useState } from "react";
 import {
   Download, Upload, X, CheckCircle2, AlertTriangle,
-  Loader2, FileJson, ChevronDown, ChevronUp, Trash2,
+  Loader2, FileJson, ChevronDown, ChevronUp, Trash2, ShieldAlert,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { showToast } from "@/lib/utils/toast";
@@ -445,9 +445,162 @@ function ImportPanel({ onClose, onImported }: { onClose: () => void; onImported?
   );
 }
 
+// ─── Reset Panel ──────────────────────────────────────────────────────────────
+
+function ResetPanel({ onClose }: { onClose: () => void }) {
+  const [step,        setStep]        = useState<"warn" | "confirm" | "deleting" | "done">("warn");
+  const [inputVal,    setInputVal]    = useState("");
+  const [count,       setCount]       = useState<number | null>(null);
+  const CONFIRM_WORD = "HAPUS SEMUA";
+
+  // Fetch count saat panel dibuka
+  React.useEffect(() => {
+    supabase
+      .from("devotional")
+      .select("date_key", { count: "exact", head: true })
+      .not("date_key", "eq", "current")
+      .then(({ count: c }) => setCount(c ?? 0));
+  }, []);
+
+  const handleDelete = async () => {
+    setStep("deleting");
+    try {
+      // Hapus semua row kecuali "current"
+      const { error } = await supabase
+        .from("devotional")
+        .delete()
+        .not("date_key", "eq", "current");
+      if (error) throw error;
+      setStep("done");
+      showToast.success("Semua data renungan berhasil dihapus.");
+    } catch (e) {
+      console.error(e);
+      showToast.error("Gagal menghapus. Coba lagi.");
+      setStep("confirm");
+    }
+  };
+
+  if (step === "done") {
+    return (
+      <div className="flex flex-col items-center gap-3 py-6 text-center">
+        <CheckCircle2 className="h-10 w-10 text-green-500" />
+        <p className="font-semibold text-foreground">Semua renungan berhasil dihapus.</p>
+        <p className="text-sm text-muted-foreground">Database bersih. Kamu bisa mulai mengisi ulang.</p>
+        <button onClick={onClose} className="mt-2 px-5 py-2 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "var(--brand)" }}>
+          Tutup
+        </button>
+      </div>
+    );
+  }
+
+  if (step === "deleting") {
+    return (
+      <div className="flex flex-col items-center gap-4 py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-red-500" />
+        <p className="text-sm font-semibold text-red-600">Menghapus semua renungan...</p>
+      </div>
+    );
+  }
+
+  if (step === "confirm") {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
+          <ShieldAlert className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-red-700 dark:text-red-400">Konfirmasi Penghapusan</p>
+            <p className="text-xs text-red-600 dark:text-red-500 leading-relaxed">
+              Tindakan ini akan menghapus <strong>{count ?? "..."} renungan</strong> secara permanen.
+              Ketik <strong className="font-mono tracking-wider">{CONFIRM_WORD}</strong> untuk melanjutkan.
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-bold uppercase tracking-wider block mb-1.5 text-muted-foreground">
+            Ketik konfirmasi
+          </label>
+          <input
+            value={inputVal}
+            onChange={(e) => setInputVal(e.target.value)}
+            placeholder={CONFIRM_WORD}
+            className="w-full px-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-1 focus:ring-red-400 font-mono tracking-wide"
+          />
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => { setStep("warn"); setInputVal(""); }}
+            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-border hover:bg-muted transition-colors text-muted-foreground"
+          >
+            Kembali
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={inputVal !== CONFIRM_WORD}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-40 hover:opacity-90"
+            style={{ backgroundColor: "#dc2626" }}
+          >
+            <Trash2 className="h-4 w-4" /> Hapus Semua
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // step === "warn"
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
+        <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+        <div className="space-y-1.5">
+          <p className="text-sm font-bold text-red-700 dark:text-red-400">Peringatan — Tindakan Tidak Bisa Dibatalkan</p>
+          <p className="text-xs text-red-600 dark:text-red-500 leading-relaxed">
+            Fitur ini akan menghapus <strong>seluruh data renungan</strong> dari database secara permanen.
+            Row <code className="font-mono text-[10px]">current</code> tidak akan ikut dihapus.
+          </p>
+          <ul className="text-xs text-red-600 dark:text-red-500 space-y-0.5 list-disc list-inside">
+            <li>Semua judul, isi, doa, audio renungan akan hilang</li>
+            <li>Data tidak bisa dipulihkan kecuali ada backup</li>
+            <li>Pastikan sudah export terlebih dahulu</li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="rounded-xl bg-muted/40 border border-border p-3 flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">Total renungan tersimpan</span>
+        <span className="text-sm font-bold" style={{ color: "var(--brand)" }}>
+          {count === null ? "..." : `${count} renungan`}
+        </span>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        Disarankan untuk <strong>Export</strong> data terlebih dahulu sebelum melanjutkan.
+      </p>
+
+      <div className="flex gap-2">
+        <button
+          onClick={onClose}
+          className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-border hover:bg-muted transition-colors text-muted-foreground"
+        >
+          Batal
+        </button>
+        <button
+          onClick={() => setStep("confirm")}
+          disabled={count === 0}
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-40 hover:opacity-90"
+          style={{ backgroundColor: "#dc262615", color: "#dc2626", border: "1px solid #dc262640" }}
+        >
+          <ShieldAlert className="h-4 w-4" /> Lanjutkan Reset
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Export (modal drawer) ───────────────────────────────────────────────
 
-type Mode = "export" | "import";
+type Mode = "export" | "import" | "reset";
 
 interface Props {
   onImported?: () => void;
@@ -490,27 +643,29 @@ export function RenunganImportExport({ onImported }: Props) {
 
             {/* Tab switcher */}
             <div className="flex gap-1 p-3 border-b border-border shrink-0">
-              {(["export", "import"] as Mode[]).map((m) => (
+              {(["export", "import", "reset"] as Mode[]).map((m) => (
                 <button
                   key={m}
                   onClick={() => setMode(m)}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all"
                   style={
                     mode === m
-                      ? { backgroundColor: "var(--brand)", color: "white" }
-                      : { color: "var(--muted-foreground)" }
+                      ? { backgroundColor: m === "reset" ? "#dc2626" : "var(--brand)", color: "white" }
+                      : { color: m === "reset" ? "#dc2626" : "var(--muted-foreground)" }
                   }
                 >
-                  {m === "export" ? <><Download className="h-3.5 w-3.5" /> Ekspor</> : <><Upload className="h-3.5 w-3.5" /> Impor</>}
+                  {m === "export" && <><Download className="h-3.5 w-3.5" /> Ekspor</>}
+                  {m === "import" && <><Upload className="h-3.5 w-3.5" /> Impor</>}
+                  {m === "reset"  && <><Trash2 className="h-3.5 w-3.5" /> Reset</>}
                 </button>
               ))}
             </div>
 
             {/* Modal body */}
             <div className="flex-1 overflow-y-auto p-5">
-              {mode === "export"
-                ? <ExportPanel onClose={() => setOpen(false)} />
-                : <ImportPanel onClose={() => setOpen(false)} onImported={onImported} />}
+              {mode === "export" && <ExportPanel onClose={() => setOpen(false)} />}
+              {mode === "import" && <ImportPanel onClose={() => setOpen(false)} onImported={onImported} />}
+              {mode === "reset"  && <ResetPanel  onClose={() => setOpen(false)} />}
             </div>
           </div>
         </div>
