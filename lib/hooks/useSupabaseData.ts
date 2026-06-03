@@ -4,7 +4,7 @@
 // Menggantikan lib/hooks/useFirestoreData.ts
 // Semua data di-fetch dari Supabase tables (tanpa JSONB)
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { sw } from "@/lib/supabase-safe";
 import { readRow, writeRow, readCollection, insertRow, updateRow, deleteRow, replaceAllRows, subscribeRow } from "@/lib/supabase-db";
@@ -842,15 +842,13 @@ async function saveMazmurByKey(dateKey: string, next: MazmurMinggu): Promise<voi
   }
 }
 
-export function useMazmurMinggu(date?: Date, { noFallback = false }: { noFallback?: boolean } = {}) {
+export function useMazmurMinggu(date?: Date) {
   const [data, setData]       = useState<MazmurMinggu>(EMPTY_MAZMUR);
-  const [exists, setExists]   = useState(false);
   const [loading, setLoading] = useState(true);
   const dateKey = getSundayKey(date ?? new Date());
 
   useEffect(() => {
     setLoading(true);
-    setExists(false);
     let cancelled = false;
 
     (async () => {
@@ -859,12 +857,9 @@ export function useMazmurMinggu(date?: Date, { noFallback = false }: { noFallbac
         if (cancelled) return;
         if (byWeek) {
           setData(byWeek);
-          setExists(true);
-        } else if (!noFallback) {
+        } else {
           const current = await loadMazmurByKey("current");
           if (!cancelled) setData(current ?? EMPTY_MAZMUR);
-        } else {
-          if (!cancelled) setData(EMPTY_MAZMUR);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -872,7 +867,7 @@ export function useMazmurMinggu(date?: Date, { noFallback = false }: { noFallbac
     })();
 
     return () => { cancelled = true; };
-  }, [dateKey, noFallback]);
+  }, [dateKey]);
 
   const save = useCallback(async (next: MazmurMinggu, targetDate?: Date) => {
     const key = getSundayKey(targetDate ?? date ?? new Date());
@@ -904,7 +899,7 @@ export function useMazmurMinggu(date?: Date, { noFallback = false }: { noFallbac
     }
   }, [date]);
 
-  return { data, exists, loading, save, clear, dateKey };
+  return { data, loading, save, clear, dateKey };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -978,15 +973,13 @@ async function saveKhotbahByKey(dateKey: string, next: BahanKhotbah): Promise<vo
   }
 }
 
-export function useBahanKhotbah(date?: Date, { noFallback = false }: { noFallback?: boolean } = {}) {
+export function useBahanKhotbah(date?: Date) {
   const [data, setData]       = useState<BahanKhotbah>(EMPTY_BAHAN_KHOTBAH);
-  const [exists, setExists]   = useState(false);
   const [loading, setLoading] = useState(true);
   const dateKey = getSundayKey(date ?? new Date());
 
   useEffect(() => {
     setLoading(true);
-    setExists(false);
     let cancelled = false;
 
     (async () => {
@@ -995,12 +988,9 @@ export function useBahanKhotbah(date?: Date, { noFallback = false }: { noFallbac
         if (cancelled) return;
         if (byWeek) {
           setData(byWeek);
-          setExists(true);
-        } else if (!noFallback) {
+        } else {
           const current = await loadKhotbahByKey("current");
           if (!cancelled) setData(current ?? EMPTY_BAHAN_KHOTBAH);
-        } else {
-          if (!cancelled) setData(EMPTY_BAHAN_KHOTBAH);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -1008,7 +998,7 @@ export function useBahanKhotbah(date?: Date, { noFallback = false }: { noFallbac
     })();
 
     return () => { cancelled = true; };
-  }, [dateKey, noFallback]);
+  }, [dateKey]);
 
   const save = useCallback(async (next: BahanKhotbah, targetDate?: Date) => {
     const key = getSundayKey(targetDate ?? date ?? new Date());
@@ -1038,8 +1028,9 @@ export function useBahanKhotbah(date?: Date, { noFallback = false }: { noFallbac
     }
   }, [date]);
 
-  return { data, exists, loading, save, clear, dateKey };
+  return { data, loading, save, clear, dateKey };
 }
+
 // ═══════════════════════════════════════════════════════════════════════════
 // 14. POKOK DOA HARIAN
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1120,28 +1111,63 @@ export function useAyatNats() {
 
   const save = useCallback(async (next: AyatNats) => {
     try {
-      await sw(supabase.from("ayat_nats").delete().neq("id", "SENTINEL"))
-      if (next.items.length > 0) {
-        await supabase.from("ayat_nats").insert(
-          next.items.map((item, i) => ({
+      // ── Snapshot ID yang ada di DB sekarang ────────────────────────────
+      const { data: snapshot } = await supabase.from("ayat_nats").select("id");
+      const snapshotIds = new Set((snapshot ?? []).map((r: any) => String(r.id)));
+
+      // Pisahkan item: sudah ada di DB vs baru (belum ada ID)
+      const existing = next.items.filter(i => i.id && snapshotIds.has(String(i.id)));
+      const newItems  = next.items.filter(i => !i.id || !snapshotIds.has(String(i.id)));
+
+      // ── 1. UPSERT item yang sudah ada → ID tidak berubah ────────────────
+      // Ini penting supaya ayat_nats_schedule (ON DELETE CASCADE) tidak terhapus!
+      if (existing.length > 0) {
+        await sw(supabase.from("ayat_nats").upsert(
+          existing.map((item) => ({
             id:         item.id,
             reference:  item.reference,
             text:       item.text,
-            book_slug:  item.bookSlug  ?? "",
-            book_name:  item.bookName  ?? "",
-            chapter:    item.chapter   ?? 0,
-            verse_from: item.verseFrom ?? 0,
-            verse_to:   item.verseTo   ?? 0,
-            sort_order: i,
-          }))
-        );
+            book_slug:  item.bookSlug  || null,
+            book_name:  item.bookName  || null,
+            chapter:    item.chapter   || null,
+            verse_from: item.verseFrom || null,
+            verse_to:   item.verseTo   || null,
+            sort_order: next.items.indexOf(item),
+          })),
+          { onConflict: "id" }
+        ));
       }
-      setData(next);
+
+      // ── 2. INSERT item baru (tanpa ID → DB auto-generate UUID) ──────────
+      if (newItems.length > 0) {
+        await sw(supabase.from("ayat_nats").insert(
+          newItems.map((item) => ({
+            reference:  item.reference,
+            text:       item.text,
+            book_slug:  item.bookSlug  || null,
+            book_name:  item.bookName  || null,
+            chapter:    item.chapter   || null,
+            verse_from: item.verseFrom || null,
+            verse_to:   item.verseTo   || null,
+            sort_order: next.items.indexOf(item),
+          }))
+        ));
+      }
+
+      // ── 3. DELETE hanya item yang dihapus user ──────────────────────────
+      // Jangan delete semua! Hanya yang tidak ada di daftar incoming.
+      const keepIds  = new Set(existing.map(i => String(i.id)));
+      const toDelete = [...snapshotIds].filter(id => !keepIds.has(id));
+      if (toDelete.length > 0) {
+        await sw(supabase.from("ayat_nats").delete().in("id", toDelete));
+      }
+
+      await load();
     } catch (e) {
       console.error("[useAyatNats] save error:", e);
       toast.error("Gagal menyimpan ayat nats. Coba lagi.");
     }
-  }, []);
+  }, [load]);
 
   return { data, loading, save };
 }
@@ -1163,29 +1189,54 @@ export function useAyatNatsHarian(date?: Date) {
   const [schedule, setSchedule] = useState<AyatNatsDailySchedule>(DEFAULT_SCHEDULE);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    Promise.all([
+  const loadAll = useCallback(async () => {
+    // Ambil pool ayat + jadwal untuk hari ini secara parallel
+    const [{ data: nats }, { data: sched }] = await Promise.all([
       supabase.from("ayat_nats").select("*").order("sort_order"),
-      supabase.from("ayat_nats_schedule").select("ayat_nats_id, sort_order").eq("date_key", dateKey).order("sort_order"),
-    ]).then(([{ data: nats }, { data: sched }]) => {
-      const items = (nats ?? []).map(rowToAyatNats);
-      setPool({ items });
+      // JOIN langsung ke ayat_nats supaya tidak ada mismatch ID
+      supabase
+        .from("ayat_nats_schedule")
+        .select("ayat_nats_id, sort_order, ayat_nats!inner(id, reference, text, book_slug, book_name, chapter, verse_from, verse_to)")
+        .eq("date_key", dateKey)
+        .order("sort_order"),
+    ]);
 
-      const schedMap: Record<string, string[]> = {};
-      if (sched && sched.length > 0) {
-        schedMap[dateKey] = (sched as any[]).map((s) => s.ayat_nats_id);
-      }
-      setSchedule({ schedule: schedMap });
-      setLoading(false);
-    });
+    const allItems = (nats ?? []).map(rowToAyatNats);
+    setPool({ items: allItems });
+
+    const schedMap: Record<string, string[]> = {};
+    if (sched && sched.length > 0) {
+      schedMap[dateKey] = (sched as any[]).map((s) => s.ayat_nats_id);
+    }
+    setSchedule({ schedule: schedMap });
+    setLoading(false);
   }, [dateKey]);
+
+  useEffect(() => {
+    loadAll();
+
+    // Realtime: update saat admin ubah pool atau jadwal
+    const channel = supabase
+      .channel(`nats_harian:${dateKey}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "ayat_nats" },
+        () => loadAll()
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "ayat_nats_schedule" },
+        () => loadAll()
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [dateKey, loadAll]);
 
   const items = (() => {
     const allItems = pool.items ?? [];
     if (allItems.length === 0) return [];
     const scheduledIds = schedule.schedule?.[dateKey];
     if (scheduledIds && scheduledIds.length > 0) {
-      const found = scheduledIds.map((id) => allItems.find((i) => i.id === id)).filter(Boolean) as AyatNatsItem[];
+      const found = scheduledIds
+        .map((id) => allItems.find((i) => String(i.id) === String(id)))
+        .filter(Boolean) as AyatNatsItem[];
       if (found.length > 0) return found;
     }
     return autoPickItem(allItems, targetDate);
@@ -1198,21 +1249,27 @@ export function useAyatNatsSchedule() {
   const [data,    setData]    = useState<AyatNatsDailySchedule>(DEFAULT_SCHEDULE);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    supabase
+  // Ref untuk baca state terbaru tanpa stale closure di toggleItemForDate
+  const dataRef = useRef<AyatNatsDailySchedule>(DEFAULT_SCHEDULE);
+  useEffect(() => { dataRef.current = data; }, [data]);
+
+  const loadAll = useCallback(async () => {
+    const { data: rows } = await supabase
       .from("ayat_nats_schedule")
       .select("date_key, ayat_nats_id, sort_order")
-      .order("sort_order")
-      .then(({ data: rows }) => {
-        const schedule: Record<string, string[]> = {};
-        for (const row of (rows ?? [])) {
-          if (!schedule[row.date_key]) schedule[row.date_key] = [];
-          schedule[row.date_key].push(row.ayat_nats_id);
-        }
-        setData({ schedule });
-        setLoading(false);
-      });
+      .order("sort_order");
+    const schedule: Record<string, string[]> = {};
+    for (const row of (rows ?? [])) {
+      if (!schedule[row.date_key]) schedule[row.date_key] = [];
+      schedule[row.date_key].push(row.ayat_nats_id);
+    }
+    const next = { schedule };
+    dataRef.current = next;
+    setData(next);
+    setLoading(false);
   }, []);
+
+  useEffect(() => { loadAll(); }, [loadAll]);
 
   const save = useCallback(async (next: AyatNatsDailySchedule) => {
     try {
@@ -1222,6 +1279,7 @@ export function useAyatNatsSchedule() {
         ids.forEach((id, i) => rows.push({ date_key: dateKey, ayat_nats_id: id, sort_order: i }));
       }
       if (rows.length > 0) await sw(supabase.from("ayat_nats_schedule").insert(rows))
+      dataRef.current = next;
       setData(next);
     } catch (e) {
       console.error("[useAyatNatsSchedule] save error:", e);
@@ -1229,34 +1287,49 @@ export function useAyatNatsSchedule() {
     }
   }, []);
 
+  // ── toggleItemForDate: aman untuk StrictMode, pakai sw() ────────────────
   const toggleItemForDate = useCallback(async (dateKey: string, itemId: string | null) => {
+    // Baca state terbaru via ref — tidak ada stale closure
+    const currentIds: string[] = dataRef.current.schedule?.[dateKey] ?? [];
+
+    // Hitung nextIds
+    let nextIds: string[];
+    if (itemId === null) {
+      nextIds = [];
+    } else if (currentIds.includes(itemId)) {
+      const updated = currentIds.filter((id) => id !== itemId);
+      nextIds = updated; // bisa jadi []
+    } else {
+      nextIds = [...currentIds, itemId];
+    }
+
+    // Optimistic UI update (sebelum await DB, supaya terasa responsif)
     setData((prev) => {
       const next = { schedule: { ...(prev.schedule ?? {}) } };
-      if (itemId === null) {
+      if (nextIds.length === 0) {
         delete next.schedule[dateKey];
       } else {
-        const current = next.schedule[dateKey] ?? [];
-        if (current.includes(itemId)) {
-          const updated = current.filter((id) => id !== itemId);
-          if (updated.length === 0) delete next.schedule[dateKey];
-          else next.schedule[dateKey] = updated;
-        } else {
-          next.schedule[dateKey] = [...current, itemId];
-        }
+        next.schedule[dateKey] = nextIds;
       }
-      // Persist async
-      (async () => {
-        await sw(supabase.from("ayat_nats_schedule").delete().eq("date_key", dateKey))
-        const ids = next.schedule[dateKey] ?? [];
-        if (ids.length > 0) {
-          await supabase.from("ayat_nats_schedule").insert(
-            ids.map((id, i) => ({ date_key: dateKey, ayat_nats_id: id, sort_order: i }))
-          );
-        }
-      })().catch(console.error);
+      dataRef.current = next;
       return next;
     });
-  }, []);
+
+    // Persist ke DB — KEDUANYA pakai sw() supaya error tidak silent
+    try {
+      await sw(supabase.from("ayat_nats_schedule").delete().eq("date_key", dateKey));
+      if (nextIds.length > 0) {
+        await sw(supabase.from("ayat_nats_schedule").insert(
+          nextIds.map((id, i) => ({ date_key: dateKey, ayat_nats_id: id, sort_order: i }))
+        ));
+      }
+    } catch (e) {
+      // Rollback: kembalikan state dari DB
+      console.error("[useAyatNatsSchedule] toggleItemForDate error:", e);
+      await loadAll();
+      throw e; // re-throw supaya komponen bisa tampil toast error
+    }
+  }, [loadAll]);
 
   return { data, loading, save, toggleItemForDate };
 }
@@ -1332,7 +1405,7 @@ async function saveBibleReadingsByKey(dateKey: string, items: BibleReading[]): P
   }
 }
 
-export function useBibleReadings(date?: Date, { noFallback = false }: { noFallback?: boolean } = {}) {
+export function useBibleReadings(date?: Date) {
   const [data, setData]       = useState<BibleReading[]>([]);
   const [loading, setLoading] = useState(true);
   const dateKey = date ? formatDateKey(date) : null;
@@ -1348,11 +1421,9 @@ export function useBibleReadings(date?: Date, { noFallback = false }: { noFallba
           if (cancelled) return;
           if (byDate.length > 0) {
             setData(byDate);
-          } else if (!noFallback) {
+          } else {
             const current = await loadBibleReadingsByKey("current");
             if (!cancelled) setData(current);
-          } else {
-            if (!cancelled) setData([]);
           }
         } else {
           const current = await loadBibleReadingsByKey("current");
@@ -1364,7 +1435,7 @@ export function useBibleReadings(date?: Date, { noFallback = false }: { noFallba
     })();
 
     return () => { cancelled = true; };
-  }, [dateKey, noFallback]);
+  }, [dateKey]);
 
   const save = useCallback(async (items: BibleReading[]) => {
     try {

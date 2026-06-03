@@ -126,8 +126,11 @@ export default function AdminPenulis() {
 
   const [authors, setAuthors] = useState<AuthorRow[]>([]);
   const [search,  setSearch]  = useState("");
-  const [modal,   setModal]   = useState(false);
-  const [confirm, setConfirm] = useState(false);
+  const [modal,       setModal]       = useState(false);
+  const [confirm,     setConfirm]     = useState(false);
+  const [confirmBulk, setConfirmBulk] = useState(false);
+  const [bulkIds,     setBulkIds]     = useState<(string | number)[]>([]);
+  const [bulkDeleting,setBulkDeleting]= useState(false);
   const [editing, setEditing] = useState<AuthorRow | null>(null);
   const [form,    setForm]    = useState<AuthorRow>(EMPTY);
   const [target,  setTarget]  = useState<AuthorRow | null>(null);
@@ -209,6 +212,25 @@ export default function AdminPenulis() {
 
   const addService = () =>
     setForm((f) => ({ ...f, serviceHistory: [...f.serviceHistory, { ...EMPTY_SERVICE }] }));
+
+  const handleBulkDelete = async () => {
+    setBulkDeleting(true);
+    let success = 0;
+    for (const id of bulkIds) {
+      try {
+        const author = authors.find((a) => a.id === id || a.code === id);
+        if (author?.photoUrl) {
+          try { await deleteFileByUrl(author.photoUrl); } catch { /* tidak kritis */ }
+        }
+        await removeAuthor(String(id));
+        success++;
+      } catch { /* lanjut ke item berikutnya */ }
+    }
+    setBulkDeleting(false);
+    setConfirmBulk(false);
+    setBulkIds([]);
+    showToast.success(`${success} penulis berhasil dihapus.`);
+  };
 
   const removeService = (i: number) =>
     setForm((f) => ({ ...f, serviceHistory: f.serviceHistory.filter((_, idx) => idx !== i) }));
@@ -320,6 +342,8 @@ export default function AdminPenulis() {
             onAdd={openAdd}
             onEdit={openEdit}
             onDelete={openDelete}
+            onBulkDelete={(ids) => { setBulkIds(ids); setConfirmBulk(true); }}
+            bulkDeleteLabel={`Hapus ${bulkIds.length || ""} Penulis`}
             addLabel="Tambah Penulis"
             searchValue={search}
             onSearchChange={setSearch}
@@ -470,6 +494,13 @@ export default function AdminPenulis() {
           onOpenChange={setConfirm}
           description={`Hapus penulis "${target?.name}" (${target?.code})? Tindakan ini tidak bisa dibatalkan.`}
           onConfirm={handleDelete}
+        />
+
+        <ConfirmDialog
+          open={confirmBulk}
+          onOpenChange={(open) => { if (!bulkDeleting) setConfirmBulk(open); }}
+          description={`Hapus ${bulkIds.length} penulis sekaligus? Semua data termasuk foto dan riwayat pelayanan akan dihapus permanen.`}
+          onConfirm={handleBulkDelete}
         />
       </AdminLayout>
     </AdminGuard>

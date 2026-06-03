@@ -68,12 +68,21 @@ export function AyatNatsScheduleSection() {
   };
 
   const handleToggle = async (dateKey: string, itemId: string | null) => {
-    setToggling(itemId);
+    setToggling(itemId ?? "__reset__");
     try {
       await toggleItemForDate(dateKey, itemId);
-      if (itemId === null) showToast.success("Jadwal dihapus, kembali ke auto-rotate.");
+      if (itemId === null) {
+        showToast.success("Jadwal dihapus — kembali ke auto-rotate.");
+      } else {
+        const wasScheduled = (sched.schedule?.[dateKey] ?? []).includes(itemId);
+        if (wasScheduled) {
+          showToast.success("Ayat dilepas dari jadwal hari ini.");
+        } else {
+          showToast.success("Jadwal berhasil disimpan.");
+        }
+      }
     } catch {
-      showToast.error("Gagal menyimpan jadwal.");
+      showToast.error("Gagal menyimpan jadwal. Coba lagi.");
     }
     setToggling(null);
   };

@@ -9,7 +9,7 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { FileUploader } from "@/components/admin/FileUploader";
 import { usePustakaBooks, type PustakaBook } from "@/lib/hooks/useSupabaseData";
 import { deleteFileByUrl } from "@/lib/storage";
-import { Loader2, ExternalLink } from "lucide-react";
+import { Loader2, ExternalLink, Trash2 } from "lucide-react";
 import { showToast } from "@/lib/utils/toast";
 
 const EMPTY: Omit<PustakaBook, "id"> = {
@@ -22,9 +22,12 @@ export default function AdminPustaka() {
   const [search, setSearch]                 = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterYear, setFilterYear]         = useState("");
-  const [modal, setModal]     = useState(false);
-  const [confirm, setConfirm] = useState(false);
-  const [editing, setEditing] = useState<PustakaBook | null>(null);
+  const [modal, setModal]           = useState(false);
+  const [confirm, setConfirm]       = useState(false);
+  const [confirmBulk, setConfirmBulk] = useState(false);
+  const [bulkIds, setBulkIds]       = useState<(string | number)[]>([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [editing, setEditing]       = useState<PustakaBook | null>(null);
   const [form, setForm]       = useState<any>({ ...EMPTY });
   const [target, setTarget]   = useState<PustakaBook | null>(null);
 
@@ -107,6 +110,22 @@ export default function AdminPustaka() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    setBulkDeleting(true);
+    let success = 0;
+    for (const id of bulkIds) {
+      const book = books.find((b) => b.id === id);
+      try {
+        if (book?.fileUrl) await deleteFileByUrl(book.fileUrl).catch(() => {});
+        await remove(String(id));
+        success++;
+      } catch { /* lanjut ke item berikutnya */ }
+    }
+    setBulkDeleting(false);
+    setConfirmBulk(false);
+    setBulkIds([]);
+    showToast.success(`${success} dokumen berhasil dihapus.`);
+  };
   return (
     <AdminGuard>
       <AdminLayout title="Pustaka Digital">
@@ -154,6 +173,8 @@ export default function AdminPustaka() {
             onAdd={openAdd}
             onEdit={openEdit}
             onDelete={(b) => { setTarget(b); setConfirm(true); }}
+            onBulkDelete={(ids) => { setBulkIds(ids); setConfirmBulk(true); }}
+            bulkDeleteLabel={`Hapus ${bulkIds.length || ""} Dokumen`}
             addLabel="Tambah Dokumen"
             searchValue={search}
             onSearchChange={setSearch}
@@ -238,6 +259,13 @@ export default function AdminPustaka() {
           onOpenChange={setConfirm}
           description={`Hapus dokumen "${target?.title}"?`}
           onConfirm={handleDelete}
+        />
+
+        <ConfirmDialog
+          open={confirmBulk}
+          onOpenChange={(open) => { if (!bulkDeleting) setConfirmBulk(open); }}
+          description={`Hapus ${bulkIds.length} dokumen sekaligus? Tindakan ini tidak bisa dibatalkan.`}
+          onConfirm={handleBulkDelete}
         />
       </AdminLayout>
     </AdminGuard>

@@ -14,8 +14,7 @@ import {
 import { ShareButton } from "@/components/ui/ShareSheet";
 import { buildDevotionalPayload } from "@/lib/utils/share";
 
-// TODO: ganti dengan URL app Alkitab GKPB setelah selesai dibangun
-const BIBLE_APP_URL = "https://alkitab.gkpb.id";
+const  Bible_url = process.env.BIBLE_APP_URL ;
 import { useI18n } from "@/lib/hooks/useI18n";
 import { useDate } from "@/lib/context/DateContext";
 import { format, getDay } from "date-fns";
@@ -318,7 +317,7 @@ export default function JanjiHidup() {
         </section>
 
         {/* Tombol ke App Alkitab */}
-        <a href={BIBLE_APP_URL} target="_blank" rel="noopener noreferrer">
+        <a href={Bible_url} target="_blank" rel="noopener noreferrer">
           <div className="flex items-center justify-between p-5 rounded-xl border border-border bg-card hover:shadow-md hover:-translate-y-0.5 transition-all">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "var(--brand-muted)" }}>

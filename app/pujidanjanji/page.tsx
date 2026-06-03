@@ -20,7 +20,7 @@ import { useDate } from "@/lib/context/DateContext";
 import { getLiturgicalEvents, getLiturgicalSeason } from "@/lib/utils/liturgicalCalendar";
 
 // TODO: ganti dengan URL app Alkitab GKPB setelah selesai dibangun
-const BIBLE_APP_URL = "https://alkitab.gkpb.id";
+const  Bible_url = process.env.BIBLE_APP_URL ;
 import { useTheme } from "next-themes";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -201,7 +201,7 @@ export default function PujiDanJanji() {
         </Link>
 
         {/* Tombol ke App Alkitab */}
-        <a href={BIBLE_APP_URL} target="_blank" rel="noopener noreferrer">
+        <a href={Bible_url} target="_blank" rel="noopener noreferrer">
           <div className="flex items-center justify-between p-5 rounded-xl border border-border bg-card hover:shadow-md hover:-translate-y-0.5 transition-all mt-3">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "var(--brand-muted)" }}>

@@ -42,12 +42,15 @@ const CATEGORY_COLOR: Record<string, string> = {
 export default function AdminMinistries() {
   const { data, loading, add, update, remove } = useMinistries();
 
-  const [modal,   setModal]   = useState(false);
-  const [confirm, setConfirm] = useState(false);
-  const [editing, setEditing] = useState<Ministry | null>(null);
-  const [form,    setForm]    = useState(EMPTY);
-  const [target,  setTarget]  = useState<Ministry | null>(null);
-  const [search,  setSearch]  = useState("");
+  const [modal,       setModal]       = useState(false);
+  const [confirm,     setConfirm]     = useState(false);
+  const [confirmBulk, setConfirmBulk] = useState(false);
+  const [bulkIds,     setBulkIds]     = useState<(string | number)[]>([]);
+  const [bulkDeleting,setBulkDeleting]= useState(false);
+  const [editing,     setEditing]     = useState<Ministry | null>(null);
+  const [form,        setForm]        = useState(EMPTY);
+  const [target,      setTarget]      = useState<Ministry | null>(null);
+  const [search,      setSearch]      = useState("");
 
   const openAdd    = () => { setEditing(null); setForm(EMPTY); setModal(true); };
   const openEdit   = (m: Ministry) => { setEditing(m); setForm(m); setModal(true); };
@@ -79,6 +82,19 @@ export default function AdminMinistries() {
     } catch {
       showToast.error("Gagal menghapus. Coba lagi.");
     }
+  };
+
+  const handleBulkDelete = async () => {
+    setBulkDeleting(true);
+    let success = 0;
+    for (const id of bulkIds) {
+      try { await remove(String(id)); success++; }
+      catch { /* lanjut ke item berikutnya */ }
+    }
+    setBulkDeleting(false);
+    setConfirmBulk(false);
+    setBulkIds([]);
+    showToast.success(`${success} unit pelayanan berhasil dihapus.`);
   };
 
   const filtered = data.filter((m) =>
@@ -140,6 +156,8 @@ export default function AdminMinistries() {
                 onAdd={openAdd}
                 onEdit={openEdit}
                 onDelete={openDelete}
+                onBulkDelete={(ids) => { setBulkIds(ids); setConfirmBulk(true); }}
+                bulkDeleteLabel={`Hapus ${bulkIds.length || ""} Unit`}
                 addLabel="Tambah Unit"
                 searchValue={search}
                 onSearchChange={setSearch}
@@ -200,6 +218,13 @@ export default function AdminMinistries() {
           onOpenChange={setConfirm}
           description={`Hapus "${target?.name}"? Penulis yang terhubung ke unit ini perlu di-update manual.`}
           onConfirm={handleDelete}
+        />
+
+        <ConfirmDialog
+          open={confirmBulk}
+          onOpenChange={(open) => { if (!bulkDeleting) setConfirmBulk(open); }}
+          description={`Hapus ${bulkIds.length} unit pelayanan sekaligus? Tindakan ini tidak bisa dibatalkan.`}
+          onConfirm={handleBulkDelete}
         />
       </AdminLayout>
     </AdminGuard>
