@@ -842,7 +842,7 @@ async function saveMazmurByKey(dateKey: string, next: MazmurMinggu): Promise<voi
   }
 }
 
-export function useMazmurMinggu(date?: Date) {
+export function useMazmurMinggu(date?: Date, { noFallback = false }: { noFallback?: boolean } = {}) {
   const [data, setData]       = useState<MazmurMinggu>(EMPTY_MAZMUR);
   const [loading, setLoading] = useState(true);
   const dateKey = getSundayKey(date ?? new Date());
@@ -973,7 +973,7 @@ async function saveKhotbahByKey(dateKey: string, next: BahanKhotbah): Promise<vo
   }
 }
 
-export function useBahanKhotbah(date?: Date) {
+export function useBahanKhotbah(date?: Date, { noFallback = false }: { noFallback?: boolean } = {}) {
   const [data, setData]       = useState<BahanKhotbah>(EMPTY_BAHAN_KHOTBAH);
   const [loading, setLoading] = useState(true);
   const dateKey = getSundayKey(date ?? new Date());
@@ -1405,7 +1405,7 @@ async function saveBibleReadingsByKey(dateKey: string, items: BibleReading[]): P
   }
 }
 
-export function useBibleReadings(date?: Date) {
+export function useBibleReadings(date?: Date, { noFallback = false }: { noFallback?: boolean } = {}) {
   const [data, setData]       = useState<BibleReading[]>([]);
   const [loading, setLoading] = useState(true);
   const dateKey = date ? formatDateKey(date) : null;

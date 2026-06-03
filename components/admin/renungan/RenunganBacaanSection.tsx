@@ -6,17 +6,16 @@ import {
 } from "@/lib/hooks/useSupabaseData";                              // ← ganti dari useSupabaseData
 import { BibleVerseSelector, emptySelection, type VerseSelection } from "@/components/admin/ayat/BibleVerseSelector";
 import { selToRef } from "@/lib/utils/adminAyat";
-import { uploadFileWithProgress, deleteFileByUrl } from "@/lib/storage";  // ← ganti dari uploadthing-client
+import { deleteFileByUrl } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 import { showToast } from "@/lib/utils/toast";
-import { convertToWebM, browserSupportsWebM } from "@/lib/utils/audioConverter";
 import {
   BookOpen, CalendarDays, ChevronLeft, ChevronRight,
-  Eye, EyeOff, Loader2, Music2, X, Upload, CheckCircle2, RefreshCw,
-  Save, RotateCcw, Plus, Trash2, ChevronDown, ChevronUp,
-  GripVertical, ShieldAlert, AlertTriangle,
+  Eye, EyeOff, Loader2, RotateCcw, Plus, Trash2, ChevronDown, ChevronUp,
+  GripVertical, ShieldAlert, AlertTriangle, RefreshCw, CheckCircle2, X,
 } from "lucide-react";
 import { INPUT_CLS, FieldLabel, SectionCard, SaveButton } from "./shared";
+import { AudioZoneWithGenerate } from "./AudioGenerateZone";
 import { AuthorPicker } from "./AuthorPicker";
 import { format, addDays, subDays, isSameDay } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -197,163 +196,7 @@ function DayPicker({ date, onChange }: { date: Date; onChange: (d: Date) => void
   );
 }
 
-// ─── Audio Upload Zone ────────────────────────────────────────────────────────
-// Diganti dari useUploadThing (UploadThing) → uploadFileWithProgress (Supabase Storage)
 
-interface AudioUploadZoneProps {
-  currentUrl: string;
-  onUploaded: (url: string) => void;
-  onRemove:   () => Promise<void>;
-}
-
-function AudioUploadZone({ currentUrl, onUploaded, onRemove }: AudioUploadZoneProps) {
-  const [converting,    setConverting]    = useState(false);
-  const [convertPct,    setConvertPct]    = useState(0);
-  const [uploadPct,     setUploadPct]     = useState(0);
-  const [isUploading,   setIsUploading]   = useState(false);
-  const [convertedInfo, setConvertedInfo] = useState<string | null>(null);
-  const [error,         setError]         = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleFile = async (file: File) => {
-    if (!file) return;
-    setError(""); setConvertedInfo(null);
-
-    if (!file.type.startsWith("audio/")) {
-      setError("Format tidak didukung. Gunakan MP3, WAV, OGG, atau WebM.");
-      return;
-    }
-    // Supabase Storage: maks 100 MB (di-set di bucket)
-    if (file.size > 100 * 1024 * 1024) {
-      setError("Ukuran maks 100 MB.");
-      return;
-    }
-
-    let fileToUpload = file;
-
-    // Konversi ke WebM kalau browser support (sama persis seperti sebelumnya)
-    if (file.type !== "audio/webm" && browserSupportsWebM()) {
-      setConverting(true); setConvertPct(0);
-      const result = await convertToWebM(file, (pct) => setConvertPct(pct));
-      setConverting(false);
-      if (result.converted) {
-        const before = (result.sizeBefore / (1024 * 1024)).toFixed(1);
-        const after  = (result.sizeAfter  / (1024 * 1024)).toFixed(1);
-        setConvertedInfo(`Dikonversi ke WebM — ${before} MB → ${after} MB`);
-        fileToUpload = result.file;
-      }
-    }
-
-    setIsUploading(true); setUploadPct(0);
-
-    try {
-      // ↓ Sebelumnya: startUpload([fileToUpload]) via UploadThing
-      // ↓ Sekarang:   uploadFileWithProgress via Supabase Storage
-      const result = await uploadFileWithProgress(
-        "audio",
-        fileToUpload,
-        ({ percent }) => setUploadPct(percent)
-      );
-      onUploaded(result.url);
-      setError("");
-    } catch (e: any) {
-      setError(e?.message ?? "Upload gagal. Coba lagi.");
-    } finally {
-      setIsUploading(false); setUploadPct(0);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (file) handleFile(file);
-  };
-
-  // ─── Sudah ada audio ─────────────────────────────────────────────────────
-  if (currentUrl) {
-    return (
-      <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-muted/30">
-        <Music2 className="h-5 w-5 shrink-0" style={{ color: "var(--brand)" }} />
-        <div className="flex-1 min-w-0">
-          <audio controls src={currentUrl} className="w-full h-8" />
-          <p className="text-xs text-muted-foreground mt-1 truncate">{currentUrl}</p>
-        </div>
-        <div className="flex flex-col gap-1 shrink-0">
-          <button
-            onClick={() => inputRef.current?.click()}
-            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
-            title="Ganti audio"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </button>
-          <button
-            onClick={onRemove}
-            className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500 transition-colors"
-            title="Hapus audio"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <input
-          ref={inputRef} type="file" accept="audio/*" className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
-        />
-      </div>
-    );
-  }
-
-  // ─── Belum ada audio — dropzone ───────────────────────────────────────────
-  const busy = converting || isUploading;
-  return (
-    <div>
-      <div
-        onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}
-        onClick={() => !busy && inputRef.current?.click()}
-        className={[
-          "flex flex-col items-center justify-center gap-2 px-4 py-5 rounded-xl border-2 border-dashed transition-colors",
-          busy ? "opacity-70 cursor-wait" : "cursor-pointer hover:bg-muted",
-        ].join(" ")}
-        style={{ borderColor: "var(--brand-border)" }}
-      >
-        {converting ? (
-          <>
-            <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--brand)" }} />
-            <p className="text-sm font-medium" style={{ color: "var(--brand)" }}>Mengkonversi ke WebM... {convertPct}%</p>
-          </>
-        ) : isUploading ? (
-          <>
-            <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--brand)" }} />
-            <p className="text-sm font-medium" style={{ color: "var(--brand)" }}>Mengupload ke Supabase... {uploadPct}%</p>
-            {/* Progress bar */}
-            <div className="h-1.5 w-48 overflow-hidden rounded-full bg-muted">
-              <div className="h-full bg-[var(--brand)] transition-all duration-200" style={{ width: `${uploadPct}%` }} />
-            </div>
-          </>
-        ) : (
-          <>
-            <Upload className="h-6 w-6" style={{ color: "var(--brand)" }} />
-            <p className="text-sm text-muted-foreground text-center">
-              <span className="font-semibold" style={{ color: "var(--brand)" }}>Klik atau seret</span> file audio ke sini
-            </p>
-            <p className="text-xs text-muted-foreground">MP3 / WAV / OGG — otomatis dikonversi ke <strong>WebM</strong></p>
-          </>
-        )}
-      </div>
-
-      {convertedInfo && (
-        <div className="flex items-center gap-1.5 mt-1.5 text-xs text-green-600 dark:text-green-400">
-          <CheckCircle2 className="h-3.5 w-3.5" /> {convertedInfo}
-        </div>
-      )}
-      {error && <p className="text-xs text-red-500 mt-1.5">{error}</p>}
-
-      <input
-        ref={inputRef} type="file" accept="audio/*" className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
-      />
-    </div>
-  );
-}
 
 // ─── Reset Total Modal ────────────────────────────────────────────────────────
 
@@ -601,12 +444,14 @@ function RenunganPart({ date }: { date: Date }) {
           />
         </div>
 
-        {/* Audio — sekarang pakai Supabase Storage */}
+        {/* Audio — Upload atau Generate TTS */}
         <div>
           <FieldLabel>Audio Renungan</FieldLabel>
-          <AudioUploadZone
+          <AudioZoneWithGenerate
             currentUrl={String((current as any).audioUrl ?? "")}
             onUploaded={(url) => set("audioUrl", url)}
+            bodyText={String((current as any).body ?? "")}
+            titleText={String((current as any).title ?? "")}
             onRemove={async () => {
               const url = (current as any).audioUrl as string;
               set("audioUrl", "");
@@ -614,7 +459,6 @@ function RenunganPart({ date }: { date: Date }) {
                 await update({ ...(form ?? data), audioUrl: "" });
                 setForm(null);
                 setDirty(false);
-                // Hapus dari Supabase Storage berdasarkan URL
                 if (url) await deleteFileByUrl(url).catch(() => {});
                 showToast.success("Audio berhasil dihapus.");
               } catch {
@@ -623,7 +467,6 @@ function RenunganPart({ date }: { date: Date }) {
               }
             }}
           />
-          <p className="text-xs text-muted-foreground mt-1">MP3 / WAV / OGG — maks 100 MB.</p>
         </div>
 
         {/* Isi */}
