@@ -128,7 +128,7 @@ function GeneratePanel({ bodyText, titleText, onGenerated }: GeneratePanelProps)
     setError(""); setGenerating(true); setPreviewUrl(""); setDone(false);
 
     try {
-      const res = await fetch("/api/tts/generate", {
+      const res = await fetch("/api/tts", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ text, voice }),
