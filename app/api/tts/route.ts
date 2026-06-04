@@ -26,6 +26,8 @@ const ALLOWED_VOICES = ["id-ID-ArdiNeural", "id-ID-GadisNeural"] as const;
 const MAX_CHARS      = 6_500;
 const BUCKET         = "audio";
 
+export const maxDuration = 60;
+
 // ── Helper: stream → Buffer ───────────────────────────────────────────────────
 async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
   return new Promise((resolve, reject) => {
