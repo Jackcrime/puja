@@ -128,10 +128,20 @@ function GeneratePanel({ bodyText, titleText, onGenerated }: GeneratePanelProps)
     setError(""); setGenerating(true); setPreviewUrl(""); setDone(false);
 
     try {
+      // Ambil session token dari Supabase
+      const { createClient } = await import("@/lib/supabase");
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) throw new Error("Sesi tidak ditemukan. Silakan login ulang.");
+
       const res = await fetch("/api/tts", {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ text, voice }),
+        headers: {
+          "Content-Type":  "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ text, voice }),
       });
 
       if (!res.ok) {
