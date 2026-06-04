@@ -20,8 +20,8 @@ interface AudioZoneProps {
 type AudioMode = "upload" | "generate";
 
 const VOICES = [
-  { id: "id-ID-ArdiNeural",  label: "Ardi (Pria)",    preview: "Selamat pagi, firman Tuhan menyertai Anda hari ini." },
-  { id: "id-ID-GadisNeural", label: "Gadis (Wanita)", preview: "Selamat pagi, firman Tuhan menyertai Anda hari ini." },
+  { id: "pNInz6obpgDQGcFmaJgB", label: "Adam (Pria)",    preview: "Selamat pagi, firman Tuhan menyertai Anda hari ini." },
+  { id: "EXAVITQu4vr4xnSDxMaL", label: "Bella (Wanita)", preview: "Selamat pagi, firman Tuhan menyertai Anda hari ini." },
 ];
 
 // ─── Voice Selector ───────────────────────────────────────────────────────────

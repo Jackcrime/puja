@@ -1,6 +1,6 @@
 // ─── API Route: POST /api/tts ─────────────────────────────────────────────────
 //
-// Generate audio dari teks menggunakan msedge-tts (Microsoft Edge TTS),
+// Generate audio dari teks menggunakan ElevenLabs TTS,
 // lalu upload hasilnya ke Supabase Storage bucket "audio".
 //
 // Request body:
@@ -9,45 +9,45 @@
 // Response:
 //   { url: string, path: string, size: number, voice: string }
 //
-// Voice options (Indonesia):
-//   "id-ID-ArdiNeural"   — pria (default)
-//   "id-ID-GadisNeural"  — wanita
-//
-// Setup:
-//   npm install msedge-tts
+// .env.local:
+//   ELEVENLABS_API_KEY=your_api_key
 
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin, createAdminClient } from "@/lib/supabase-server";
-import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
 
 // ── Konfigurasi ────────────────────────────────────────────────────────────────
-const DEFAULT_VOICE  = "id-ID-ArdiNeural";
-const ALLOWED_VOICES = ["id-ID-ArdiNeural", "id-ID-GadisNeural"] as const;
+const ELEVENLABS_KEY = process.env.ELEVENLABS_API_KEY ?? "";
 const MAX_CHARS      = 6_500;
 const BUCKET         = "audio";
+const MODEL_ID       = "eleven_multilingual_v2";
 
-export const maxDuration = 60;
+// Default voices — pakai built-in ElevenLabs yang tersedia di free tier
+const VOICES = {
+  pria:   "pNInz6obpgDQGcFmaJgB", // Adam — neutral male, cocok untuk renungan
+  wanita: "EXAVITQu4vr4xnSDxMaL", // Bella — warm female
+} as const;
 
-// ── Helper: stream → Buffer ───────────────────────────────────────────────────
-async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    stream.on("data",  (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
-    stream.on("end",   () => resolve(Buffer.concat(chunks)));
-    stream.on("error", reject);
-  });
-}
+const DEFAULT_VOICE = VOICES.pria;
+const ALLOWED_VOICES = Object.values(VOICES);
 
 // ── Handler ────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  // 1. Auth — hanya admin
+  // 1. Cek API key
+  if (!ELEVENLABS_KEY) {
+    return NextResponse.json(
+      { error: "ElevenLabs API key belum dikonfigurasi. Set ELEVENLABS_API_KEY di environment." },
+      { status: 503 }
+    );
+  }
+
+  // 2. Auth — hanya admin
   try {
     await verifyAdmin(req);
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // 2. Parse body
+  // 3. Parse body
   let text: string;
   let voice: string;
 
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Request body tidak valid." }, { status: 400 });
   }
 
-  // 3. Validasi
+  // 4. Validasi
   if (!text) {
     return NextResponse.json({ error: "Teks tidak boleh kosong." }, { status: 400 });
   }
@@ -77,32 +77,64 @@ export async function POST(req: NextRequest) {
     voice = DEFAULT_VOICE;
   }
 
-  // 4. Generate via msedge-tts
+  // 5. Hit ElevenLabs TTS API
   let audioBuffer: Buffer;
 
   try {
-    const tts = new MsEdgeTTS();
-    await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
-    const { audioStream } = tts.toStream(text);
-    audioBuffer = await streamToBuffer(audioStream);
-  } catch (e: any) {
-    console.error("[tts] generate error:", e);
+    const res = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voice}`,
+      {
+        method:  "POST",
+        headers: {
+          "xi-api-key":   ELEVENLABS_KEY,
+          "Content-Type": "application/json",
+          "Accept":       "audio/mpeg",
+        },
+        body: JSON.stringify({
+          text,
+          model_id: MODEL_ID,
+          voice_settings: {
+            stability:        0.5,
+            similarity_boost: 0.75,
+            style:            0.3,  // sedikit expressive untuk renungan
+            use_speaker_boost: true,
+          },
+        }),
+      }
+    );
 
-    // Edge TTS tidak bisa dihubungi
-    if (e?.message?.includes("connect") || e?.message?.includes("network") || e?.code === "ECONNREFUSED") {
-      return NextResponse.json(
-        { error: "Tidak dapat terhubung ke server Microsoft Edge TTS. Coba lagi." },
-        { status: 503 }
-      );
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      console.error("[tts] ElevenLabs error:", res.status, errBody);
+
+      if (res.status === 401) {
+        return NextResponse.json(
+          { error: "ElevenLabs API key tidak valid." },
+          { status: 401 }
+        );
+      }
+      if (res.status === 429) {
+        return NextResponse.json(
+          { error: "Quota ElevenLabs habis. Upgrade plan atau coba bulan depan." },
+          { status: 429 }
+        );
+      }
+
+      throw new Error(`ElevenLabs error: ${res.status}`);
     }
 
+    const arrayBuffer = await res.arrayBuffer();
+    audioBuffer = Buffer.from(arrayBuffer);
+
+  } catch (e: any) {
+    console.error("[tts] generate error:", e);
     return NextResponse.json(
       { error: e?.message ?? "Gagal generate audio." },
       { status: 500 }
     );
   }
 
-  // 5. Upload ke Supabase Storage
+  // 6. Upload ke Supabase Storage
   try {
     const supabase  = createAdminClient();
     const timestamp = Date.now();
